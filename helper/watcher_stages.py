@@ -314,6 +314,10 @@ def download_from_nodered(
 
         log_success("Download and explode complete")
 
+        # Clear file watcher state to prevent false rebuild triggers
+        # (explode/post-explode wrote files from server, not user edits)
+        config.clear_file_watcher_state()
+
         # Update statistics (only if this is a counted download, not a stability check)
         if count_stats:
             if config.dashboard:
@@ -351,6 +355,10 @@ def rebuild_and_deploy(config: WatchConfig) -> bool:
     # Deploy
     if not deploy_to_nodered(config):
         return False
+
+    # Clear file watcher state to prevent false rebuild triggers
+    # (deploy completed successfully, already synced with server)
+    config.clear_file_watcher_state()
 
     # ETag cleared by deploy - next poll will download and check convergence
     log_success("Rebuild and deploy complete")
