@@ -16,17 +16,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Global `--enable` and `--disable` parameters** supporting comma-separated plugin lists
+
   - Example: `--disable all --enable normalize-ids` to run only one plugin
   - Example: `--enable all --disable prettier` to run all except one
   - Support for "all" keyword to enable/disable all plugins at once
   - 4-stage processing order: disable all → enable all → disable list → enable list
 
 - **Global `--flows` and `--src` parameters** with sensible defaults
+
   - `--flows` defaults to "flows/flows.json"
   - `--src` defaults to "src"
   - Can be overridden globally or by positional arguments in specific commands
 
 - **Plugin preloading architecture**
+
   - Plugins are loaded once per command invocation instead of multiple times
   - Significantly improves performance for all operations
   - Consistent plugin state across all operations in a command
@@ -39,6 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **Unified plugin control system**
+
   - All plugins now controlled uniformly through `--enable`/`--disable` or configuration
   - No special CLI flags for specific plugin types
   - Configuration file is now the primary method for plugin control
@@ -89,6 +93,7 @@ This is the initial release of vscode-node-red-tools, a comprehensive developmen
 #### Features
 
 - **Core Commands**
+
   - `explode`: Break flows.json into individual source files
   - `rebuild`: Reconstruct flows.json from source files
   - `watch`: Bidirectional sync between local files and Node-RED server
@@ -97,11 +102,13 @@ This is the initial release of vscode-node-red-tools, a comprehensive developmen
   - `list-plugins`: Show loaded plugins and priorities
 
 - **Plugin System**
+
   - Extensible architecture with five plugin types (pre-explode, explode, post-explode, pre-rebuild, post-rebuild)
   - Priority-based execution order
   - Configuration support for enabling/disabling plugins
 
 - **Built-in Plugins**
+
   - ID normalization (converts random IDs to functional names)
   - Action definitions (native JavaScript with export default)
   - Global function declarations
@@ -111,6 +118,7 @@ This is the initial release of vscode-node-red-tools, a comprehensive developmen
   - Prettier formatting integration
 
 - **Watch Mode Features**
+
   - Server polling with ETag caching
   - File system watching with debouncing
   - Optimistic locking with conflict detection

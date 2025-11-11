@@ -92,7 +92,7 @@ if WATCH_AVAILABLE:
             path = Path(event.src_path)
 
             # Exclude skeleton and hidden files
-            if path.name.startswith('.'):
+            if path.name.startswith("."):
                 return
 
             # Record change
@@ -265,6 +265,7 @@ if WATCH_AVAILABLE:
 
                 # Reload only the plugins that were loaded (ignore global enable/disable)
                 from .plugin_loader import load_plugins
+
                 config.plugins_dict = load_plugins(
                     config.repo_root,
                     config.plugin_config,
@@ -373,7 +374,7 @@ def watch_mode(
     src_path: Path,
     plugins_dict: dict = None,
     plugin_config: dict = None,
-    repo_root: Path = None
+    repo_root: Path = None,
 ) -> int:
     """Watch mode - bidirectional sync with Node-RED
 
@@ -400,6 +401,7 @@ def watch_mode(
 
             # Load watch-specific config options
             from .dashboard import DEFAULT_CONVERGENCE_LIMIT, DEFAULT_CONVERGENCE_WINDOW
+
             watch_config = plugin_config.get("watch", {})
             config.convergence_limit = watch_config.get(
                 "convergenceLimit", DEFAULT_CONVERGENCE_LIMIT

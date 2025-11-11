@@ -46,7 +46,10 @@ class TemplatePlugin:
         """Check if this node has a template field"""
         node_type = node.get("type", "")
         # Handle ui_template, ui-template, or template nodes with template field
-        return node_type in ["ui_template", "ui-template", "template"] and "template" in node
+        return (
+            node_type in ["ui_template", "ui-template", "template"]
+            and "template" in node
+        )
 
     def get_claimed_fields(self, node: dict):
         """Claim the template field"""
@@ -116,7 +119,9 @@ class TemplatePlugin:
             return created_files
 
         except Exception as e:
-            print(f"⚠ Warning: template plugin failed for {node.get('id', 'unknown')}: {e}")
+            print(
+                f"⚠ Warning: template plugin failed for {node.get('id', 'unknown')}: {e}"
+            )
             return []
 
     def rebuild_node(

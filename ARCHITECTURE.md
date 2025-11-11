@@ -18,12 +18,14 @@ This document explains the design principles, architecture, and plugin system of
 The tool follows strict separation between core functionality and transformations:
 
 **Core Tool** (vscode-node-red-tools.py) - Pure orchestrator:
+
 - Loads flows.json
 - Breaks nodes into individual JSON files
 - Runs plugin stages in order
 - No transformations or formatting
 
 **Plugins** - All transformations:
+
 - ID normalization
 - Code extraction
 - Function wrapping
@@ -35,6 +37,7 @@ This separation makes the core stable and extensible through plugins.
 ### 2. Idempotency
 
 Operations are designed to be idempotent:
+
 - Exploding the same flows.json multiple times produces identical output
 - Rebuilding from source files multiple times produces identical flows.json
 - Plugins preserve exact function bodies (no reformatting of user code)
@@ -42,6 +45,7 @@ Operations are designed to be idempotent:
 ### 3. Round-Trip Consistency
 
 The `verify` command tests that:
+
 ```
 flows.json → explode → rebuild → flows.json'
 ```
@@ -51,6 +55,7 @@ Where `flows.json` and `flows.json'` are semantically identical (may differ in f
 ### 4. Extensibility
 
 The plugin architecture allows customization without modifying core code:
+
 - Add new node type handlers
 - Customize formatting
 - Add validation rules
@@ -61,6 +66,7 @@ The plugin architecture allows customization without modifying core code:
 ### Core Responsibilities
 
 **vscode-node-red-tools.py:**
+
 - Command-line interface
 - Argument parsing
 - Plugin loading and orchestration
@@ -68,6 +74,7 @@ The plugin architecture allows customization without modifying core code:
 - Error handling and reporting
 
 **helper/ modules:**
+
 - `explode.py` - Core explode logic (file creation)
 - `rebuild.py` - Core rebuild logic (JSON assembly)
 - `skeleton.py` - Skeleton file management
@@ -79,22 +86,27 @@ The plugin architecture allows customization without modifying core code:
 ### Plugin Responsibilities
 
 **Pre-explode plugins:**
+
 - Modify flows JSON before exploding
 - Example: normalize-ids converts random IDs to functional names
 
 **Explode plugins:**
+
 - Extract node-specific data to files
 - Example: action plugin extracts .def.js and .execute.js
 
 **Post-explode plugins:**
+
 - Format source files after exploding
 - Example: prettier-explode formats all source files
 
 **Pre-rebuild plugins:**
+
 - Process files before rebuilding
 - Example: prettier-pre-rebuild ensures consistent formatting
 
 **Post-rebuild plugins:**
+
 - Format flows.json after rebuilding
 - Example: prettier-post-rebuild formats final JSON
 
@@ -173,13 +185,13 @@ Both explode and rebuild use a 3-stage architecture for predictable, modular pro
 
 Plugins are categorized by when they run:
 
-| Type | When | Purpose | Examples |
-|------|------|---------|----------|
-| **pre-explode** | Before exploding | Modify flows JSON | normalize-ids |
-| **explode** | During explode | Extract node data | action, func, template |
-| **post-explode** | After exploding | Format source files | prettier-explode |
-| **pre-rebuild** | Before rebuilding | Process source files | prettier-pre-rebuild |
-| **post-rebuild** | After rebuilding | Format flows.json | prettier-post-rebuild |
+| Type             | When              | Purpose              | Examples               |
+| ---------------- | ----------------- | -------------------- | ---------------------- |
+| **pre-explode**  | Before exploding  | Modify flows JSON    | normalize-ids          |
+| **explode**      | During explode    | Extract node data    | action, func, template |
+| **post-explode** | After exploding   | Format source files  | prettier-explode       |
+| **pre-rebuild**  | Before rebuilding | Process source files | prettier-pre-rebuild   |
+| **post-rebuild** | After rebuilding  | Format flows.json    | prettier-post-rebuild  |
 
 ### Plugin Priority
 
@@ -191,6 +203,7 @@ Plugins execute in priority order (lowest first):
 4. **Default** - 999 if no priority specified
 
 Example:
+
 ```
 100_normalize_ids_plugin.py    (priority 100)
 200_action_plugin.py           (priority 200)
@@ -224,11 +237,13 @@ class MyPlugin:
 Plugins can communicate through the flows JSON and claimed fields:
 
 **Claimed Fields:**
+
 - Plugins mark fields they've handled
 - Prevents duplicate processing
 - Example: wrap_func claims `func` field, so func plugin skips it
 
 **Flow Modifications:**
+
 - Pre-explode plugins can add metadata to nodes
 - Explode plugins read this metadata
 - Post-rebuild plugins clean up metadata
@@ -285,6 +300,7 @@ Headers: If-None-Match: "abc123"
 ```
 
 **Polling interval:**
+
 - Default: 1 second
 - Configurable via `--poll-interval`
 - Fast enough for responsiveness
@@ -312,6 +328,7 @@ Resume file watcher
 ```
 
 **Debouncing:**
+
 - Default: 2 seconds
 - Configurable via `--debounce`
 - Groups rapid changes into single operation
@@ -320,10 +337,12 @@ Resume file watcher
 ### Optimistic Locking
 
 **Downloads use ETag:**
+
 - 304 Not Modified = skip download
 - Efficient caching
 
 **Uploads use rev parameter:**
+
 ```python
 POST /flows?rev=current_revision
 → 200 OK (success)
@@ -331,6 +350,7 @@ POST /flows?rev=current_revision
 ```
 
 If 409 Conflict occurs:
+
 - Watch mode pauses
 - User is alerted
 - Manual resolution required
@@ -365,6 +385,7 @@ Is ETag None? → Yes, repeat poll (go to top)
 ```
 
 **Why this works:**
+
 - Any upload clears ETag to None
 - ETag=None forces download on next poll (no If-None-Match header)
 - Pre-explode uploads immediately if changes (normalize IDs)
@@ -376,6 +397,7 @@ Is ETag None? → Yes, repeat poll (go to top)
 - Poll interval (1s) prevents runaway loops
 
 **Convergence example (extreme case):**
+
 - Poll 1: User changed files → Upload → **ETag cleared**
 - Poll 2 (1s later):
   - Download → pre-explode normalizes IDs → **Upload #1** (rev updated)
@@ -393,8 +415,9 @@ the original node it started with (e.g., template code normalized to match node 
 When detected, one upload/download cycle stabilizes it permanently.
 
 **Oscillation Protection:**
+
 - Tracks timestamps of upload/download cycles
-- >5 cycles in 60 seconds → oscillation detected
+- > 5 cycles in 60 seconds → oscillation detected
 - Pauses convergence (stops clearing ETag)
 - Warns user about oscillating plugins
 - Normal polling and file watching continue
@@ -529,6 +552,7 @@ vscode-node-red-tools/
 ### Parallel Processing
 
 The tool uses parallel processing where applicable:
+
 - Multiple nodes exploded in parallel
 - Multiple files formatted in parallel
 - Plugin operations parallelized when independent
@@ -536,6 +560,7 @@ The tool uses parallel processing where applicable:
 ### Caching
 
 Watch mode implements caching:
+
 - ETag-based HTTP caching (304 Not Modified)
 - File change debouncing (group rapid edits)
 - Plugin result caching (avoid redundant work)

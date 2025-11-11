@@ -17,6 +17,7 @@ This guide explains how to create custom plugins for vscode-node-red-tools.
 ### What Plugins Do
 
 Plugins extend the tool's functionality by:
+
 - Transforming flows JSON before/after explode
 - Extracting node-specific data to files
 - Formatting source files and flows.json
@@ -42,6 +43,7 @@ Run **before** exploding flows to source files.
 **Purpose:** Modify flows JSON before extraction
 
 **Use Cases:**
+
 - ID normalization
 - Flow validation
 - Adding metadata
@@ -56,6 +58,7 @@ Run **during** explode to extract node-specific data.
 **Purpose:** Extract node data to files
 
 **Use Cases:**
+
 - Extract function code
 - Extract template content
 - Extract documentation
@@ -70,6 +73,7 @@ Run **after** exploding to format source files.
 **Purpose:** Format and post-process source files
 
 **Use Cases:**
+
 - Code formatting (prettier)
 - Linting
 - Adding headers/comments
@@ -84,6 +88,7 @@ Run **before** rebuilding flows from source files.
 **Purpose:** Process source files before assembly
 
 **Use Cases:**
+
 - Pre-formatting source files
 - Validation
 - Pre-processing
@@ -98,6 +103,7 @@ Run **after** rebuilding to format flows.json.
 **Purpose:** Format and post-process flows.json
 
 **Use Cases:**
+
 - JSON formatting
 - Flow validation
 - Adding metadata
@@ -120,11 +126,13 @@ python3 vscode-node-red-tools.py new-plugin my_formatter post-explode --priority
 ```
 
 **Arguments:**
+
 - `name`: Plugin name (lowercase with underscores)
 - `type`: Plugin type (`pre-explode`, `explode`, `post-explode`, `pre-rebuild`, `post-rebuild`)
 - `--priority`: Optional priority number (defaults based on type)
 
 **What it creates:**
+
 - File with correct naming convention (`300_my_custom_plugin.py`)
 - Complete plugin class structure
 - All required methods with TODO comments
@@ -132,6 +140,7 @@ python3 vscode-node-red-tools.py new-plugin my_formatter post-explode --priority
 - Ready to test immediately
 
 **Example output:**
+
 ```
 ✓ Created plugin: plugins/200_my_custom_plugin.py
   Class name: MyCustomPlugin
@@ -151,11 +160,13 @@ If you prefer to create plugins manually:
 #### Step 1: Create File
 
 Create a file in `plugins/` directory:
+
 ```bash
 touch plugins/300_my_custom_plugin.py
 ```
 
 **Naming Convention:**
+
 - Prefix with priority number (e.g., `300_`)
 - Suffix with `_plugin.py`
 - Use lowercase with underscores
