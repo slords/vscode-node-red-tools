@@ -227,7 +227,12 @@ def main():
     )
 
     # Diff command
-    diff_parser = subparsers.add_parser("diff", help="Compare src, flow, or server")
+    diff_parser = subparsers.add_parser(
+        "diff",
+        help="Compare src, flow, or server",
+        epilog="Security: Use NODERED_PASSWORD or NODERED_TOKEN environment variables instead of CLI parameters. "
+        "Token files: ./.nodered-token or ~/.nodered-token",
+    )
     diff_parser.add_argument(
         "source", choices=["src", "flow", "server"], help="Source to compare from"
     )
@@ -235,13 +240,24 @@ def main():
         "target", choices=["src", "flow", "server"], help="Target to compare to"
     )
     diff_parser.add_argument(
-        "--server", help="Node-RED server URL (required for server comparisons)"
+        "--server",
+        help="Node-RED server URL (default: http://127.0.0.1:1880 for server comparisons)",
     )
     diff_parser.add_argument(
-        "--username", help="Node-RED username (required for server comparisons)"
+        "--username",
+        help="Node-RED username (for basic auth)",
     )
     diff_parser.add_argument(
-        "--password", help="Node-RED password (required for server comparisons)"
+        "--password",
+        help="Node-RED password (INSECURE - use NODERED_PASSWORD env var instead)",
+    )
+    diff_parser.add_argument(
+        "--token",
+        help="Bearer token (INSECURE - use NODERED_TOKEN env var or token file instead)",
+    )
+    diff_parser.add_argument(
+        "--token-file",
+        help="Path to file containing bearer token",
     )
     diff_parser.add_argument(
         "--no-verify-ssl", action="store_true", help="Disable SSL verification"
@@ -259,11 +275,31 @@ def main():
 
     # Watch command
     watch_parser = subparsers.add_parser(
-        "watch", help="Watch mode - bidirectional sync"
+        "watch",
+        help="Watch mode - bidirectional sync",
+        epilog="Security: Use NODERED_PASSWORD or NODERED_TOKEN environment variables instead of CLI parameters. "
+        "Token files: ./.nodered-token or ~/.nodered-token",
     )
-    watch_parser.add_argument("--server", required=True, help="Node-RED server URL")
-    watch_parser.add_argument("--username", required=True, help="Node-RED username")
-    watch_parser.add_argument("--password", required=True, help="Node-RED password")
+    watch_parser.add_argument(
+        "--server",
+        help="Node-RED server URL (default: http://127.0.0.1:1880)",
+    )
+    watch_parser.add_argument(
+        "--username",
+        help="Node-RED username (for basic auth)",
+    )
+    watch_parser.add_argument(
+        "--password",
+        help="Node-RED password (INSECURE - use NODERED_PASSWORD env var instead)",
+    )
+    watch_parser.add_argument(
+        "--token",
+        help="Bearer token (INSECURE - use NODERED_TOKEN env var or token file instead)",
+    )
+    watch_parser.add_argument(
+        "--token-file",
+        help="Path to file containing bearer token",
+    )
     watch_parser.add_argument(
         "--poll-interval",
         type=int,
@@ -325,7 +361,13 @@ def main():
 
     # Validate-config command
     validate_config_parser = subparsers.add_parser(
-        "validate-config", help="Validate configuration file"
+        "validate-config",
+        help="Validate configuration file and test credential resolution",
+    )
+    validate_config_parser.add_argument(
+        "--test-auth",
+        action="store_true",
+        help="Test authentication credential resolution",
     )
 
     # Enable shell completion if argcomplete is available

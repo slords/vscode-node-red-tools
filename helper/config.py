@@ -79,6 +79,14 @@ def load_config(repo_root: Path, config_path: Path = None) -> dict:
             "order": [],  # Empty = use priority/filename
         },
         "watch": {"pollInterval": 1, "debounce": 2.0},
+        "server": {
+            "url": "http://127.0.0.1:1880",
+            "username": None,
+            "password": None,
+            "token": None,
+            "tokenFile": None,
+            "verifySSL": True,
+        },
     }
 
 
@@ -302,8 +310,85 @@ def validate_config(config_path: Path = None, repo_root: Path = None) -> int:
             log_info(f"  - convergenceLimit: {DEFAULT_CONVERGENCE_LIMIT} cycles")
             log_info(f"  - convergenceWindow: {DEFAULT_CONVERGENCE_WINDOW}s")
 
+        # Validate server section
+        if "server" in config:
+            if not isinstance(config["server"], dict):
+                errors.append("'server' must be an object")
+            else:
+                server = config["server"]
+
+                # Check url
+                if "url" in server:
+                    if not isinstance(server["url"], str):
+                        errors.append("'server.url' must be a string")
+                    else:
+                        log_info(f"✓ server.url is valid: {server['url']}")
+
+                # Check username
+                if "username" in server:
+                    if server["username"] is not None and not isinstance(
+                        server["username"], str
+                    ):
+                        errors.append("'server.username' must be a string or null")
+                    elif server["username"]:
+                        log_info(f"✓ server.username is set")
+
+                # Check password
+                if "password" in server:
+                    if server["password"] is not None and not isinstance(
+                        server["password"], str
+                    ):
+                        errors.append("'server.password' must be a string or null")
+                    elif server["password"]:
+                        warnings.append(
+                            "Storing passwords in config file is insecure. Use NODERED_PASSWORD environment variable instead."
+                        )
+                        log_warning(
+                            "⚠ server.password is set (insecure - use environment variable instead)"
+                        )
+
+                # Check token
+                if "token" in server:
+                    if server["token"] is not None and not isinstance(
+                        server["token"], str
+                    ):
+                        errors.append("'server.token' must be a string or null")
+                    elif server["token"]:
+                        warnings.append(
+                            "Storing tokens in config file is insecure. Use NODERED_TOKEN environment variable or token file instead."
+                        )
+                        log_warning(
+                            "⚠ server.token is set (insecure - use environment variable or token file instead)"
+                        )
+
+                # Check tokenFile
+                if "tokenFile" in server:
+                    if server["tokenFile"] is not None:
+                        if not isinstance(server["tokenFile"], str):
+                            errors.append("'server.tokenFile' must be a string or null")
+                        else:
+                            token_file_path = Path(server["tokenFile"]).expanduser()
+                            if token_file_path.exists():
+                                log_info(f"✓ server.tokenFile exists: {server['tokenFile']}")
+                            else:
+                                warnings.append(
+                                    f"Token file does not exist: {server['tokenFile']}"
+                                )
+                                log_warning(
+                                    f"⚠ Token file does not exist: {server['tokenFile']}"
+                                )
+
+                # Check verifySSL
+                if "verifySSL" in server:
+                    if not isinstance(server["verifySSL"], bool):
+                        errors.append("'server.verifySSL' must be a boolean")
+                    else:
+                        log_info(
+                            f"✓ server.verifySSL is valid ({server['verifySSL']})"
+                        )
+
         # Check for unknown top-level keys
-        known_keys = {"flows", "src", "plugins", "watch", "backup"}
+        known_keys = {"flows", "src", "plugins", "watch", "backup", "server"}
         unknown_keys = set(config.keys()) - known_keys
         if unknown_keys:
             warnings.append(
