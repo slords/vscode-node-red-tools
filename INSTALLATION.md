@@ -106,6 +106,43 @@ Edit the file to configure:
 
 See [CONFIGURATION.md](CONFIGURATION.md) for detailed configuration options.
 
+### Shell Completion
+
+For tab-completion of commands and options, install the optional dependency:
+
+```bash
+pip install argcomplete
+```
+
+Then activate completion for your shell:
+
+#### Bash (add to ~/.bashrc or ~/.bash_profile)
+
+```bash
+eval "$(register-python-argcomplete vscode-node-red-tools.py)"
+```
+
+#### Zsh (add to ~/.zshrc)
+
+```bash
+eval "$(register-python-argcomplete vscode-node-red-tools.py)"
+```
+
+#### Fish
+
+```bash
+register-python-argcomplete vscode-node-red-tools.py | source
+```
+
+You can also generate a static completion script:
+
+```bash
+register-python-argcomplete vscode-node-red-tools.py > completion.sh
+# Then source completion.sh in your shell config
+```
+
+Shell completion is optional but highly recommended for a better CLI experience.
+
 ## Platform-Specific Notes
 
 ### Linux
