@@ -22,6 +22,39 @@ This guide covers installing and setting up vscode-node-red-tools.
   ```
 - If not installed, download from [nodejs.org](https://nodejs.org/)
 
+
+## Docker/Container Support
+
+
+You can run vscode-node-red-tools in a container using Docker:
+
+### Build the Docker image
+
+```bash
+docker build -t vscode-node-red-tools .
+```
+
+### Run the tool in a container
+
+Mount your project directory to `/data` (the container's working directory):
+
+```bash
+docker run --rm -it \
+  -v "$(pwd)":/data \
+  vscode-node-red-tools --help
+```
+
+To run the watch command (recommended):
+
+```bash
+docker run --rm -it \
+  -v "$(pwd)":/data \
+  vscode-node-red-tools watch --server <server-url> [other options]
+```
+
+Any CLI arguments after the image name are passed to the tool. Your project files will be accessible in `/data` inside the container.
+
+---
 ## Installation Steps
 
 ### 1. Clone the Repository

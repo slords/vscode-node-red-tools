@@ -1,0 +1,22 @@
+
+# Bytecode/cache
+__pycache__/
+*.py[cod]
+
+# VS Code project files
+.vscode/
+
+# macOS system files
+.DS_Store
+Thumbs.db
+
+# Project-specific/generated
+flows/
+src/
+.vscode-node-red-tools.json
+
+# Git repo (never copy)
+.git/
+
+# Docker ignore file itself
+.dockerignore
