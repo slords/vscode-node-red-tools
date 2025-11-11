@@ -153,9 +153,18 @@ if WATCH_AVAILABLE:
         command = command.strip().lower()
 
         if command in ["?", "h", "help"]:
-            log_info(
-                "Commands: [d]ownload | [u]pload | [c]heck | [r]eload-plugins | [s]tatus | [q]uit | [h]elp"
-            )
+            help_lines = [
+                "Available Commands:",
+                "  d, download       Download latest flows from server",
+                "  u, upload         Upload local changes to server",
+                "  c, check          Check sync status",
+                "  r, reload-plugins Reload plugins",
+                "  s, status         Show status",
+                "  q, quit           Quit watch mode",
+                "  h, help, ?        Show this help",
+            ]
+            for line in help_lines:
+                log_info(line)
 
         elif command in ["q", "quit", "exit"]:
             log_info("Initiating graceful shutdown...")
