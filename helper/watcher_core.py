@@ -109,11 +109,11 @@ if WATCH_AVAILABLE:
         max_retries = MAX_NETWORK_RETRIES
         base_delay = RETRY_BASE_DELAY
 
-        while not config.is_shutdown_requested():
+        while not config.shutdown_requested:
             time.sleep(config.poll_interval)
 
             # Check again after sleep (shutdown may have been requested)
-            if config.is_shutdown_requested():
+            if config.shutdown_requested:
                 log_info("Polling thread exiting gracefully...")
                 break
 
@@ -319,7 +319,7 @@ if WATCH_AVAILABLE:
             import select
             import sys
 
-            while not config.is_shutdown_requested():
+            while not config.shutdown_requested:
                 # Check for rebuild pending
                 if config.rebuild_pending:
                     time_since_last_change = time.time() - config.last_file_change_time
