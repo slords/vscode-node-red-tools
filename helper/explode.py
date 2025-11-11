@@ -27,7 +27,13 @@ from .logging import (
 from .plugin_loader import load_plugins
 from .rebuild import rebuild_single_node
 from .skeleton import create_skeleton, get_node_directory, save_skeleton
-from .utils import create_backup, validate_safe_path
+from .utils import (
+    create_backup,
+    validate_safe_path,
+    read_json_with_size_limit,
+    MAX_FLOWS_FILE_SIZE,
+    MAX_NODES,
+)
 
 # Constants
 DEFAULT_MAX_WORKERS = None  # None = use os.cpu_count()
@@ -51,9 +57,12 @@ def _load_flows_for_explode(flows_path: Path, backup: bool) -> tuple[list, Path]
     if backup:
         create_backup(flows_path)
 
-    # Load flows
-    with open(flows_path, "r") as f:
-        flow_data = json.load(f)
+    # Load flows with size limit check
+    try:
+        flow_data = read_json_with_size_limit(flows_path, MAX_FLOWS_FILE_SIZE)
+    except ValueError as e:
+        # Re-raise with more context
+        raise ValueError(f"Cannot load flows file: {e}")
 
     # Validate flow data structure
     if not isinstance(flow_data, list):
@@ -63,6 +72,13 @@ def _load_flows_for_explode(flows_path: Path, backup: bool) -> tuple[list, Path]
 
     if not flow_data:
         log_warning("Flows file is empty (contains empty array)")
+
+    # Check node count limit
+    if len(flow_data) > MAX_NODES:
+        raise ValueError(
+            f"Too many nodes: {len(flow_data)} (maximum: {MAX_NODES}). "
+            f"This limit prevents resource exhaustion from huge flows."
+        )
 
     # Get repo root for plugins
     repo_root = flows_path.parent.parent

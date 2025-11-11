@@ -25,7 +25,12 @@ from .logging import (
 )
 from .plugin_loader import load_plugins
 from .skeleton import get_node_directory, load_skeleton
-from .utils import create_backup, validate_safe_path
+from .utils import (
+    create_backup,
+    validate_safe_path,
+    read_json_with_size_limit,
+    MAX_NODE_FILE_SIZE,
+)
 
 # Constants
 DEFAULT_MAX_WORKERS = None  # None = use os.cpu_count()
@@ -71,9 +76,16 @@ def rebuild_single_node(
             # Validate path before reading (security check)
             if src_dir:
                 node_json_file = validate_safe_path(src_dir, node_json_file)
-            with open(node_json_file, "r") as f:
-                base_data = json.load(f)
+            # Read with size limit to prevent memory exhaustion
+            try:
+                base_data = read_json_with_size_limit(
+                    node_json_file, MAX_NODE_FILE_SIZE
+                )
                 node_data.update(base_data)
+            except ValueError as e:
+                # Log error but don't fail - node will use skeleton data
+                log_error(f"Cannot load node file {node_id}: {e}")
+
 
     # Track claimed fields
     claimed_fields = set()
@@ -176,11 +188,14 @@ def _rebuild_single_node(
     if node_json_file.exists():
         # Validate path before reading (security check)
         safe_json_file = validate_safe_path(src_dir, node_json_file)
-        # .json file exists - merge functional fields
-        with open(safe_json_file, "r") as f:
-            base_data = json.load(f)
+        # .json file exists - merge functional fields (with size limit)
+        try:
+            base_data = read_json_with_size_limit(safe_json_file, MAX_NODE_FILE_SIZE)
             # Merge functional fields (preserves skeleton's field order)
             node_data.update(base_data)
+        except ValueError as e:
+            # Log error but don't fail - node will use skeleton data
+            log_error(f"Cannot load node file {node_id}: {e}")
 
     # Track claimed fields to prevent conflicts
     claimed_fields = set()
