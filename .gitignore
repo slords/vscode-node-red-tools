@@ -1,59 +1,16 @@
-# Python
+
+# Bytecode/cache
 __pycache__/
 *.py[cod]
-*$py.class
-*.so
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-pip-wheel-metadata/
-share/python-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
 
-# Virtual environments
-venv/
-ENV/
-env/
-.venv
-
-# IDEs
+# VS Code project files
 .vscode/
-.idea/
-*.swp
-*.swo
-*~
+
+# macOS system files
 .DS_Store
-
-# Node-RED
-flows/
-*.backup.*
-
-# Configuration
-helper-config.json
-.vscode-node-red-tools.json
-
-# Generated files
-src/
-.flow-skeleton.json
-
-# Testing
-.pytest_cache/
-.coverage
-htmlcov/
-*.log
-
-# OS
 Thumbs.db
+
+# Project-specific/generated
+flows/
+src/
+.vscode-node-red-tools.json

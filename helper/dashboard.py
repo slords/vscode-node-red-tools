@@ -316,7 +316,7 @@ if TEXTUAL_AVAILABLE:
             yield Static(self._build_status_text(), id="status_panel")
             yield RichLog(id="activity_log", highlight=True, markup=True)
             yield Input(
-                placeholder="Enter command (download, upload, status, quit, ?)",
+                placeholder="Enter command ([d]ownload, [u]pload, [c]heck, [r]eload-plugins, [s]tatus, [q]uit, [h]elp)",
                 id="command_input",
             )
 
