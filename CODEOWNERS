@@ -1,0 +1,8 @@
+# Note Last Matching pattern wins
+
+# By default slords owns all of the files.
+* slords
+
+# Last match safety security control
+CODEOWNERS slords
+.github/settings.yml slords

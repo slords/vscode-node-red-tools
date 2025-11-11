@@ -1,0 +1,36 @@
+{
+  "_comment1": "vscode-node-red-tools Configuration Example",
+  "_comment2": "Copy this to .vscode-node-red-tools.json and customize as needed",
+  "_comment3": "Remove all _comment fields from your actual config",
+
+  "flows": "flows/flows.json",
+  "_flows_help": "Path to flows file (relative to repo root)",
+
+  "src": "src",
+  "_src_help": "Directory for exploded source files",
+
+  "plugins": {
+    "enabled": [],
+    "_enabled_help": "List of plugin names to enable (empty = all enabled)",
+
+    "disabled": [],
+    "_disabled_help": "Example: ['wrap_func', 'prettier_explode'] to disable function wrapping",
+
+    "order": [],
+    "_order_help": "Custom plugin execution order (empty = use priority/filename)"
+  },
+
+  "watch": {
+    "pollInterval": 1,
+    "_pollInterval_help": "How often to check server for changes (seconds)",
+
+    "debounce": 2.0,
+    "_debounce_help": "Wait time after file change before uploading (seconds)",
+
+    "convergenceLimit": 5,
+    "_convergenceLimit_help": "Max upload/download cycles before oscillation warning",
+
+    "convergenceWindow": 60,
+    "_convergenceWindow_help": "Time window in seconds for counting convergence cycles"
+  }
+}
