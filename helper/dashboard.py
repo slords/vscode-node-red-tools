@@ -69,7 +69,6 @@ class WatchConfig:
         # Runtime state
         self.last_etag: Optional[str] = None
         self.last_rev: Optional[str] = None
-        self.last_file_change_time = 0
         self.session: Optional[object] = None  # requests.Session
 
         # Convergence tracking (oscillation protection)
@@ -105,6 +104,7 @@ class WatchConfig:
         self._rebuild_pending = False
         self._pause_watching = False
         self._shutdown_requested = False
+        self._last_file_change_time = 0.0
 
     @property
     def rebuild_pending(self):
@@ -141,6 +141,33 @@ class WatchConfig:
         """Thread-safe setter for shutdown_requested flag"""
         with self._thread_lock:
             self._shutdown_requested = value
+
+    @property
+    def last_file_change_time(self) -> float:
+        """Thread-safe getter for last_file_change_time"""
+        with self._thread_lock:
+            return self._last_file_change_time
+
+    @last_file_change_time.setter
+    def last_file_change_time(self, value: float) -> None:
+        """Thread-safe setter for last_file_change_time"""
+        with self._thread_lock:
+            self._last_file_change_time = value
+
+    def clear_file_watcher_state(self) -> None:
+        """Clear file watcher state to prevent false rebuild triggers (thread-safe)
+
+        Clears both rebuild_pending flag and last_file_change_time together.
+        Use this when tool-initiated operations write files that shouldn't trigger
+        a rebuild cycle (e.g., download/explode/deploy operations).
+
+        Common use cases:
+        - After download and explode complete (files came from server)
+        - After rebuild and deploy complete (already synced with server)
+        - After any tool operation that modifies files but shouldn't trigger rebuild
+        """
+        self.rebuild_pending = False
+        self.last_file_change_time = 0.0
 
     def request_shutdown(self) -> None:
         """Request graceful shutdown of watch mode
