@@ -16,6 +16,8 @@ Usage:
     python vscode-node-red-tools.py watch --server https://server:1880 --username admin --password pass
 """
 
+__version__ = "2.0.0"
+
 import argparse
 import difflib
 import json
@@ -133,7 +135,7 @@ def main():
     parser.add_argument(
         "--version",
         action="version",
-        version="vscode-node-red-tools 2.0.0",
+        version=f"vscode-node-red-tools {__version__}",
     )
 
     # Global options (apply to all commands)
