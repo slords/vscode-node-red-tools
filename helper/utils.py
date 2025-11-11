@@ -20,6 +20,41 @@ FILE_BUFFER_SIZE = 65536  # 64KB for streaming hash computation
 HASH_DIGEST_LENGTH = 16  # First N chars of SHA256 hex digest
 
 
+def validate_safe_path(base_dir: Path, target_path: Path) -> Path:
+    """Validate that target_path is within base_dir (prevent path traversal)
+
+    Args:
+        base_dir: Base directory that must contain the target
+        target_path: Target path to validate
+
+    Returns:
+        Resolved safe path
+
+    Raises:
+        ValueError: If path traversal detected
+
+    Example:
+        base = Path("/home/user/project/src")
+        target = Path("/home/user/project/src/node_123/file.json")
+        safe_path = validate_safe_path(base, target)  # OK
+
+        malicious = Path("/home/user/project/src/../../etc/passwd")
+        validate_safe_path(base, malicious)  # Raises ValueError
+    """
+    base_dir = base_dir.resolve()
+    target_path = target_path.resolve()
+
+    # Check if target is within base
+    try:
+        target_path.relative_to(base_dir)
+    except ValueError:
+        raise ValueError(
+            f"Security: Path traversal detected. '{target_path}' is outside '{base_dir}'"
+        )
+
+    return target_path
+
+
 def validate_server_url(url: str) -> str:
     """Validate and normalize server URL
 

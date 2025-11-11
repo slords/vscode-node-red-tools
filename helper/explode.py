@@ -27,7 +27,7 @@ from .logging import (
 from .plugin_loader import load_plugins
 from .rebuild import rebuild_single_node
 from .skeleton import create_skeleton, get_node_directory, save_skeleton
-from .utils import create_backup
+from .utils import create_backup, validate_safe_path
 
 # Constants
 DEFAULT_MAX_WORKERS = None  # None = use os.cpu_count()
@@ -169,7 +169,9 @@ def _explode_single_node(
 
     # Only write .json file if there are functional fields to save
     if node_json:
-        json_file.write_text(
+        # Validate path before writing (security check)
+        safe_json_file = validate_safe_path(src_dir, json_file)
+        safe_json_file.write_text(
             json.dumps(node_json, separators=(",", ":"), ensure_ascii=False) + "\n"
         )
         # Base .json is created internally, not by a plugin
@@ -200,7 +202,7 @@ def _explode_single_node(
     is_unstable = False
     try:
         rebuilt_node = rebuild_single_node(
-            node_id, node_dir, skeleton, base_json_exists, explode_plugins, repo_root
+            node_id, node_dir, skeleton, base_json_exists, explode_plugins, repo_root, src_dir
         )
 
         # Compare original node to rebuilt node (excluding metadata)

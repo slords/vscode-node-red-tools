@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Optional
 
 from .logging import log_info, log_warning
+from .utils import validate_safe_path
 
 
 def get_node_directory(node: dict, src_dir: Path, tab_ids: set) -> Path:
@@ -21,22 +22,29 @@ def get_node_directory(node: dict, src_dir: Path, tab_ids: set) -> Path:
         tab_ids: Set of valid tab/subflow IDs
 
     Returns:
-        Path to directory for this node's files
+        Path to directory for this node's files (validated for path traversal)
+
+    Raises:
+        ValueError: If path traversal is detected
 
     Notes:
         - Nodes without z field go to root (src_dir)
         - Nodes with z pointing to non-existent tab go to root
         - Nodes in tabs/subflows go into subdirectories (src_dir/tab_id)
+        - All paths are validated to prevent path traversal attacks
     """
     z = node.get("z")
     node_type = node.get("type", "")
 
     # Nodes without z or with z pointing to non-existent tab go to root
     if not z or z not in tab_ids:
-        return src_dir
+        node_dir = src_dir
+    else:
+        # Nodes in tabs/subflows go into subdirectories
+        node_dir = src_dir / z
 
-    # Nodes in tabs/subflows go into subdirectories
-    return src_dir / z
+    # Validate path to prevent traversal attacks
+    return validate_safe_path(src_dir, node_dir)
 
 
 def create_skeleton(node: dict) -> dict:
