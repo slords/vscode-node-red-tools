@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Optional
 
 from .logging import log_info, log_warning
-from .utils import validate_safe_path
+from .utils import validate_safe_path, sanitize_filename
 
 
 def get_node_directory(node: dict, src_dir: Path, tab_ids: set) -> Path:
@@ -32,6 +32,7 @@ def get_node_directory(node: dict, src_dir: Path, tab_ids: set) -> Path:
         - Nodes with z pointing to non-existent tab go to root
         - Nodes in tabs/subflows go into subdirectories (src_dir/tab_id)
         - All paths are validated to prevent path traversal attacks
+        - Tab/subflow IDs are sanitized for Windows compatibility
     """
     z = node.get("z")
     node_type = node.get("type", "")
@@ -40,8 +41,10 @@ def get_node_directory(node: dict, src_dir: Path, tab_ids: set) -> Path:
     if not z or z not in tab_ids:
         node_dir = src_dir
     else:
+        # Sanitize the tab/subflow ID for filesystem safety (especially Windows)
+        safe_z = sanitize_filename(z)
         # Nodes in tabs/subflows go into subdirectories
-        node_dir = src_dir / z
+        node_dir = src_dir / safe_z
 
     # Validate path to prevent traversal attacks
     return validate_safe_path(src_dir, node_dir)

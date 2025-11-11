@@ -6,6 +6,7 @@ Provides JSON handling, hashing, backup management, and other utilities.
 
 import hashlib
 import json
+import re
 import shutil
 from datetime import datetime
 from pathlib import Path
@@ -23,6 +24,62 @@ HASH_DIGEST_LENGTH = 16  # First N chars of SHA256 hex digest
 MAX_FLOWS_FILE_SIZE = 100 * 1024 * 1024  # 100 MB for flows.json
 MAX_NODE_FILE_SIZE = 10 * 1024 * 1024  # 10 MB per individual node file
 MAX_NODES = 10000  # Maximum number of nodes in a flow
+
+# Windows reserved filenames (case-insensitive)
+WINDOWS_RESERVED_NAMES = {
+    "CON", "PRN", "AUX", "NUL",
+    "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9",
+    "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9",
+}
+
+
+def sanitize_filename(name: str, max_length: int = 200) -> str:
+    """Sanitize filename for cross-platform compatibility (especially Windows)
+
+    Args:
+        name: Filename or node ID to sanitize
+        max_length: Maximum filename length (default: 200, leaves room for extensions)
+
+    Returns:
+        Sanitized filename safe for all platforms
+
+    Notes:
+        - Removes/replaces invalid characters for Windows/Unix filesystems
+        - Handles Windows reserved names (CON, PRN, AUX, COM1-9, LPT1-9, NUL)
+        - Enforces length limits (Windows has 260 char path limit)
+        - Preserves readability while ensuring filesystem compatibility
+
+    Examples:
+        sanitize_filename("my:node")  # Returns "my_node"
+        sanitize_filename("CON")      # Returns "_CON" (reserved on Windows)
+        sanitize_filename("node<test>")  # Returns "node_test_"
+    """
+    if not name:
+        return "unnamed"
+
+    # Replace invalid filesystem characters with underscore
+    # Invalid on Windows: < > : " / \\ | ? *
+    # Invalid on Unix: / (and null byte)
+    # We use a more conservative set for cross-platform safety
+    sanitized = re.sub(r'[<>:"/\\|?*\x00-\x1f]', '_', name)
+
+    # Remove leading/trailing spaces and dots (problematic on Windows)
+    sanitized = sanitized.strip(' .')
+
+    # Handle Windows reserved names (case-insensitive check)
+    base_name = sanitized.split('.')[0]  # Get name without extension
+    if base_name.upper() in WINDOWS_RESERVED_NAMES:
+        sanitized = f"_{sanitized}"
+
+    # Enforce length limit (Windows path limit is 260, leave room for directory path)
+    if len(sanitized) > max_length:
+        sanitized = sanitized[:max_length]
+
+    # If after sanitization we have an empty string, use default
+    if not sanitized or sanitized == '_':
+        return "unnamed"
+
+    return sanitized
 
 
 def validate_safe_path(base_dir: Path, target_path: Path) -> Path:

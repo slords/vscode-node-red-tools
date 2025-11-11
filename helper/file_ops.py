@@ -14,7 +14,7 @@ from typing import List, Tuple
 
 from .logging import log_info, log_success, log_warning, log_error
 from .skeleton import get_node_directory
-from .utils import validate_safe_path
+from .utils import validate_safe_path, sanitize_filename
 
 
 def find_orphaned_files(
@@ -293,7 +293,9 @@ def create_node_from_files(
     with open(json_file, "r") as f:
         node_data = json.load(f)
 
-    node_id = node_data.get("id", json_file.stem)
+    # Sanitize node ID for filesystem safety (especially Windows)
+    raw_node_id = node_data.get("id", json_file.stem)
+    node_id = sanitize_filename(raw_node_id)
     node_type = detect_node_type(json_file, plugins)
 
     # Start with data from JSON file
