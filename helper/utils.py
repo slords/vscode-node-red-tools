@@ -14,6 +14,8 @@ from typing import Any, List, Optional
 import urllib.parse
 
 from .logging import log_info, log_warning
+import time
+import threading
 
 # Constants
 HTTP_TIMEOUT = 30
@@ -29,12 +31,108 @@ MAX_NODES = 10000  # Maximum number of nodes in a flow
 SUBPROCESS_TIMEOUT = 300  # 5 minutes max for external commands
 MAX_PATH_LENGTH = 4096  # Maximum path length for subprocess args
 
+# Rate limiting constants (for API calls to Node-RED)
+# These are generous limits suitable for local development servers
+RATE_LIMIT_REQUESTS_PER_MINUTE = 60  # Allow 1/second normal operation
+RATE_LIMIT_REQUESTS_PER_10MIN = 600  # Allow bursts but prevent runaway
+
 # Windows reserved filenames (case-insensitive)
 WINDOWS_RESERVED_NAMES = {
     "CON", "PRN", "AUX", "NUL",
     "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9",
     "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9",
 }
+
+
+class RateLimiter:
+    """Thread-safe rate limiter for API calls
+
+    Implements sliding window rate limiting with multiple time windows to prevent
+    both sustained high rates and burst traffic from overwhelming servers.
+
+    Example:
+        limiter = RateLimiter(requests_per_minute=60, requests_per_10min=600)
+
+        # Before making API call
+        if not limiter.try_acquire():
+            raise Exception("Rate limit exceeded")
+
+        # Make API call
+        response = requests.get(url)
+    """
+
+    def __init__(
+        self,
+        requests_per_minute: int = RATE_LIMIT_REQUESTS_PER_MINUTE,
+        requests_per_10min: int = RATE_LIMIT_REQUESTS_PER_10MIN,
+    ):
+        """Initialize rate limiter
+
+        Args:
+            requests_per_minute: Maximum requests allowed per 60 seconds
+            requests_per_10min: Maximum requests allowed per 600 seconds
+        """
+        self.requests_per_minute = requests_per_minute
+        self.requests_per_10min = requests_per_10min
+
+        # Sliding window: track timestamps of recent requests
+        self.request_times = []
+        self.lock = threading.Lock()
+
+    def try_acquire(self) -> bool:
+        """Try to acquire permission to make a request
+
+        Returns:
+            True if request is allowed, False if rate limit exceeded
+
+        Notes:
+            - Thread-safe via lock
+            - Automatically cleans up old timestamps outside the window
+            - Checks both 1-minute and 10-minute windows
+        """
+        now = time.time()
+
+        with self.lock:
+            # Remove timestamps outside 10-minute window (longest window)
+            cutoff_10min = now - 600  # 10 minutes
+            self.request_times = [t for t in self.request_times if t > cutoff_10min]
+
+            # Check 1-minute window
+            cutoff_1min = now - 60  # 1 minute
+            requests_last_minute = sum(1 for t in self.request_times if t > cutoff_1min)
+            if requests_last_minute >= self.requests_per_minute:
+                return False
+
+            # Check 10-minute window
+            requests_last_10min = len(self.request_times)
+            if requests_last_10min >= self.requests_per_10min:
+                return False
+
+            # Allowed - record timestamp
+            self.request_times.append(now)
+            return True
+
+    def get_stats(self) -> dict:
+        """Get current rate limiter statistics
+
+        Returns:
+            dict with keys: requests_last_minute, requests_last_10min
+        """
+        now = time.time()
+
+        with self.lock:
+            cutoff_1min = now - 60
+            cutoff_10min = now - 600
+
+            requests_last_minute = sum(1 for t in self.request_times if t > cutoff_1min)
+            requests_last_10min = sum(1 for t in self.request_times if t > cutoff_10min)
+
+            return {
+                "requests_last_minute": requests_last_minute,
+                "requests_last_10min": requests_last_10min,
+                "limit_per_minute": self.requests_per_minute,
+                "limit_per_10min": self.requests_per_10min,
+            }
 
 
 def sanitize_filename(name: str, max_length: int = 200) -> str:

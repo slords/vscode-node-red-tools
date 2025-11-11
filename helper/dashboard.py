@@ -20,7 +20,7 @@ except ImportError:
     TEXTUAL_AVAILABLE = False
 
 from .logging import log_warning
-from .utils import validate_server_url
+from .utils import validate_server_url, RateLimiter
 
 # Oscillation protection defaults
 DEFAULT_CONVERGENCE_LIMIT = 5  # Max cycles in time window
@@ -98,6 +98,9 @@ class WatchConfig:
 
         # Command handler callback for dashboard (will be set by watch_mode)
         self.command_handler = None
+
+        # Rate limiter for API calls (prevents runaway requests)
+        self.rate_limiter = RateLimiter()
 
     def handle_dashboard_command(self, command: str) -> None:
         """Handle command from Textual dashboard
