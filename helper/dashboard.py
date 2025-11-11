@@ -21,10 +21,10 @@ except ImportError:
 
 from .logging import log_warning, log_info
 from .utils import validate_server_url, RateLimiter
-
-# Oscillation protection defaults
-DEFAULT_CONVERGENCE_LIMIT = 5  # Max cycles in time window
-DEFAULT_CONVERGENCE_WINDOW = 60  # Time window in seconds
+from .constants import (
+    DEFAULT_CONVERGENCE_LIMIT,
+    DEFAULT_CONVERGENCE_WINDOW,
+)
 
 
 class WatchConfig:

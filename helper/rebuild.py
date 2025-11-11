@@ -29,12 +29,12 @@ from .utils import (
     create_backup,
     validate_safe_path,
     read_json_with_size_limit,
-    MAX_NODE_FILE_SIZE,
 )
-
-# Constants
-DEFAULT_MAX_WORKERS = None  # None = use os.cpu_count()
-PARALLEL_THRESHOLD = 20  # Min nodes to enable parallel processing
+from .constants import (
+    MAX_NODE_FILE_SIZE,
+    DEFAULT_MAX_WORKERS,
+    PARALLEL_THRESHOLD,
+)
 
 
 def rebuild_single_node(

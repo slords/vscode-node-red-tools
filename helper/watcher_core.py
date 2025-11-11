@@ -31,11 +31,11 @@ from .rebuild import rebuild_flows
 from .dashboard import WatchConfig
 from .watcher_server import authenticate, deploy_to_nodered
 from .watcher_stages import download_from_nodered, rebuild_and_deploy
-
-# Constants
-MAX_NETWORK_RETRIES = 4
-RETRY_BASE_DELAY = 2.0  # seconds, for exponential backoff
-MAX_REBUILD_FAILURES = 5  # Max consecutive rebuild failures before stopping
+from .constants import (
+    MAX_NETWORK_RETRIES,
+    RETRY_BASE_DELAY,
+    MAX_REBUILD_FAILURES,
+)
 
 
 def load_plugins_for_watch(config: WatchConfig) -> bool:
@@ -47,7 +47,7 @@ def load_plugins_for_watch(config: WatchConfig) -> bool:
         True if successful, False on error
     """
     try:
-        from .dashboard import DEFAULT_CONVERGENCE_LIMIT, DEFAULT_CONVERGENCE_WINDOW
+        from .constants import DEFAULT_CONVERGENCE_LIMIT, DEFAULT_CONVERGENCE_WINDOW
 
         config.plugin_config = load_config(config.repo_root)
 
@@ -445,7 +445,7 @@ def watch_mode(
             config.repo_root = repo_root
 
             # Load watch-specific config options
-            from .dashboard import DEFAULT_CONVERGENCE_LIMIT, DEFAULT_CONVERGENCE_WINDOW
+            from .constants import DEFAULT_CONVERGENCE_LIMIT, DEFAULT_CONVERGENCE_WINDOW
 
             watch_config = plugin_config.get("watch", {})
             config.convergence_limit = watch_config.get(

@@ -25,7 +25,8 @@ except ImportError:
     REQUESTS_AVAILABLE = False
 
 from .logging import log_info, log_error, log_warning
-from .utils import HTTP_TIMEOUT, validate_path_for_subprocess, SUBPROCESS_TIMEOUT
+from .utils import validate_path_for_subprocess
+from .constants import HTTP_TIMEOUT, SUBPROCESS_TIMEOUT
 
 
 def download_server_flows(

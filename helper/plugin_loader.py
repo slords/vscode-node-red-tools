@@ -10,9 +10,7 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 from .logging import log_info, log_warning
-
-# Default priority for plugins without explicit priority
-DEFAULT_PLUGIN_PRIORITY = 999
+from .constants import DEFAULT_PLUGIN_PRIORITY
 
 
 class Plugin:
