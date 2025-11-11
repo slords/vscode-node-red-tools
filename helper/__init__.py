@@ -20,6 +20,7 @@ from .logging import (
 # Re-export utility functions
 from .utils import (
     validate_server_url,
+    sanitize_filename,
     write_compact_json,
     read_json,
     read_json_with_size_limit,
@@ -32,6 +33,7 @@ from .utils import (
     MAX_FLOWS_FILE_SIZE,
     MAX_NODE_FILE_SIZE,
     MAX_NODES,
+    WINDOWS_RESERVED_NAMES,
 )
 
 # Re-export config functions
@@ -131,6 +133,7 @@ __all__ = [
     "get_active_dashboard",
     # Utils
     "validate_server_url",
+    "sanitize_filename",
     "write_compact_json",
     "read_json",
     "read_json_with_size_limit",
@@ -143,6 +146,7 @@ __all__ = [
     "MAX_FLOWS_FILE_SIZE",
     "MAX_NODE_FILE_SIZE",
     "MAX_NODES",
+    "WINDOWS_RESERVED_NAMES",
     # Config
     "load_config",
     "validate_config",
