@@ -69,9 +69,7 @@ class WatchConfig:
         # Runtime state
         self.last_etag: Optional[str] = None
         self.last_rev: Optional[str] = None
-        self.rebuild_pending = False
         self.last_file_change_time = 0
-        self.pause_watching = False
         self.session: Optional[object] = None  # requests.Session
 
         # Convergence tracking (oscillation protection)
@@ -102,9 +100,47 @@ class WatchConfig:
         # Rate limiter for API calls (prevents runaway requests)
         self.rate_limiter = RateLimiter()
 
-        # Graceful shutdown flag (signals threads to exit cleanly)
-        self.shutdown_requested = False
-        self.shutdown_lock = threading.Lock()
+        # Thread-safe state (single lock for all concurrency-sensitive flags)
+        self._thread_lock = threading.Lock()
+        self._rebuild_pending = False
+        self._pause_watching = False
+        self._shutdown_requested = False
+
+    @property
+    def rebuild_pending(self):
+        """Thread-safe getter for rebuild_pending flag"""
+        with self._thread_lock:
+            return self._rebuild_pending
+
+    @rebuild_pending.setter
+    def rebuild_pending(self, value):
+        """Thread-safe setter for rebuild_pending flag"""
+        with self._thread_lock:
+            self._rebuild_pending = value
+
+    @property
+    def pause_watching(self):
+        """Thread-safe getter for pause_watching flag"""
+        with self._thread_lock:
+            return self._pause_watching
+
+    @pause_watching.setter
+    def pause_watching(self, value):
+        """Thread-safe setter for pause_watching flag"""
+        with self._thread_lock:
+            self._pause_watching = value
+
+    @property
+    def shutdown_requested(self) -> bool:
+        """Thread-safe getter for shutdown_requested flag"""
+        with self._thread_lock:
+            return self._shutdown_requested
+
+    @shutdown_requested.setter
+    def shutdown_requested(self, value: bool) -> None:
+        """Thread-safe setter for shutdown_requested flag"""
+        with self._thread_lock:
+            self._shutdown_requested = value
 
     def request_shutdown(self) -> None:
         """Request graceful shutdown of watch mode
@@ -112,19 +148,9 @@ class WatchConfig:
         Sets shutdown flag to signal all threads to exit cleanly after
         completing their current operations.
         """
-        with self.shutdown_lock:
-            if not self.shutdown_requested:
-                self.shutdown_requested = True
-                log_info("Graceful shutdown requested - finishing current operations...")
-
-    def is_shutdown_requested(self) -> bool:
-        """Check if shutdown has been requested
-
-        Returns:
-            True if shutdown requested, False otherwise
-        """
-        with self.shutdown_lock:
-            return self.shutdown_requested
+        if not self.shutdown_requested:
+            self.shutdown_requested = True
+            log_info("Graceful shutdown requested - finishing current operations...")
 
     def handle_dashboard_command(self, command: str) -> None:
         """Handle command from Textual dashboard
