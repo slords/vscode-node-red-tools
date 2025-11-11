@@ -56,7 +56,7 @@ def validate_safe_path(base_dir: Path, target_path: Path) -> Path:
 
 
 def validate_server_url(url: str) -> str:
-    """Validate and normalize server URL
+    """Validate and normalize server URL with security checks
 
     Args:
         url: Server URL to validate
@@ -65,33 +65,81 @@ def validate_server_url(url: str) -> str:
         Normalized URL (with scheme, without trailing slash)
 
     Raises:
-        ValueError: If URL is invalid
+        ValueError: If URL is invalid or uses prohibited schemes
+
+    Notes:
+        - Only http:// and https:// schemes are allowed
+        - file://, ftp://, and other schemes are rejected for security
+        - Localhost and private IPs are allowed (expected use case)
+        - Validates hostname format and presence
+        - Prevents malformed URLs that could cause unexpected behavior
     """
     if not url:
         raise ValueError("Server URL cannot be empty")
 
-    # Add scheme if missing
+    # Check for dangerous schemes before adding default
+    url_lower = url.lower()
+    dangerous_schemes = ["file://", "ftp://", "data:", "javascript:", "about:"]
+    for scheme in dangerous_schemes:
+        if url_lower.startswith(scheme):
+            raise ValueError(
+                f"Invalid URL scheme: {scheme.rstrip(':/')} "
+                f"(only http and https are allowed for Node-RED servers)"
+            )
+
+    # Add scheme if missing (default to https)
     if not url.startswith(("http://", "https://")):
         url = f"https://{url}"
 
-    # Basic URL validation
+    # Parse and validate URL structure
     try:
         parsed = urllib.parse.urlparse(url)
 
-        if not parsed.scheme in ["http", "https"]:
+        # Validate scheme (should always be http/https at this point)
+        if parsed.scheme not in ["http", "https"]:
             raise ValueError(
                 f"Invalid URL scheme: {parsed.scheme} (must be http or https)"
             )
 
+        # Validate netloc (hostname:port) exists
         if not parsed.netloc:
             raise ValueError("URL must include a hostname")
 
-        # Remove trailing slash
+        # Extract hostname (without port) for validation
+        hostname = parsed.hostname
+        if not hostname:
+            raise ValueError("URL must include a valid hostname")
+
+        # Validate hostname format (basic checks)
+        # Allow: domain names, IPv4, IPv6, localhost
+        if len(hostname) > 253:
+            raise ValueError(f"Hostname too long: {len(hostname)} chars (max 253)")
+
+        # Check for obviously invalid characters in hostname
+        invalid_chars = [" ", "<", ">", '"', "{", "}", "|", "\\", "^", "`"]
+        for char in invalid_chars:
+            if char in hostname:
+                raise ValueError(
+                    f"Hostname contains invalid character: '{char}'"
+                )
+
+        # Validate port if present
+        if parsed.port is not None:
+            if not (1 <= parsed.port <= 65535):
+                raise ValueError(
+                    f"Invalid port number: {parsed.port} (must be 1-65535)"
+                )
+
+        # Remove trailing slash for consistency
         url = url.rstrip("/")
 
         return url
 
+    except ValueError:
+        # Re-raise ValueError as-is (our validation errors)
+        raise
     except Exception as e:
+        # Catch other parsing errors and wrap them
         raise ValueError(f"Invalid server URL '{url}': {e}")
 
 
