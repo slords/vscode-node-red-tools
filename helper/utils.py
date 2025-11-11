@@ -19,6 +19,11 @@ HTTP_TIMEOUT = 30
 FILE_BUFFER_SIZE = 65536  # 64KB for streaming hash computation
 HASH_DIGEST_LENGTH = 16  # First N chars of SHA256 hex digest
 
+# File size limits (for security and resource management)
+MAX_FLOWS_FILE_SIZE = 100 * 1024 * 1024  # 100 MB for flows.json
+MAX_NODE_FILE_SIZE = 10 * 1024 * 1024  # 10 MB per individual node file
+MAX_NODES = 10000  # Maximum number of nodes in a flow
+
 
 def validate_safe_path(base_dir: Path, target_path: Path) -> Path:
     """Validate that target_path is within base_dir (prevent path traversal)
@@ -169,6 +174,50 @@ def read_json(path: Path) -> Any:
     Example:
         data = read_json(Path("flows.json"))
     """
+    with open(path, "r") as f:
+        return json.load(f)
+
+
+def read_json_with_size_limit(
+    path: Path, max_size: int = MAX_FLOWS_FILE_SIZE
+) -> Any:
+    """Read and parse JSON file with size validation
+
+    Args:
+        path: Path to JSON file
+        max_size: Maximum file size in bytes (default: MAX_FLOWS_FILE_SIZE)
+
+    Returns:
+        Parsed JSON data
+
+    Raises:
+        ValueError: If file size exceeds max_size
+
+    Example:
+        # Read flows.json with default 100MB limit
+        data = read_json_with_size_limit(Path("flows.json"))
+
+        # Read node file with 10MB limit
+        data = read_json_with_size_limit(Path("node.json"), MAX_NODE_FILE_SIZE)
+
+    Notes:
+        - Prevents memory exhaustion from huge files
+        - Checks file size before reading into memory
+        - Use for untrusted or potentially large JSON files
+    """
+    if not path.exists():
+        raise FileNotFoundError(f"File not found: {path}")
+
+    file_size = path.stat().st_size
+
+    if file_size > max_size:
+        size_mb = file_size / 1024 / 1024
+        max_mb = max_size / 1024 / 1024
+        raise ValueError(
+            f"File too large: {size_mb:.1f}MB (maximum: {max_mb:.1f}MB). "
+            f"This limit prevents memory exhaustion from huge files."
+        )
+
     with open(path, "r") as f:
         return json.load(f)
 
