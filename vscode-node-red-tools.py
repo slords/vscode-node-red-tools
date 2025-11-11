@@ -129,6 +129,7 @@ def main():
         description="Unified Node-RED development tool",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
+
     parser.add_argument(
         "--version",
         action="version",
@@ -349,6 +350,14 @@ def main():
         "--config",
         help="Path to config file (default: .vscode-node-red-tools.json in current directory)",
     )
+
+    # Enable shell completion if argcomplete is available
+    try:
+        import argcomplete
+
+        argcomplete.autocomplete(parser)
+    except ImportError:
+        pass  # Shell completion is optional
 
     args = parser.parse_args()
 
