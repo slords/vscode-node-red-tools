@@ -25,6 +25,10 @@ MAX_FLOWS_FILE_SIZE = 100 * 1024 * 1024  # 100 MB for flows.json
 MAX_NODE_FILE_SIZE = 10 * 1024 * 1024  # 10 MB per individual node file
 MAX_NODES = 10000  # Maximum number of nodes in a flow
 
+# Subprocess security limits
+SUBPROCESS_TIMEOUT = 300  # 5 minutes max for external commands
+MAX_PATH_LENGTH = 4096  # Maximum path length for subprocess args
+
 # Windows reserved filenames (case-insensitive)
 WINDOWS_RESERVED_NAMES = {
     "CON", "PRN", "AUX", "NUL",
@@ -80,6 +84,49 @@ def sanitize_filename(name: str, max_length: int = 200) -> str:
         return "unnamed"
 
     return sanitized
+
+
+def validate_path_for_subprocess(filepath: Path, base_dir: Path = None) -> Path:
+    """Validate file path for safe use in subprocess commands
+
+    Args:
+        filepath: Path to validate
+        base_dir: Optional base directory to validate against
+
+    Returns:
+        Validated Path object
+
+    Raises:
+        ValueError: If path is unsafe for subprocess use
+
+    Notes:
+        - Validates path exists
+        - Checks path length (prevents buffer overflows in external tools)
+        - Optionally validates path is within base_dir
+        - Use before passing paths to subprocess.run()
+
+    Examples:
+        # Validate file exists and isn't too long
+        safe_path = validate_path_for_subprocess(Path("file.js"))
+
+        # Also check it's within repo
+        safe_path = validate_path_for_subprocess(Path("file.js"), repo_root)
+    """
+    if not filepath.exists():
+        raise ValueError(f"Path does not exist: {filepath}")
+
+    # Check path length (prevent buffer overflows in external tools)
+    path_str = str(filepath.resolve())
+    if len(path_str) > MAX_PATH_LENGTH:
+        raise ValueError(
+            f"Path too long for subprocess: {len(path_str)} chars (max {MAX_PATH_LENGTH})"
+        )
+
+    # Optionally validate within base directory
+    if base_dir:
+        filepath = validate_safe_path(base_dir, filepath)
+
+    return filepath
 
 
 def validate_safe_path(base_dir: Path, target_path: Path) -> Path:
