@@ -9,6 +9,11 @@ import subprocess
 from pathlib import Path
 from typing import Optional
 
+# Import security utilities
+import sys
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from helper.utils import validate_path_for_subprocess, SUBPROCESS_TIMEOUT
+
 
 def to_camel_case(name: str) -> str:
     """Convert node name to camelCase for function/action name.
@@ -98,12 +103,16 @@ def run_prettier(filepath: Path, repo_root: Path) -> bool:
         True if formatting succeeded, False otherwise
     """
     try:
+        # Validate path exists and length before passing to subprocess
+        validated_filepath = validate_path_for_subprocess(filepath, repo_root)
+
         result = subprocess.run(
-            ["npx", "prettier", "--trailing-comma", "es5", "--write", str(filepath)],
+            ["npx", "prettier", "--trailing-comma", "es5", "--write", str(validated_filepath)],
             cwd=repo_root,
             capture_output=True,
             text=True,
             check=True,
+            timeout=SUBPROCESS_TIMEOUT,
         )
         return True
     except FileNotFoundError:
@@ -171,14 +180,27 @@ def run_prettier_parallel(
             return False
 
         try:
+            # Validate all file paths before passing to subprocess
+            validated_files = []
+            for f in files:
+                try:
+                    validated = validate_path_for_subprocess(f, repo_root)
+                    validated_files.append(str(validated))
+                except ValueError as e:
+                    print(f"⚠ Warning: skipping file {f.name}: {e}")
+                    continue
+
+            if not validated_files:
+                return False
+
             # Pass all root files to prettier at once
-            file_paths = [str(f) for f in files]
             subprocess.run(
-                ["npx", "prettier", "--trailing-comma", "es5", "--write"] + file_paths,
+                ["npx", "prettier", "--trailing-comma", "es5", "--write"] + validated_files,
                 cwd=repo_root,
                 capture_output=True,
                 text=True,
                 check=True,
+                timeout=SUBPROCESS_TIMEOUT,
             )
             return True
         except Exception as e:
@@ -189,13 +211,17 @@ def run_prettier_parallel(
     def format_directory(subdir: Path) -> bool:
         """Format a subdirectory recursively"""
         try:
+            # Validate directory path before passing to subprocess
+            validated_subdir = validate_path_for_subprocess(subdir, repo_root)
+
             # Pass directory to prettier (it handles recursion)
             subprocess.run(
-                ["npx", "prettier", "--trailing-comma", "es5", "--write", str(subdir)],
+                ["npx", "prettier", "--trailing-comma", "es5", "--write", str(validated_subdir)],
                 cwd=repo_root,
                 capture_output=True,
                 text=True,
                 check=True,
+                timeout=SUBPROCESS_TIMEOUT,
             )
             return True
         except Exception as e:

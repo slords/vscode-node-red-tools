@@ -25,7 +25,7 @@ except ImportError:
     REQUESTS_AVAILABLE = False
 
 from .logging import log_info, log_error, log_warning
-from .utils import HTTP_TIMEOUT
+from .utils import HTTP_TIMEOUT, validate_path_for_subprocess, SUBPROCESS_TIMEOUT
 
 
 def download_server_flows(
@@ -270,9 +270,16 @@ def launch_beyond_compare(
         - Tries both 'bcomp' and 'bcompare' commands
     """
     try:
-        print(f"Left ({label_a}): {dir_a}")
-        print(f"Right ({label_b}): {dir_b}")
-        result = subprocess.run(["bcomp", str(dir_a), str(dir_b)])
+        # Validate directory paths exist before passing to subprocess
+        validated_dir_a = validate_path_for_subprocess(dir_a)
+        validated_dir_b = validate_path_for_subprocess(dir_b)
+
+        print(f"Left ({label_a}): {validated_dir_a}")
+        print(f"Right ({label_b}): {validated_dir_b}")
+        result = subprocess.run(
+            ["bcomp", str(validated_dir_a), str(validated_dir_b)],
+            timeout=SUBPROCESS_TIMEOUT,
+        )
 
         if result.returncode == 0:
             print(f"\nNo differences found between {label_a} and {label_b}")
@@ -284,7 +291,11 @@ def launch_beyond_compare(
     except FileNotFoundError:
         try:
             print("bcomp not found, trying bcompare...")
-            subprocess.run(["bcompare", "-wait", str(dir_a), str(dir_b)], check=True)
+            subprocess.run(
+                ["bcompare", "-wait", str(validated_dir_a), str(validated_dir_b)],
+                check=True,
+                timeout=SUBPROCESS_TIMEOUT,
+            )
         except FileNotFoundError:
             print("Error: Beyond Compare (bcomp or bcompare) not found")
             print("Falling back to unified diff...")
