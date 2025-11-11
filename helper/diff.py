@@ -58,9 +58,7 @@ def download_server_flows(
 
             urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-        response = session.get(
-            f"{server_url.rstrip('/')}/flows", timeout=HTTP_TIMEOUT
-        )
+        response = session.get(f"{server_url.rstrip('/')}/flows", timeout=HTTP_TIMEOUT)
         response.raise_for_status()
         return response.json()
 
@@ -119,6 +117,7 @@ def prepare_source_for_diff(
     elif source_type == "flow":
         # Explode flows.json to temp
         from .explode import explode_flows
+
         explode_flows(
             flows_path,
             source_dir,
@@ -146,6 +145,7 @@ def prepare_source_for_diff(
 
         # Explode to temp directory
         from .explode import explode_flows
+
         explode_flows(
             temp_flows,
             source_dir,
@@ -309,13 +309,15 @@ def _print_flows_diff(original_path: Path, rebuilt_path: Path) -> None:
         rebuilt_json = json.dumps(rebuilt, indent=2, ensure_ascii=False)
 
         # Generate unified diff
-        diff = list(difflib.unified_diff(
-            original_json.splitlines(keepends=True),
-            rebuilt_json.splitlines(keepends=True),
-            fromfile=str(original_path),
-            tofile="(rebuilt - would be written)",
-            lineterm=""
-        ))
+        diff = list(
+            difflib.unified_diff(
+                original_json.splitlines(keepends=True),
+                rebuilt_json.splitlines(keepends=True),
+                fromfile=str(original_path),
+                tofile="(rebuilt - would be written)",
+                lineterm="",
+            )
+        )
 
         if diff:
             log_info("\nChanges that would be made:")
@@ -414,9 +416,7 @@ def diff_flows(
             # Compare
             if use_bcompare:
                 log_info("Launching Beyond Compare...")
-                launch_beyond_compare(
-                    source_dir, target_dir, source, target, context
-                )
+                launch_beyond_compare(source_dir, target_dir, source, target, context)
             else:
                 log_info("Comparing files...\n")
                 compare_directories_unified(

@@ -190,7 +190,9 @@ def benchmark_command(
 
                 # Write flows to temp
                 temp_flows.write_text(
-                    json.dumps(original_flows, separators=(",", ":"), ensure_ascii=False)
+                    json.dumps(
+                        original_flows, separators=(",", ":"), ensure_ascii=False
+                    )
                     + "\n"
                 )
 
@@ -246,9 +248,15 @@ def benchmark_command(
         total_min = explode_min + rebuild_min
         total_max = explode_max + rebuild_max
 
-        log_info(f"Explode:  avg={explode_avg:.3f}s  min={explode_min:.3f}s  max={explode_max:.3f}s")
-        log_info(f"Rebuild:  avg={rebuild_avg:.3f}s  min={rebuild_min:.3f}s  max={rebuild_max:.3f}s")
-        log_info(f"Total:    avg={total_avg:.3f}s  min={total_min:.3f}s  max={total_max:.3f}s")
+        log_info(
+            f"Explode:  avg={explode_avg:.3f}s  min={explode_min:.3f}s  max={explode_max:.3f}s"
+        )
+        log_info(
+            f"Rebuild:  avg={rebuild_avg:.3f}s  min={rebuild_min:.3f}s  max={rebuild_max:.3f}s"
+        )
+        log_info(
+            f"Total:    avg={total_avg:.3f}s  min={total_min:.3f}s  max={total_max:.3f}s"
+        )
 
         # Nodes per second
         nodes_per_sec_explode = len(original_flows) / explode_avg

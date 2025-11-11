@@ -39,7 +39,9 @@ class PrettierExplodePlugin:
         """
         # Format src directory + flows.json in parallel
         # Root files + flows.json in one thread, each subdirectory in its own thread
-        result = run_prettier_parallel(src_dir, repo_root, additional_files=[flows_path])
+        result = run_prettier_parallel(
+            src_dir, repo_root, additional_files=[flows_path]
+        )
 
         if result:
             print(f"   Formatted src directory and {flows_path.name}")

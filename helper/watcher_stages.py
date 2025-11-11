@@ -22,10 +22,20 @@ try:
 except ImportError:
     REQUESTS_AVAILABLE = False
 
-from .logging import log_info, log_success, log_warning, log_error, create_progress_context
+from .logging import (
+    log_info,
+    log_success,
+    log_warning,
+    log_error,
+    create_progress_context,
+)
 from .utils import clear_watch_state_after_failure
 from .rebuild import rebuild_flows
-from .explode import _run_pre_explode_stage, _explode_nodes_stage, _run_post_explode_stage
+from .explode import (
+    _run_pre_explode_stage,
+    _explode_nodes_stage,
+    _run_post_explode_stage,
+)
 from .file_ops import find_orphaned_files, handle_orphaned_files
 from .dashboard import WatchConfig
 from .watcher_server import _download_flows_from_server, deploy_to_nodered

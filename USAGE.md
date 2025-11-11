@@ -45,31 +45,37 @@ python3 vscode-node-red-tools.py rebuild flows/flows.json
 Breaks `flows.json` into individual source files.
 
 **Syntax:**
+
 ```bash
 python3 vscode-node-red-tools.py [GLOBAL_OPTIONS] explode [OPTIONS] FLOWS_FILE [SRC_DIR]
 ```
 
 **Arguments:**
+
 - `FLOWS_FILE` - Path to flows.json (optional, defaults to `--flows` value or "flows/flows.json")
 - `SRC_DIR` - Output directory (optional, defaults to `--src` value or "src/")
 
 **Options:**
+
 - `--backup` - Create timestamped backup before exploding
 - `--delete-orphaned` - Delete orphaned files instead of moving to .orphaned/
 - `--dry-run` - Show what would happen without making changes
 
 **Global Options:**
+
 - `--flows PATH` - Set flows.json path (default: "flows/flows.json")
 - `--src PATH` - Set source directory (default: "src")
 - `--enable PLUGINS` - Enable specific plugins (comma-separated or "all")
 - `--disable PLUGINS` - Disable specific plugins (comma-separated or "all")
 
 **What it does:**
+
 1. **Stage 1** - Pre-explode plugins (normalize IDs, modify flows JSON)
 2. **Stage 2** - Core explode (extract nodes to files) + Explode plugins
 3. **Stage 3** - Post-explode plugins (prettier formatting)
 
 **Creates:**
+
 - `.flow-skeleton.json` - Hidden skeleton with layout/wiring
 - Individual files for each node (see [File Structure](#file-structure))
 
@@ -103,21 +109,25 @@ python3 vscode-node-red-tools.py --enable all --disable prettier explode
 Reconstructs `flows.json` from source files.
 
 **Syntax:**
+
 ```bash
 python3 vscode-node-red-tools.py [GLOBAL_OPTIONS] rebuild [OPTIONS] FLOWS_FILE [SRC_DIR]
 ```
 
 **Arguments:**
+
 - `FLOWS_FILE` - Path to flows.json to create (optional, defaults to `--flows` value or "flows/flows.json")
 - `SRC_DIR` - Source directory (optional, defaults to `--src` value or "src/")
 
 **Options:**
+
 - `--backup` - Create timestamped backup before rebuilding
 - `--orphan-new` - Move new files (not in skeleton) to .orphaned/
 - `--delete-new` - Delete new files (not in skeleton)
 - `--dry-run` - Show what would change without writing files
 
 **What it does:**
+
 1. **Stage 1** - Pre-rebuild plugins (process files)
 2. **Stage 2** - Core rebuild (assemble flows) + Explode plugins for rebuilding
 3. **Stage 3** - Post-rebuild plugins (prettier formatting)
@@ -149,16 +159,19 @@ python3 vscode-node-red-tools.py --disable all --enable prettier-pre-rebuild,pre
 Bidirectional sync between source files and Node-RED server.
 
 **Syntax:**
+
 ```bash
 python3 vscode-node-red-tools.py [GLOBAL_OPTIONS] watch [OPTIONS]
 ```
 
 **Required Options:**
+
 - `--server URL` - Node-RED server URL (e.g., `http://localhost:1880`)
 - `--username USER` - Node-RED username
 - `--password PASS` - Node-RED password
 
 **Optional:**
+
 - `--flows FLOWS_FILE` - Path to flows.json (default: `flows/flows.json`)
 - `--src SRC_DIR` - Source directory (default: `src/`)
 - `--poll-interval SECONDS` - Server polling interval (default: 1)
@@ -167,10 +180,12 @@ python3 vscode-node-red-tools.py [GLOBAL_OPTIONS] watch [OPTIONS]
 - `--dashboard` - Enable TUI dashboard (requires textual)
 
 **Plugin Control (Global Options):**
+
 - `--enable PLUGINS` - Enable specific plugins (comma-separated or "all")
 - `--disable PLUGINS` - Disable specific plugins (comma-separated or "all")
 
 **What it does:**
+
 1. Downloads latest flows from server
 2. Explodes to src/
 3. Watches for changes in **both directions**:
@@ -180,6 +195,7 @@ python3 vscode-node-red-tools.py [GLOBAL_OPTIONS] watch [OPTIONS]
 5. Automatic stability checking after uploads (converges plugin changes)
 
 **Interactive Commands** (while watching):
+
 - `download` - Manual download from server
 - `upload` - Force rebuild and upload
 - `check` - Rebuild and upload only if different
@@ -223,6 +239,7 @@ python3 vscode-node-red-tools.py watch \
 **Dashboard Mode:**
 
 When `--dashboard` is enabled, displays a Textual TUI with:
+
 - Status panel (server, connection, sync state)
 - Real-time activity log (scrollable)
 - Statistics (downloads, uploads, errors, timing)
@@ -241,17 +258,20 @@ If a conflict is detected, watch mode will alert you and pause synchronization.
 Verify round-trip consistency (explode → rebuild produces identical flows).
 
 **Syntax:**
+
 ```bash
 python3 vscode-node-red-tools.py [GLOBAL_OPTIONS] verify FLOWS_FILE
 ```
 
 **Arguments:**
+
 - `FLOWS_FILE` - Path to flows.json (default: `flows/flows.json`)
 - `SRC_DIR` - Temporary directory for testing (default: `src/`)
 
 **Options:**
 
 **What it does:**
+
 1. Loads original flows.json
 2. Explodes to temporary directory
 3. Rebuilds from temporary directory
@@ -259,6 +279,7 @@ python3 vscode-node-red-tools.py [GLOBAL_OPTIONS] verify FLOWS_FILE
 5. Reports differences if any
 
 **Exit Codes:**
+
 - `0` - Verification successful (identical)
 - `1` - Verification failed (differences found)
 
@@ -281,15 +302,18 @@ fi
 Compare two directories or launch Beyond Compare.
 
 **Syntax:**
+
 ```bash
 python3 vscode-node-red-tools.py [GLOBAL_OPTIONS] diff [OPTIONS] SOURCE TARGET
 ```
 
 **Arguments:**
+
 - `DIR_A` - First directory
 - `DIR_B` - Second directory
 
 **Options:**
+
 - `--bcomp` - Use Beyond Compare GUI instead of console diff
 
 **Examples:**
@@ -307,16 +331,19 @@ python3 vscode-node-red-tools.py diff --bcomp src/ src_backup/
 Show all available plugins organized by execution stage, with their status and priorities.
 
 **Syntax:**
+
 ```bash
 python3 vscode-node-red-tools.py [GLOBAL_OPTIONS] list-plugins
 ```
 
 **What it shows:**
+
 - Plugins grouped by execution stage (PRE-EXPLODE, EXPLODE, POST-EXPLODE, PRE-REBUILD, POST-REBUILD)
 - Plugin name, priority, status (loaded/not loaded), config order, filename
 - Total plugin count with enabled/disabled summary
 
 **Plugin Status:**
+
 - `✓ loaded` - Plugin is active (via `--enable` flag or config)
 - `✗ not loaded` - Plugin is disabled (via `--disable` flag or config)
 - `✓ enabled` - Plugin would be active with current config (no CLI overrides)
@@ -336,6 +363,7 @@ python3 vscode-node-red-tools.py --enable all --disable prettier list-plugins
 ```
 
 **Sample Output:**
+
 ```
 PRE-EXPLODE (1 plugins)
 -----------------------------------------------------------------------------------------------------
@@ -359,15 +387,18 @@ global-function                210        ✓ loaded       -         210_global_
 Display comprehensive statistics about your flows and source files.
 
 **Syntax:**
+
 ```bash
 python3 vscode-node-red-tools.py [GLOBAL_OPTIONS] stats
 ```
 
 **Arguments:**
+
 - `FLOWS_FILE` - Path to flows.json (optional, defaults to `--flows` value or "flows/flows.json")
 - `SRC_DIR` - Source directory (optional, defaults to `--src` value or "src/")
 
 **What it shows:**
+
 - Node counts by type
 - File counts by extension
 - Flow organization (tabs, subflows, groups)
@@ -375,6 +406,7 @@ python3 vscode-node-red-tools.py [GLOBAL_OPTIONS] stats
 - Size statistics
 
 **Example:**
+
 ```bash
 # Basic stats (uses defaults)
 python3 vscode-node-red-tools.py stats
@@ -387,6 +419,7 @@ python3 vscode-node-red-tools.py --disable all stats
 ```
 
 **Sample output:**
+
 ```
 Flow Statistics:
   Total nodes: 127
@@ -407,24 +440,29 @@ Source Statistics:
 Benchmark explode and rebuild performance to measure tool speed.
 
 **Syntax:**
+
 ```bash
 python3 vscode-node-red-tools.py [GLOBAL_OPTIONS] benchmark [OPTIONS] FLOWS_FILE
 ```
 
 **Arguments:**
+
 - `FLOWS_FILE` - Path to flows.json (required)
 - `SRC_DIR` - Source directory (optional, default: `src/`)
 
 **Options:**
+
 - `--iterations N` - Number of iterations (default: 3)
 
 **What it measures:**
+
 - Explode time (flows → source files)
 - Rebuild time (source files → flows)
 - Plugin overhead (compare with/without plugins)
 - Average, min, max times
 
 **Example:**
+
 ```bash
 # Run benchmark with default 3 iterations
 python3 vscode-node-red-tools.py benchmark flows/flows.json
@@ -437,6 +475,7 @@ python3 vscode-node-red-tools.py --disable all benchmark flows/flows.json
 ```
 
 **Sample output:**
+
 ```
 Benchmarking: 5 iterations
 Explode: 0.245s (avg), 0.231s (min), 0.267s (max)
@@ -449,18 +488,22 @@ Total: 0.434s (avg)
 Generate a new plugin scaffold with all required methods.
 
 **Syntax:**
+
 ```bash
 python3 vscode-node-red-tools.py [GLOBAL_OPTIONS] new-plugin NAME TYPE [--priority PRIORITY]
 ```
 
 **Arguments:**
+
 - `NAME` - Plugin name (lowercase with underscores, e.g., `my_custom`)
 - `TYPE` - Plugin type: `pre-explode`, `explode`, `post-explode`, `pre-rebuild`, `post-rebuild`
 
 **Options:**
+
 - `--priority N` - Priority number (auto-assigned by type if not specified)
 
 **What it creates:**
+
 - Plugin file with correct naming (`300_my_custom_plugin.py`)
 - Complete class structure with all required methods
 - TODO comments showing where to add logic
@@ -468,6 +511,7 @@ python3 vscode-node-red-tools.py [GLOBAL_OPTIONS] new-plugin NAME TYPE [--priori
 - Ready to test immediately
 
 **Example:**
+
 ```bash
 # Create explode plugin (auto-priority 200)
 python3 vscode-node-red-tools.py new-plugin my_custom explode
@@ -477,6 +521,7 @@ python3 vscode-node-red-tools.py new-plugin my_formatter post-explode --priority
 ```
 
 **Output:**
+
 ```
 ✓ Created plugin: plugins/200_my_custom_plugin.py
   Class name: MyCustomPlugin
@@ -496,11 +541,13 @@ See [PLUGIN_DEVELOPMENT.md](PLUGIN_DEVELOPMENT.md) for plugin development guide.
 Validate your `.vscode-node-red-tools.json` configuration file.
 
 **Syntax:**
+
 ```bash
 python3 vscode-node-red-tools.py [GLOBAL_OPTIONS] validate-config
 ```
 
 **What it checks:**
+
 - JSON syntax validity
 - Configuration structure
 - Required fields
@@ -510,11 +557,13 @@ python3 vscode-node-red-tools.py [GLOBAL_OPTIONS] validate-config
 - Watch mode settings
 
 **Example:**
+
 ```bash
 python3 vscode-node-red-tools.py validate-config
 ```
 
 **Sample output:**
+
 ```
 Validating configuration...
 ✓ Config file found: .vscode-node-red-tools.json
@@ -532,6 +581,7 @@ Validating configuration...
 ```
 
 **Error example:**
+
 ```
 ✗ Invalid JSON format: Expecting ',' delimiter: line 10 column 5
 ✗ Configuration is invalid (1 error(s))
@@ -542,6 +592,7 @@ Validating configuration...
 Show version information.
 
 **Syntax:**
+
 ```bash
 python3 vscode-node-red-tools.py --version
 ```
@@ -578,6 +629,7 @@ src/
 ### File Types
 
 **Regular Function Nodes:**
+
 - `<node_id>.wrapped.js` - Main function code (wrapped with Node-RED parameters)
 - `<node_id>.initialize.js` - Initialize code (optional)
 - `<node_id>.finalize.js` - Finalize code (optional)
@@ -585,23 +637,27 @@ src/
 - `<node_id>.md` - Documentation (optional)
 
 **Global Functions** (`gfunc.functionName`):
+
 - `<node_id>.function.js` - Function declaration (with export default)
 - `<node_id>.json` - Auto-generated properties (do not edit)
 - `<node_id>.md` - Documentation (optional)
 
 **Actions** (`qcmd.actionName`):
+
 - `<node_id>.def.js` - Action definition (native JavaScript with export default)
 - `<node_id>.execute.js` - Execute function (optional, with export default)
 - `<node_id>.json` - Auto-generated properties (do not edit)
 - `<node_id>.md` - Documentation (optional)
 
 **Template Nodes:**
+
 - `<node_id>.vue` - Dashboard 2 template (ui_template)
 - `<node_id>.ui-template.html` - Dashboard 1 template (ui-template)
 - `<node_id>.template.<ext>` - Core template node (based on format)
 - `<node_id>.json` - Node properties
 
 **Other Nodes:**
+
 - `<node_id>.json` - Node properties
 - `<node_id>.md` - Documentation (optional)
 

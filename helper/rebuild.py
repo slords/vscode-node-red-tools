@@ -382,6 +382,7 @@ def rebuild_flows(
             if result == 0 and temp_flows.exists():
                 try:
                     from . import _print_flows_diff
+
                     _print_flows_diff(flows_path, temp_flows)
                 except:
                     log_info(f"Dry run complete - would write to {flows_path}")

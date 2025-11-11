@@ -231,9 +231,13 @@ def deploy_to_nodered(config: WatchConfig, count_stats: bool = True) -> bool:
         # Only clear ETag if convergence not paused
         if not config.convergence_paused:
             config.last_etag = None
-            log_info(f"Updated state - ETag cleared (will re-download), rev: {deploy_rev}")
+            log_info(
+                f"Updated state - ETag cleared (will re-download), rev: {deploy_rev}"
+            )
         else:
-            log_info(f"Updated state - Convergence paused (ETag not cleared), rev: {deploy_rev}")
+            log_info(
+                f"Updated state - Convergence paused (ETag not cleared), rev: {deploy_rev}"
+            )
 
         # Update statistics (only if this is a counted upload, not plugin auto-upload)
         if count_stats:

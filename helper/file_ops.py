@@ -174,9 +174,7 @@ def handle_orphaned_files(orphaned: List[Path], src_dir: Path, delete: bool = Fa
         log_success(f"Moved {len(orphaned)} orphaned file(s) to .orphaned/")
 
 
-def find_new_files(
-    src_dir: Path, skeleton_data: list, plugins: list
-) -> List[Path]:
+def find_new_files(src_dir: Path, skeleton_data: list, plugins: list) -> List[Path]:
     """Find new node definition files that don't have corresponding skeleton entries
 
     Args:

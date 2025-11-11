@@ -65,6 +65,7 @@ Reconstructs `flows.json` from source files with all changes applied.
 ### Watch
 
 Bidirectional sync between local files and Node-RED server:
+
 - **Edit locally** → auto-uploads to Node-RED
 - **Edit in Node-RED** → auto-downloads to local files
 - Conflict detection with optimistic locking
@@ -92,6 +93,7 @@ assert.equal(result.payload, 10);
 ### Plugin System
 
 Extensible architecture for customization:
+
 - **Pre-explode**: Modify flows before exploding (e.g., normalize IDs)
 - **Explode**: Extract node-specific data
 - **Post-explode**: Format source files

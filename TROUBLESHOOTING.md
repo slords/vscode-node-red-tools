@@ -21,6 +21,7 @@ Common issues and their solutions when using vscode-node-red-tools.
 **Solutions:**
 
 1. Use a virtual environment:
+
    ```bash
    python3 -m venv venv
    source venv/bin/activate  # Linux/Mac
@@ -29,6 +30,7 @@ Common issues and their solutions when using vscode-node-red-tools.
    ```
 
 2. Update pip:
+
    ```bash
    pip install --upgrade pip
    pip install -r requirements.txt
@@ -46,14 +48,17 @@ Common issues and their solutions when using vscode-node-red-tools.
 **Solutions:**
 
 1. Install prettier globally:
+
    ```bash
    npm install -g prettier
    ```
 
 2. Use npx (doesn't require global install):
+
    ```bash
    npx prettier --version
    ```
+
    The tool will use `npx prettier` if global `prettier` isn't found.
 
 3. Add npm global bin to PATH:
@@ -69,6 +74,7 @@ Common issues and their solutions when using vscode-node-red-tools.
 **Solution:**
 
 Ensure you're in the correct environment and dependencies are installed:
+
 ```bash
 # Activate virtual environment if using one
 source venv/bin/activate
@@ -90,6 +96,7 @@ pip install -r requirements.txt
 **Possible Causes:**
 
 1. **Wrong flows.json path:**
+
    ```bash
    # Check file exists
    ls -l flows/flows.json
@@ -99,6 +106,7 @@ pip install -r requirements.txt
    ```
 
 2. **Empty flows.json:**
+
    ```bash
    # Check file isn't empty
    cat flows/flows.json
@@ -118,11 +126,13 @@ pip install -r requirements.txt
 **Solutions:**
 
 1. Skip problematic plugins:
+
    ```bash
    python3 vscode-node-red-tools.py explode --disable all flows/flows.json
    ```
 
 2. Disable specific plugin in config:
+
    ```json
    {
      "plugins": {
@@ -149,6 +159,7 @@ pip install -r requirements.txt
 **Solution:**
 
 Check what plugins are active:
+
 ```bash
 python3 vscode-node-red-tools.py list-plugins
 ```
@@ -160,6 +171,7 @@ python3 vscode-node-red-tools.py list-plugins
 **Solutions:**
 
 1. Disable normalization plugin in config:
+
    ```json
    {
      "plugins": {
@@ -169,6 +181,7 @@ python3 vscode-node-red-tools.py list-plugins
    ```
 
 2. Check for duplicate names:
+
    - Nodes with identical names may cause conflicts
    - Manually edit node names in Node-RED before exploding
 
@@ -191,11 +204,13 @@ python3 vscode-node-red-tools.py list-plugins
 **Solutions:**
 
 1. Verify round-trip:
+
    ```bash
    python3 vscode-node-red-tools.py verify flows/flows.json
    ```
 
 2. Compare directories:
+
    ```bash
    python3 vscode-node-red-tools.py diff src/ src_backup/
    ```
@@ -215,6 +230,7 @@ python3 vscode-node-red-tools.py list-plugins
 **Solution:**
 
 1. Check it exists:
+
    ```bash
    ls -la src/.flow-skeleton.json
    ```
@@ -231,10 +247,12 @@ python3 vscode-node-red-tools.py list-plugins
 **Solutions:**
 
 1. Check file naming:
+
    - Should be `<node_id>.wrapped.js` or `<node_id>.js`
    - Must match node ID in .json file
 
 2. Check plugin is enabled:
+
    ```bash
    python3 vscode-node-red-tools.py list-plugins | grep func
    ```
@@ -259,6 +277,7 @@ python3 vscode-node-red-tools.py list-plugins
 **Solutions:**
 
 1. Enable dashboard to see what's happening:
+
    ```bash
    python3 vscode-node-red-tools.py watch --dashboard \
      --server http://localhost:1880 \
@@ -267,6 +286,7 @@ python3 vscode-node-red-tools.py list-plugins
    ```
 
 2. Skip plugins temporarily:
+
    ```bash
    python3 vscode-node-red-tools.py watch --disable all \
      --server http://localhost:1880 \
@@ -275,6 +295,7 @@ python3 vscode-node-red-tools.py list-plugins
    ```
 
 3. Increase debounce:
+
    ```json
    {
      "watch": {
@@ -296,11 +317,13 @@ python3 vscode-node-red-tools.py list-plugins
 **Solutions:**
 
 1. Verify server URL:
+
    ```bash
    curl http://localhost:1880
    ```
 
 2. Check Node-RED is running:
+
    ```bash
    # Check if port is open
    netstat -an | grep 1880
@@ -322,11 +345,13 @@ python3 vscode-node-red-tools.py list-plugins
 **Solutions:**
 
 1. Verify credentials:
+
    ```bash
    # Try logging into Node-RED UI with same credentials
    ```
 
 2. Check Node-RED security settings:
+
    ```bash
    # Check settings.js for adminAuth configuration
    cat ~/.node-red/settings.js | grep -A 10 adminAuth
@@ -343,6 +368,7 @@ python3 vscode-node-red-tools.py list-plugins
 **Solutions:**
 
 1. Use `--no-verify-ssl` flag:
+
    ```bash
    python3 vscode-node-red-tools.py watch \
      --server https://myserver:1880 \
@@ -369,6 +395,7 @@ python3 vscode-node-red-tools.py list-plugins
 4. Restart watch mode
 
 **Prevention:**
+
 - Use watch mode on single-user instances
 - Coordinate with team on multi-user setups
 - Use version control for collaboration
@@ -382,16 +409,19 @@ python3 vscode-node-red-tools.py list-plugins
 **Solutions:**
 
 1. List plugins to verify:
+
    ```bash
    python3 vscode-node-red-tools.py list-plugins
    ```
 
 2. Check plugin file naming:
+
    - Must be in `plugins/` directory
    - Must end with `_plugin.py`
    - Must implement required interface
 
 3. Check for Python errors:
+
    - Syntax errors prevent plugin loading
    - Check console output for errors
 
@@ -411,11 +441,13 @@ python3 vscode-node-red-tools.py list-plugins
 **Solutions:**
 
 1. Skip plugins to isolate issue:
+
    ```bash
    python3 vscode-node-red-tools.py explode --disable all flows/flows.json
    ```
 
 2. Test one plugin at a time:
+
    ```json
    {
      "plugins": {
@@ -425,6 +457,7 @@ python3 vscode-node-red-tools.py list-plugins
    ```
 
 3. Check plugin implementation:
+
    - Review plugin code for errors
    - Add error handling to plugin
    - Check plugin return values
@@ -441,16 +474,19 @@ python3 vscode-node-red-tools.py list-plugins
 **Solutions:**
 
 1. Verify plugin is loaded:
+
    ```bash
    python3 vscode-node-red-tools.py list-plugins | grep my-plugin
    ```
 
 2. Check plugin interface:
+
    - Implements required methods
    - Returns correct values
    - get_name() returns unique name
 
 3. Test in isolation:
+
    ```json
    {
      "plugins": {
@@ -481,12 +517,14 @@ python3 vscode-node-red-tools.py list-plugins
 **Solutions:**
 
 1. Check what differs:
+
    ```bash
    python3 vscode-node-red-tools.py verify flows/flows.json
    # Look at reported differences
    ```
 
 2. Compare manually:
+
    ```bash
    # Explode, rebuild, and diff
    python3 vscode-node-red-tools.py explode flows/flows.json
@@ -495,6 +533,7 @@ python3 vscode-node-red-tools.py list-plugins
    ```
 
 3. Skip formatting:
+
    ```bash
    python3 vscode-node-red-tools.py explode --disable all flows/flows.json
    python3 vscode-node-red-tools.py verify --disable all flows/flows.json
@@ -511,11 +550,13 @@ python3 vscode-node-red-tools.py list-plugins
 **Solutions:**
 
 1. Skip plugins for speed:
+
    ```bash
    python3 vscode-node-red-tools.py explode --disable all flows/flows.json
    ```
 
 2. Disable prettier (usually the slowest):
+
    ```json
    {
      "plugins": {
@@ -529,6 +570,7 @@ python3 vscode-node-red-tools.py list-plugins
    ```
 
 3. Check file count:
+
    ```bash
    # Large flows create many files
    find src/ -type f | wc -l
@@ -548,6 +590,7 @@ python3 vscode-node-red-tools.py list-plugins
 **Solutions:**
 
 1. Increase poll interval:
+
    ```json
    {
      "watch": {
@@ -557,6 +600,7 @@ python3 vscode-node-red-tools.py list-plugins
    ```
 
 2. Increase debounce:
+
    ```json
    {
      "watch": {
@@ -566,6 +610,7 @@ python3 vscode-node-red-tools.py list-plugins
    ```
 
 3. Skip plugins:
+
    ```bash
    python3 vscode-node-red-tools.py watch --disable all \
      --server http://localhost:1880 \
@@ -580,18 +625,22 @@ python3 vscode-node-red-tools.py list-plugins
 If your issue isn't covered here:
 
 1. **Check documentation:**
+
    - [USAGE.md](USAGE.md) - Command usage
    - [CONFIGURATION.md](CONFIGURATION.md) - Configuration options
    - [ARCHITECTURE.md](ARCHITECTURE.md) - Design details
 
 2. **Search existing issues:**
+
    - Check GitHub issues for similar problems
 
 3. **Enable verbose output:**
+
    - Add debug prints to plugins
    - Use `--dashboard` mode for watch mode details
 
 4. **Create minimal reproduction:**
+
    - Isolate the issue
    - Create minimal flows.json that shows problem
    - Note exact commands used
@@ -627,6 +676,7 @@ If your issue isn't covered here:
 **Cause:** Prettier failed to format files.
 
 **Solutions:**
+
 1. Check prettier is installed: `npx prettier --version`
 2. Check files for syntax errors
 3. Disable prettier plugins temporarily
@@ -636,6 +686,7 @@ If your issue isn't covered here:
 **Cause:** Can't connect to Node-RED server.
 
 **Solutions:**
+
 1. Verify server is running
 2. Check URL is correct
 3. Check firewall/network settings
@@ -661,6 +712,7 @@ def explode_node(self, node, node_dir, node_id, claimed_fields):
 ## Still Having Issues?
 
 Open an issue on GitHub with:
+
 - Exact commands run
 - Error messages (full stack trace)
 - System information

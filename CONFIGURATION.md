@@ -29,6 +29,7 @@ vim .vscode-node-red-tools.json
 ### Default Behavior
 
 If no configuration file exists, the tool uses these defaults:
+
 - `flows`: `flows/flows.json`
 - `src`: `src`
 - All plugins enabled
@@ -64,6 +65,7 @@ Path to flows.json file (relative to repo root).
 **Default:** `"flows/flows.json"`
 
 **Example:**
+
 ```json
 {
   "flows": "node-red/flows.json"
@@ -78,6 +80,7 @@ Directory for exploded source files.
 **Default:** `"src"`
 
 **Example:**
+
 ```json
 {
   "src": "source"
@@ -92,6 +95,7 @@ Backup configuration (optional).
 **Default:** Not configured
 
 **Example:**
+
 ```json
 {
   "backup": {
@@ -114,6 +118,7 @@ List of plugin names to enable. Empty array means all plugins are enabled.
 **Default:** `[]` (all enabled)
 
 **Example:**
+
 ```json
 {
   "plugins": {
@@ -132,6 +137,7 @@ List of plugin names to disable. Empty array means no plugins are disabled.
 **Default:** `[]` (none disabled)
 
 **Example:**
+
 ```json
 {
   "plugins": {
@@ -152,6 +158,7 @@ Custom plugin execution order. Empty array uses default priority order.
 **Default:** `[]` (use priority/filename)
 
 **Example:**
+
 ```json
 {
   "plugins": {
@@ -171,18 +178,18 @@ This overrides the default priority-based ordering.
 
 ### Available Plugins
 
-| Plugin Name | Type | Priority | Description |
-|-------------|------|----------|-------------|
-| `normalize-ids` | pre-explode | 100 | Convert random IDs to functional names |
-| `action` | explode | 200 | Handle action nodes (.def.js, .execute.js) |
-| `global-function` | explode | 210 | Handle global functions (.function.js) |
-| `wrap_func` | explode | 220 | Wrap functions for testing (.wrapped.js) |
-| `func` | explode | 230 | Handle legacy functions (.js) |
-| `template` | explode | 240 | Handle template nodes (.vue, .html, etc.) |
-| `info` | explode | 250 | Extract documentation (.md) |
-| `prettier-explode` | post-explode | 300 | Format files after explode |
-| `prettier-pre-rebuild` | pre-rebuild | 400 | Format files before rebuild |
-| `prettier-post-rebuild` | post-rebuild | 500 | Format flows.json after rebuild |
+| Plugin Name             | Type         | Priority | Description                                |
+| ----------------------- | ------------ | -------- | ------------------------------------------ |
+| `normalize-ids`         | pre-explode  | 100      | Convert random IDs to functional names     |
+| `action`                | explode      | 200      | Handle action nodes (.def.js, .execute.js) |
+| `global-function`       | explode      | 210      | Handle global functions (.function.js)     |
+| `wrap_func`             | explode      | 220      | Wrap functions for testing (.wrapped.js)   |
+| `func`                  | explode      | 230      | Handle legacy functions (.js)              |
+| `template`              | explode      | 240      | Handle template nodes (.vue, .html, etc.)  |
+| `info`                  | explode      | 250      | Extract documentation (.md)                |
+| `prettier-explode`      | post-explode | 300      | Format files after explode                 |
+| `prettier-pre-rebuild`  | pre-rebuild  | 400      | Format files before rebuild                |
+| `prettier-post-rebuild` | post-rebuild | 500      | Format flows.json after rebuild            |
 
 ## Watch Mode Configuration
 
@@ -197,6 +204,7 @@ How often to poll the Node-RED server for changes (in seconds).
 **Range:** 1-60 recommended
 
 **Example:**
+
 ```json
 {
   "watch": {
@@ -206,6 +214,7 @@ How often to poll the Node-RED server for changes (in seconds).
 ```
 
 **Considerations:**
+
 - Lower values = faster detection, more server load
 - Higher values = slower detection, less server load
 - 1-5 seconds is a good balance
@@ -219,6 +228,7 @@ Wait time after file change before uploading (in seconds).
 **Range:** 0.1-5.0 recommended
 
 **Example:**
+
 ```json
 {
   "watch": {
@@ -228,6 +238,7 @@ Wait time after file change before uploading (in seconds).
 ```
 
 **Considerations:**
+
 - Lower values = faster uploads, may upload incomplete changes
 - Higher values = slower uploads, groups multiple changes
 - 1-3 seconds works well for most cases
@@ -241,6 +252,7 @@ Maximum number of upload/download cycles before oscillation warning (in cycles).
 **Range:** 3-10 recommended
 
 **Example:**
+
 ```json
 {
   "watch": {
@@ -253,6 +265,7 @@ Maximum number of upload/download cycles before oscillation warning (in cycles).
 Prevents infinite loops when plugins cause changes that trigger endless cycles. When exceeded, convergence pauses until manual upload resumes it.
 
 **Considerations:**
+
 - Most flows converge in 1-2 cycles
 - Higher values allow more complex convergence scenarios
 - Lower values catch oscillation problems faster
@@ -267,6 +280,7 @@ Time window for counting convergence cycles (in seconds).
 **Range:** 30-120 recommended
 
 **Example:**
+
 ```json
 {
   "watch": {
@@ -279,6 +293,7 @@ Time window for counting convergence cycles (in seconds).
 Only counts cycles within this time window. Older cycles are discarded from the count.
 
 **Considerations:**
+
 - Prevents false positives from normal editing over time
 - 60 seconds gives good detection without false alarms
 - Shorter windows catch oscillation faster
@@ -427,6 +442,7 @@ python3 vscode-node-red-tools.py validate-config
 ```
 
 This checks:
+
 - JSON syntax
 - Valid configuration keys
 - Correct value types
@@ -456,6 +472,7 @@ python3 vscode-node-red-tools.py watch \
 ## Environment Variables
 
 Currently, the tool does not use environment variables. All configuration is via:
+
 1. Configuration file (`.vscode-node-red-tools.json`)
 2. Command-line arguments
 
@@ -464,25 +481,30 @@ Currently, the tool does not use environment variables. All configuration is via
 ### Version Control
 
 **Do commit:**
+
 - `.vscode-node-red-tools.json` (shared team settings)
 
 **Don't commit:**
+
 - Sensitive credentials (use command-line arguments)
 - Local overrides specific to your setup
 
 ### Plugin Selection
 
 **Enable all plugins if:**
+
 - You want full functionality
 - You're okay with slower processing
 - You want testable functions
 
 **Disable prettier if:**
+
 - You have custom formatting
 - Processing is too slow
 - You want minimal changes
 
 **Disable wrap_func if:**
+
 - You don't need testable functions
 - You prefer simpler .js files
 - You're migrating from an older tool
@@ -490,16 +512,19 @@ Currently, the tool does not use environment variables. All configuration is via
 ### Watch Mode Tuning
 
 **Increase pollInterval if:**
+
 - Server is under heavy load
 - You don't need instant sync
 - You're on a slow network
 
 **Decrease debounce if:**
+
 - You want faster uploads
 - You rarely make batch edits
 - You have a fast system
 
 **Increase debounce if:**
+
 - You make frequent batch edits
 - You want to group changes
 - You have a slower system
@@ -509,6 +534,7 @@ Currently, the tool does not use environment variables. All configuration is via
 ### Configuration Not Loading
 
 Check:
+
 1. File is named `.vscode-node-red-tools.json` (with leading dot)
 2. File is in the same directory as `vscode-node-red-tools.py`
 3. JSON syntax is valid (use `python3 -m json.tool` to validate)
@@ -516,6 +542,7 @@ Check:
 ### Plugins Not Working
 
 Check:
+
 1. Plugin names match exactly (use `list-plugins` command)
 2. No typos in `enabled` or `disabled` arrays
 3. Plugins aren't conflicting (e.g., both enabled and disabled)
@@ -523,6 +550,7 @@ Check:
 ### Watch Mode Issues
 
 Check:
+
 1. `pollInterval` is positive number
 2. `debounce` is non-negative number
 3. `convergenceLimit` is positive integer

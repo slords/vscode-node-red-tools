@@ -15,6 +15,7 @@ Thank you for your interest in contributing! This document provides guidelines f
 
 1. Make your changes in your feature branch
 2. Test your changes thoroughly:
+
    ```bash
    # Test explode/rebuild cycle
    python3 vscode-node-red-tools.py verify flows/flows.json
@@ -36,6 +37,7 @@ If you're developing a plugin:
 
 1. Place it in the `plugins/` directory with a numeric prefix (e.g., `300_my_plugin.py`)
 2. Test with `list-plugins` command:
+
    ```bash
    python3 vscode-node-red-tools.py list-plugins
    ```
@@ -50,11 +52,13 @@ See [PLUGIN_DEVELOPMENT.md](PLUGIN_DEVELOPMENT.md) for detailed plugin developme
 ## Submitting Changes
 
 1. Commit your changes with clear, descriptive messages:
+
    ```bash
    git commit -m "Add feature: description of what you added"
    ```
 
 2. Push to your fork:
+
    ```bash
    git push origin feature/your-feature-name
    ```

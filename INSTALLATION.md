@@ -40,6 +40,7 @@ pip install -r requirements.txt
 ```
 
 This installs:
+
 - **rich** (>=13.0.0) - Progress bars and terminal UI
 - **watchdog** (>=3.0.0) - File system monitoring for watch mode
 - **requests** (>=2.31.0) - HTTP client for watch mode
@@ -72,6 +73,7 @@ npm install -g prettier
 ```
 
 Verify installation:
+
 ```bash
 npx prettier --version
 ```
@@ -97,6 +99,7 @@ cp .vscode-node-red-tools.example.json .vscode-node-red-tools.json
 ```
 
 Edit the file to configure:
+
 - Default flows and src paths
 - Plugin enable/disable
 - Watch mode polling intervals

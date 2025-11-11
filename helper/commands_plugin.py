@@ -391,7 +391,13 @@ def list_plugins_command(
                 log_warning(f"Failed to load plugin {plugin_file.name}: {e}")
 
         # Group plugins by type
-        plugin_types = ["pre-explode", "explode", "post-explode", "pre-rebuild", "post-rebuild"]
+        plugin_types = [
+            "pre-explode",
+            "explode",
+            "post-explode",
+            "pre-rebuild",
+            "post-rebuild",
+        ]
         plugins_by_type = {t: [] for t in plugin_types}
 
         for p in all_plugins:

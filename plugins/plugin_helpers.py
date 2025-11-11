@@ -126,7 +126,9 @@ def run_prettier(filepath: Path, repo_root: Path) -> bool:
         return False
 
 
-def run_prettier_parallel(directory: Path, repo_root: Path, additional_files: list = None) -> bool:
+def run_prettier_parallel(
+    directory: Path, repo_root: Path, additional_files: list = None
+) -> bool:
     """Run prettier on a directory in parallel.
 
     For root files in directory: formats them as a list in one thread.

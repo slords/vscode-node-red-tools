@@ -94,7 +94,11 @@ def preload_plugins(args, repo_root: Path = None):
     # Infer repo root from flows path if not provided
     if repo_root is None:
         flows_path = Path(args.flows)
-        repo_root = flows_path.parent.parent if flows_path.parent.name == "flows" else Path.cwd()
+        repo_root = (
+            flows_path.parent.parent
+            if flows_path.parent.name == "flows"
+            else Path.cwd()
+        )
 
     # Load config
     plugin_config = load_config(repo_root)
@@ -369,10 +373,12 @@ def main():
             flows_path = Path(args.flows).resolve()
             src_path = Path(args.src).resolve()
             return watch_mode(
-                args, flows_path, src_path,
+                args,
+                flows_path,
+                src_path,
                 plugins_dict=plugins_dict,
                 plugin_config=plugin_config,
-                repo_root=repo_root
+                repo_root=repo_root,
             )
 
         if args.command == "explode":

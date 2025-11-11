@@ -82,7 +82,9 @@ def create_skeleton(node: dict) -> dict:
     return skeleton
 
 
-def load_skeleton(src_dir: Path, flows_path: Optional[Path] = None) -> tuple[list, dict]:
+def load_skeleton(
+    src_dir: Path, flows_path: Optional[Path] = None
+) -> tuple[list, dict]:
     """Load skeleton file for rebuilding
 
     Args:

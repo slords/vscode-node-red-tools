@@ -54,10 +54,14 @@ class WatchConfig:
         # Plugin control (from global args)
         self.enabled_override = None
         self.disabled_override = None
-        if hasattr(args, 'enable') and args.enable:
-            self.enabled_override = [name.strip() for name in args.enable.split(",") if name.strip()]
-        if hasattr(args, 'disable') and args.disable:
-            self.disabled_override = [name.strip() for name in args.disable.split(",") if name.strip()]
+        if hasattr(args, "enable") and args.enable:
+            self.enabled_override = [
+                name.strip() for name in args.enable.split(",") if name.strip()
+            ]
+        if hasattr(args, "disable") and args.disable:
+            self.disabled_override = [
+                name.strip() for name in args.disable.split(",") if name.strip()
+            ]
 
         self.debounce_seconds = args.debounce
         self.use_dashboard = args.dashboard
@@ -71,7 +75,9 @@ class WatchConfig:
         self.session: Optional[object] = None  # requests.Session
 
         # Convergence tracking (oscillation protection)
-        self.convergence_cycles: list = []  # Timestamps of recent upload/download cycles
+        self.convergence_cycles: list = (
+            []
+        )  # Timestamps of recent upload/download cycles
         self.convergence_limit = DEFAULT_CONVERGENCE_LIMIT  # Max cycles in time window
         self.convergence_window = DEFAULT_CONVERGENCE_WINDOW  # Time window in seconds
         self.convergence_paused = False  # True if oscillation detected
