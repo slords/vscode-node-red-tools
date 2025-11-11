@@ -37,6 +37,15 @@ def authenticate(config: WatchConfig) -> bool:
             urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
             log_warning("SSL verification disabled")
 
+        # Check rate limiter before making authentication request
+        if not config.rate_limiter.try_acquire():
+            stats = config.rate_limiter.get_stats()
+            log_error(
+                f"Rate limit exceeded during authentication: "
+                f"{stats['requests_last_minute']}/{stats['limit_per_minute']} requests/min"
+            )
+            return False
+
         response = config.session.get(
             f"{config.server_url}/flows", timeout=HTTP_TIMEOUT
         )
@@ -67,7 +76,17 @@ def _download_flows_from_server(
 
     Raises:
         requests.exceptions.RequestException: On network error
+        RuntimeError: If rate limit exceeded
     """
+    # Check rate limiter before making request
+    if not config.rate_limiter.try_acquire():
+        stats = config.rate_limiter.get_stats()
+        raise RuntimeError(
+            f"Rate limit exceeded: {stats['requests_last_minute']}/{stats['limit_per_minute']} requests/min, "
+            f"{stats['requests_last_10min']}/{stats['limit_per_10min']} requests/10min. "
+            f"Possible runaway loop or misconfiguration."
+        )
+
     headers = {"Node-RED-API-Version": "v2"}
 
     # Only use conditional GET (ETag) if not forced and we have an ETag
@@ -104,6 +123,16 @@ def deploy_to_nodered(config: WatchConfig, count_stats: bool = True) -> bool:
         count_stats: If True, count this upload in statistics (False for plugin auto-uploads)
     """
     try:
+        # Check rate limiter before making request
+        if not config.rate_limiter.try_acquire():
+            stats = config.rate_limiter.get_stats()
+            log_error(
+                f"Rate limit exceeded: {stats['requests_last_minute']}/{stats['limit_per_minute']} requests/min, "
+                f"{stats['requests_last_10min']}/{stats['limit_per_10min']} requests/10min"
+            )
+            log_error("Possible runaway loop or misconfiguration - deployment aborted")
+            return False
+
         if not config.flows_file.exists():
             log_error(f"Flows file not found: {config.flows_file}")
             return False
@@ -139,6 +168,12 @@ def deploy_to_nodered(config: WatchConfig, count_stats: bool = True) -> bool:
             if not authenticate(config):
                 log_error("Re-authentication failed")
                 return False
+
+            # Check rate limiter for retry request
+            if not config.rate_limiter.try_acquire():
+                log_error("Rate limit exceeded - cannot retry deployment after re-auth")
+                return False
+
             response = config.session.post(
                 f"{config.server_url}/flows",
                 data=formatted_body,
@@ -155,6 +190,11 @@ def deploy_to_nodered(config: WatchConfig, count_stats: bool = True) -> bool:
 
             # Fetch latest flows and update state
             try:
+                # Check rate limiter for conflict resolution request
+                if not config.rate_limiter.try_acquire():
+                    log_error("Rate limit exceeded - cannot fetch latest flows")
+                    return False
+
                 verify_response = config.session.get(
                     f"{config.server_url}/flows",
                     headers={"Node-RED-API-Version": "v2"},
