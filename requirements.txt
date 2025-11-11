@@ -1,10 +1,10 @@
 # Python dependencies for toolchain
 
 # Progress bars and terminal UI
-rich>=13.0.0
+rich>=13.0.0,<14.0.0
 # File system monitoring for watch mode
-watchdog>=3.0.0
+watchdog>=3.0.0,<4.0.0
 # HTTP client for Node-RED API
-requests>=2.31.0
+requests>=2.31.0,<3.0.0
 # Optional: TUI dashboard for watch mode (--dashboard flag)
-textual>=0.60.0
+textual>=0.60.0,<1.0.0
