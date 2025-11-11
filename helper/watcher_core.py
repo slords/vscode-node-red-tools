@@ -136,18 +136,28 @@ if WATCH_AVAILABLE:
                     consecutive_failures = 0
 
     def handle_command(config: WatchConfig, command: str) -> None:
-        """Handle interactive commands"""
+        """Handle interactive commands
+
+        Supports both full command names and single-character shortcuts:
+        - d: download
+        - u: upload
+        - c: check
+        - r: reload-plugins
+        - s: status
+        - q: quit
+        - h or ?: help
+        """
         import sys
         import importlib
 
         command = command.strip().lower()
 
-        if command in ["?", "help"]:
+        if command in ["?", "h", "help"]:
             log_info(
-                "Commands: download | upload | check | reload-plugins | status | quit | help"
+                "Commands: [d]ownload | [u]pload | [c]heck | [r]eload-plugins | [s]tatus | [q]uit | [h]elp"
             )
 
-        elif command in ["quit", "exit"]:
+        elif command in ["q", "quit", "exit"]:
             log_info("Initiating graceful shutdown...")
             config.request_shutdown()
             if config.dashboard:
@@ -155,7 +165,7 @@ if WATCH_AVAILABLE:
                 config.dashboard.stop()
             # Note: Threads will exit gracefully via shutdown flag check
 
-        elif command == "status":
+        elif command in ["s", "status"]:
             # Show detailed status information
             log_info("=== Watch Mode Status ===")
 
@@ -198,11 +208,11 @@ if WATCH_AVAILABLE:
                     )
                     log_info(f"  Last upload: {ago}s ago")
 
-        elif command == "download":
+        elif command in ["d", "download"]:
             log_info("Manual download triggered...")
             download_from_nodered(config, force=True)
 
-        elif command == "upload":
+        elif command in ["u", "upload"]:
             log_info("Manual upload triggered (force rebuild)...")
             result = rebuild_flows(
                 config.flows_file,
@@ -219,7 +229,7 @@ if WATCH_AVAILABLE:
             else:
                 log_error("Rebuild failed, cannot upload")
 
-        elif command == "check":
+        elif command in ["c", "check"]:
             log_info("Manual check triggered...")
             # Save original
             with open(config.flows_file, "r") as f:
@@ -247,7 +257,7 @@ if WATCH_AVAILABLE:
             else:
                 log_info("No changes detected")
 
-        elif command == "reload-plugins":
+        elif command in ["r", "reload-plugins", "reload"]:
             log_info("Reloading plugins...")
 
             # Build list of module names and plugin names from currently loaded plugins
