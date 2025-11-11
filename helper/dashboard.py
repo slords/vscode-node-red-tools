@@ -19,7 +19,7 @@ try:
 except ImportError:
     TEXTUAL_AVAILABLE = False
 
-from .logging import log_warning
+from .logging import log_warning, log_info
 from .utils import validate_server_url, RateLimiter
 
 # Oscillation protection defaults
@@ -101,6 +101,30 @@ class WatchConfig:
 
         # Rate limiter for API calls (prevents runaway requests)
         self.rate_limiter = RateLimiter()
+
+        # Graceful shutdown flag (signals threads to exit cleanly)
+        self.shutdown_requested = False
+        self.shutdown_lock = threading.Lock()
+
+    def request_shutdown(self) -> None:
+        """Request graceful shutdown of watch mode
+
+        Sets shutdown flag to signal all threads to exit cleanly after
+        completing their current operations.
+        """
+        with self.shutdown_lock:
+            if not self.shutdown_requested:
+                self.shutdown_requested = True
+                log_info("Graceful shutdown requested - finishing current operations...")
+
+    def is_shutdown_requested(self) -> bool:
+        """Check if shutdown has been requested
+
+        Returns:
+            True if shutdown requested, False otherwise
+        """
+        with self.shutdown_lock:
+            return self.shutdown_requested
 
     def handle_dashboard_command(self, command: str) -> None:
         """Handle command from Textual dashboard

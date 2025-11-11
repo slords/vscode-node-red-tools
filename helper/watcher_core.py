@@ -109,8 +109,13 @@ if WATCH_AVAILABLE:
         max_retries = MAX_NETWORK_RETRIES
         base_delay = RETRY_BASE_DELAY
 
-        while True:
+        while not config.is_shutdown_requested():
             time.sleep(config.poll_interval)
+
+            # Check again after sleep (shutdown may have been requested)
+            if config.is_shutdown_requested():
+                log_info("Polling thread exiting gracefully...")
+                break
 
             success = download_from_nodered(config)
 
@@ -143,13 +148,12 @@ if WATCH_AVAILABLE:
             )
 
         elif command in ["quit", "exit"]:
-            log_info("Exiting watch mode...")
+            log_info("Initiating graceful shutdown...")
+            config.request_shutdown()
             if config.dashboard:
                 # Dashboard mode: exit the Textual app
                 config.dashboard.stop()
-            else:
-                # Non-dashboard mode: exit process
-                sys.exit(0)
+            # Note: Threads will exit gracefully via shutdown flag check
 
         elif command == "status":
             # Show detailed status information
@@ -305,7 +309,7 @@ if WATCH_AVAILABLE:
             import select
             import sys
 
-            while True:
+            while not config.is_shutdown_requested():
                 # Check for rebuild pending
                 if config.rebuild_pending:
                     time_since_last_change = time.time() - config.last_file_change_time
@@ -344,9 +348,24 @@ if WATCH_AVAILABLE:
 
                 time.sleep(0.1)
 
+            # Graceful shutdown - log completion
+            log_info("File watcher exiting gracefully...")
+
         except KeyboardInterrupt:
+            log_info("Keyboard interrupt received - initiating graceful shutdown...")
+            config.request_shutdown()
+            # Wait for any ongoing rebuild to complete
+            if config.pause_watching:
+                log_info("Waiting for ongoing rebuild/deploy to complete...")
+                # Give it up to 30 seconds to finish
+                for _ in range(300):
+                    if not config.pause_watching:
+                        break
+                    time.sleep(0.1)
             observer.stop()
+
         observer.join()
+        log_success("Watch mode shutdown complete")
 
 
 def perform_initial_setup(config: WatchConfig) -> bool:
@@ -474,9 +493,14 @@ def watch_mode(
                 return 0
 
             except KeyboardInterrupt:
+                log_info("Keyboard interrupt received - initiating graceful shutdown...")
+                config.request_shutdown()
+                # Give threads a moment to see shutdown flag
+                time.sleep(0.5)
                 return 0
 
     finally:
         # Stop dashboard on exit
         if config.dashboard:
             config.dashboard.stop()
+        log_info("Watch mode cleanup complete")
