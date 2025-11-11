@@ -364,6 +364,13 @@ if WATCH_AVAILABLE:
                     command = sys.stdin.readline().strip()
                     if command:
                         handle_command(config, command)
+                        # If shutdown was requested by the command, break immediately
+                        if config.shutdown_requested:
+                            break
+
+                # If shutdown was requested by another thread, break immediately
+                if config.shutdown_requested:
+                    break
 
                 time.sleep(0.1)
 
@@ -381,8 +388,8 @@ if WATCH_AVAILABLE:
                     if not config.pause_watching:
                         break
                     time.sleep(0.1)
-            observer.stop()
-
+        # Always stop observer after main loop or exception
+        observer.stop()
         observer.join()
         log_success("Watch mode shutdown complete")
 
