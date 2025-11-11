@@ -14,6 +14,7 @@ from typing import List, Tuple
 
 from .logging import log_info, log_success, log_warning, log_error
 from .skeleton import get_node_directory
+from .utils import validate_safe_path
 
 
 def find_orphaned_files(
@@ -275,13 +276,20 @@ def create_node_from_files(
     Returns:
         Node dictionary with smart defaults
 
+    Raises:
+        ValueError: If path traversal is detected
+
     Notes:
         - Loads base data from node definition file
         - Infers z field from directory (tab_*/ or subflow_*/)
         - Adds layout fields (x, y) if missing
         - Creates empty wires array if missing
         - Uses detect_node_type() for type inference via plugins
+        - All file paths are validated to prevent path traversal
     """
+    # Validate that json_file is within src_dir (security check)
+    json_file = validate_safe_path(src_dir, json_file)
+
     with open(json_file, "r") as f:
         node_data = json.load(f)
 

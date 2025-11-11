@@ -25,7 +25,7 @@ from .logging import (
 )
 from .plugin_loader import load_plugins
 from .skeleton import get_node_directory, load_skeleton
-from .utils import create_backup
+from .utils import create_backup, validate_safe_path
 
 # Constants
 DEFAULT_MAX_WORKERS = None  # None = use os.cpu_count()
@@ -39,6 +39,7 @@ def rebuild_single_node(
     base_json_exists: bool,
     explode_plugins: list,
     repo_root: Path,
+    src_dir: Path = None,
 ) -> dict:
     """Rebuild a single node from its files (used by explode for verification)
 
@@ -49,9 +50,13 @@ def rebuild_single_node(
         base_json_exists: Whether the .json file exists
         explode_plugins: List of explode plugins
         repo_root: Repository root path
+        src_dir: Source directory root (for path validation)
 
     Returns:
         Rebuilt node dictionary
+
+    Raises:
+        ValueError: If path traversal is detected
     """
     # Start with skeleton (preserves structure and field order)
     node_data = skeleton.copy()
@@ -63,6 +68,9 @@ def rebuild_single_node(
     if base_json_exists:
         node_json_file = node_dir / f"{node_id}.json"
         if node_json_file.exists():
+            # Validate path before reading (security check)
+            if src_dir:
+                node_json_file = validate_safe_path(src_dir, node_json_file)
             with open(node_json_file, "r") as f:
                 base_data = json.load(f)
                 node_data.update(base_data)
@@ -152,6 +160,9 @@ def _rebuild_single_node(
 
     Returns:
         tuple of (idx, rebuilt_node)
+
+    Raises:
+        ValueError: If path traversal is detected
     """
     node_id = skeleton_node["id"]
 
@@ -163,8 +174,10 @@ def _rebuild_single_node(
     node_json_file = node_dir / f"{node_id}.json"
 
     if node_json_file.exists():
+        # Validate path before reading (security check)
+        safe_json_file = validate_safe_path(src_dir, node_json_file)
         # .json file exists - merge functional fields
-        with open(node_json_file, "r") as f:
+        with open(safe_json_file, "r") as f:
             base_data = json.load(f)
             # Merge functional fields (preserves skeleton's field order)
             node_data.update(base_data)
