@@ -510,7 +510,7 @@ def create_backup(
 
             # Load config to get retention settings
             repo_root = file_path.parent.parent
-            config = load_config(repo_root)
+            config = load_config(repo_root, config_path=None)
             backup_config = config.get("backup", {})
             max_backups = backup_config.get("max_backups", 10)  # Default: keep 10
             max_age_days = backup_config.get("max_age_days", 30)  # Default: 30 days

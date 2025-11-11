@@ -49,7 +49,7 @@ def load_plugins_for_watch(config: WatchConfig) -> bool:
     try:
         from .constants import DEFAULT_CONVERGENCE_LIMIT, DEFAULT_CONVERGENCE_WINDOW
 
-        config.plugin_config = load_config(config.repo_root)
+        config.plugin_config = load_config(config.repo_root, config_path=None)
 
         # Load watch-specific config options
         watch_config = config.plugin_config.get("watch", {})
