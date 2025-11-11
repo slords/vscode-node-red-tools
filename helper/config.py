@@ -11,30 +11,65 @@ from pathlib import Path
 from .logging import log_info, log_success, log_warning, log_error
 
 
-def load_config(repo_root: Path) -> dict:
-    """Load configuration from .vscode-node-red-tools.json (relative to this script)
+def load_config(repo_root: Path, config_path: Path = None) -> dict:
+    """Load configuration from .vscode-node-red-tools.json
+
+    Searches for config file in the following order (unless config_path is specified):
+    1. Specified config_path (if provided via --config flag)
+    2. Current working directory (project-specific config)
+    3. User's home directory (~/.vscode-node-red-tools.json)
+    4. Tool installation directory (default config)
 
     Args:
         repo_root: Repository root directory (not used, kept for API compatibility)
+        config_path: Optional explicit path to config file (overrides search)
 
     Returns:
         Configuration dictionary with default values for missing keys
 
     Notes:
-        - Config file lives with the tool (.vscode-node-red-tools.json), not the repo
-        - Returns default configuration if file doesn't exist or has errors
+        - First found config file is used
+        - Returns default configuration if no config file found or has errors
     """
-    # Config lives with the tool, not the repo
-    script_dir = Path(__file__).parent.parent
-    config_file = script_dir / ".vscode-node-red-tools.json"
-    if config_file.exists():
-        try:
-            with open(config_file, "r") as f:
-                return json.load(f)
-        except Exception as e:
-            log_warning(f"Failed to load config: {e}")
+    config_filename = ".vscode-node-red-tools.json"
 
-    # Default configuration
+    # If explicit config path provided, use it exclusively
+    if config_path is not None:
+        config_file = Path(config_path)
+        if config_file.exists():
+            try:
+                with open(config_file, "r") as f:
+                    config = json.load(f)
+                log_info(f"Using config from: {config_file}")
+                return config
+            except Exception as e:
+                log_warning(f"Failed to load config from {config_file}: {e}")
+                # Fall through to defaults
+        else:
+            log_warning(f"Config file not found: {config_file}")
+            # Fall through to defaults
+
+    # Search locations in priority order
+    search_paths = [
+        Path.cwd() / config_filename,  # 1. Current working directory
+        Path.home() / config_filename,  # 2. User home directory
+        Path(__file__).parent.parent / config_filename,  # 3. Tool directory
+    ]
+
+    # Try each location
+    for config_file in search_paths:
+        if config_file.exists():
+            try:
+                with open(config_file, "r") as f:
+                    config = json.load(f)
+                log_info(f"Using config from: {config_file}")
+                return config
+            except Exception as e:
+                log_warning(f"Failed to load config from {config_file}: {e}")
+                # Continue to next location
+
+    # No config file found or all failed to load - return defaults
+    log_info("No config file found, using defaults")
     return {
         "flows": "flows/flows.json",
         "src": "src",
@@ -51,7 +86,7 @@ def validate_config(config_path: Path = None, repo_root: Path = None) -> int:
     """Validate configuration file
 
     Args:
-        config_path: Path to config file (optional, will auto-detect)
+        config_path: Path to specific config file (optional, will search standard locations)
         repo_root: Repository root (optional, will use cwd)
 
     Returns:
@@ -62,21 +97,54 @@ def validate_config(config_path: Path = None, repo_root: Path = None) -> int:
         if repo_root is None:
             repo_root = Path.cwd()
 
-        if config_path is None:
-            # Config lives with the tool, not the repo
-            script_dir = Path(__file__).parent.parent
-            config_path = script_dir / ".vscode-node-red-tools.json"
-
         log_info("Validating configuration...")
         errors = []
         warnings = []
 
-        # Check if config file exists
-        if not config_path.exists():
-            log_info(f"✓ No config file found at {config_path}")
-            log_info("  Using default configuration")
-            config = load_config(repo_root)
+        if config_path is None:
+            # Search for config file in standard locations
+            config_filename = ".vscode-node-red-tools.json"
+            search_paths = [
+                Path.cwd() / config_filename,
+                Path.home() / config_filename,
+                Path(__file__).parent.parent / config_filename,
+            ]
+
+            # Find first existing config
+            config_path = None
+            for path in search_paths:
+                if path.exists():
+                    config_path = path
+                    break
+
+            if config_path is None:
+                log_info("✓ No config file found in standard locations")
+                log_info("  Locations checked:")
+                for path in search_paths:
+                    log_info(f"    - {path}")
+                log_info("  Using default configuration")
+                config = load_config(repo_root, config_path=None)
+            else:
+                log_info(f"✓ Config file found: {config_path}")
+                # Check JSON validity
+                try:
+                    with open(config_path, "r") as f:
+                        config = json.load(f)
+                    log_info("✓ Valid JSON format")
+                except json.JSONDecodeError as e:
+                    errors.append(f"Invalid JSON: {e}")
+                    log_error(f"✗ Invalid JSON format: {e}")
+                    return 1
+                except Exception as e:
+                    errors.append(f"Failed to read config: {e}")
+                    log_error(f"✗ Failed to read config: {e}")
+                    return 1
         else:
+            # Specific config path provided
+            if not config_path.exists():
+                log_error(f"✗ Config file not found: {config_path}")
+                return 1
+
             log_info(f"✓ Config file found: {config_path}")
 
             # Check JSON validity

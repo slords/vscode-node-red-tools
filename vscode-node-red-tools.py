@@ -105,7 +105,8 @@ def preload_plugins(args, repo_root: Path = None):
         )
 
     # Load config
-    plugin_config = load_config(repo_root)
+    config_path = Path(args.config).resolve() if hasattr(args, 'config') and args.config else None
+    plugin_config = load_config(repo_root, config_path)
 
     # Parse enable/disable lists
     enabled_override = parse_plugin_list(args.enable) if args.enable else None
@@ -142,6 +143,11 @@ def main():
 
     # Global options (apply to all commands)
     parser.add_argument(
+        "--config",
+        type=str,
+        help="Path to config file (overrides standard locations)",
+    )
+    parser.add_argument(
         "--flows",
         default="flows/flows.json",
         help="Path to flows.json file (default: flows/flows.json)",
@@ -171,10 +177,6 @@ def main():
     explode_parser = subparsers.add_parser(
         "explode", help="Explode flows.json into source files"
     )
-    explode_parser.add_argument("flows", help="Path to flows.json file")
-    explode_parser.add_argument(
-        "--src", default="src", help="Source directory (default: src)"
-    )
     explode_parser.add_argument(
         "--backup",
         action="store_true",
@@ -194,10 +196,6 @@ def main():
     # Rebuild command
     rebuild_parser = subparsers.add_parser(
         "rebuild", help="Rebuild flows.json from source files"
-    )
-    rebuild_parser.add_argument("flows", help="Path to flows.json file")
-    rebuild_parser.add_argument(
-        "--src", default="src", help="Source directory (default: src)"
     )
     rebuild_parser.add_argument(
         "--backup",
@@ -222,7 +220,6 @@ def main():
     verify_parser = subparsers.add_parser(
         "verify", help="Verify round-trip stability (explode → rebuild → compare)"
     )
-    verify_parser.add_argument("flows", help="Path to flows.json file")
 
     # List-plugins command
     list_plugins_parser = subparsers.add_parser(
@@ -236,14 +233,6 @@ def main():
     )
     diff_parser.add_argument(
         "target", choices=["src", "flow", "server"], help="Target to compare to"
-    )
-    diff_parser.add_argument(
-        "--flows",
-        default="flows/flows.json",
-        help="Path to flows.json (default: flows/flows.json)",
-    )
-    diff_parser.add_argument(
-        "--src", default="src", help="Source directory (default: src)"
     )
     diff_parser.add_argument(
         "--server", help="Node-RED server URL (required for server comparisons)"
@@ -271,14 +260,6 @@ def main():
     # Watch command
     watch_parser = subparsers.add_parser(
         "watch", help="Watch mode - bidirectional sync"
-    )
-    watch_parser.add_argument(
-        "--flows",
-        default="flows/flows.json",
-        help="Path to flows.json (default: flows/flows.json)",
-    )
-    watch_parser.add_argument(
-        "--src", default="src", help="Source directory (default: src)"
     )
     watch_parser.add_argument("--server", required=True, help="Node-RED server URL")
     watch_parser.add_argument("--username", required=True, help="Node-RED username")
@@ -310,10 +291,6 @@ def main():
     # Benchmark command
     benchmark_parser = subparsers.add_parser(
         "benchmark", help="Benchmark explode and rebuild performance"
-    )
-    benchmark_parser.add_argument("flows", help="Path to flows.json file")
-    benchmark_parser.add_argument(
-        "--src", default="src", help="Source directory (default: src)"
     )
     benchmark_parser.add_argument(
         "--iterations",
@@ -349,10 +326,6 @@ def main():
     # Validate-config command
     validate_config_parser = subparsers.add_parser(
         "validate-config", help="Validate configuration file"
-    )
-    validate_config_parser.add_argument(
-        "--config",
-        help="Path to config file (default: .vscode-node-red-tools.json in current directory)",
     )
 
     # Enable shell completion if argcomplete is available

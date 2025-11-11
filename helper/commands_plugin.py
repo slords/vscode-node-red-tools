@@ -297,7 +297,7 @@ def list_plugins_command(
 
         # Load config if not provided
         if plugin_config is None:
-            config = load_config(repo_root)
+            config = load_config(repo_root, config_path=None)
             plugin_config = config.get("plugins", {})
         else:
             plugin_config = plugin_config.get("plugins", {})

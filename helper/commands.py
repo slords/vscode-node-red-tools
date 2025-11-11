@@ -134,7 +134,7 @@ def stats_command(
         # Plugin statistics (use pre-loaded plugins or load them)
         if plugins_dict is None:
             repo_root = flows_path.parent.parent if repo_root is None else repo_root
-            plugin_config = load_config(repo_root)
+            plugin_config = load_config(repo_root, config_path=None)
             plugins_dict = load_plugins(repo_root, plugin_config, quiet=True)
 
         if plugins_dict:
@@ -289,7 +289,7 @@ def verify_flows(
         # Use pre-loaded plugins if provided, otherwise load them
         if plugins_dict is None:
             repo_root = flows_path.parent.parent if repo_root is None else repo_root
-            plugin_config = load_config(repo_root)
+            plugin_config = load_config(repo_root, config_path=None)
             plugins_dict = load_plugins(repo_root, plugin_config, quiet=False)
 
         # Load original flows
