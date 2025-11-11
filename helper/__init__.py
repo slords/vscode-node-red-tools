@@ -78,6 +78,15 @@ from .config import (
     validate_config,
 )
 
+# Re-export auth functions
+from .auth import (
+    ServerCredentials,
+    resolve_credentials,
+    read_token_file,
+    find_token_file,
+    resolve_password,
+)
+
 # Re-export dashboard classes
 from .dashboard import (
     WatchConfig,
@@ -188,6 +197,12 @@ __all__ = [
     "show_progress_bar",
     "set_active_dashboard",
     "get_active_dashboard",
+    # Auth
+    "ServerCredentials",
+    "resolve_credentials",
+    "read_token_file",
+    "find_token_file",
+    "resolve_password",
     # Utils
     "validate_server_url",
     "validate_path_for_subprocess",
