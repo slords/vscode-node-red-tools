@@ -12,7 +12,8 @@ from typing import Optional
 # Import security utilities
 import sys
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from helper.utils import validate_path_for_subprocess, SUBPROCESS_TIMEOUT
+from helper.utils import validate_path_for_subprocess
+from helper.constants import SUBPROCESS_TIMEOUT
 
 
 def to_camel_case(name: str) -> str:

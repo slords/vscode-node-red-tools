@@ -31,13 +31,13 @@ from .utils import (
     create_backup,
     validate_safe_path,
     read_json_with_size_limit,
+)
+from .constants import (
     MAX_FLOWS_FILE_SIZE,
     MAX_NODES,
+    DEFAULT_MAX_WORKERS,
+    PARALLEL_THRESHOLD,
 )
-
-# Constants
-DEFAULT_MAX_WORKERS = None  # None = use os.cpu_count()
-PARALLEL_THRESHOLD = 20  # Min nodes to enable parallel processing
 
 
 def _load_flows_for_explode(flows_path: Path, backup: bool) -> tuple[list, Path]:

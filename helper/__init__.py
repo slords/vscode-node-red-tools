@@ -5,6 +5,36 @@ This package contains the refactored modules from vscode-node-red-tools.py,
 organized by functionality for better maintainability.
 """
 
+# Re-export all constants (centralized configuration)
+from .constants import (
+    # Network and HTTP
+    HTTP_TIMEOUT,
+    RATE_LIMIT_REQUESTS_PER_MINUTE,
+    RATE_LIMIT_REQUESTS_PER_10MIN,
+    MAX_NETWORK_RETRIES,
+    RETRY_BASE_DELAY,
+    # File size and resource limits
+    MAX_FLOWS_FILE_SIZE,
+    MAX_NODE_FILE_SIZE,
+    MAX_NODES,
+    FILE_BUFFER_SIZE,
+    HASH_DIGEST_LENGTH,
+    # Subprocess configuration
+    SUBPROCESS_TIMEOUT,
+    MAX_PATH_LENGTH,
+    WINDOWS_RESERVED_NAMES,
+    # Parallel processing
+    DEFAULT_MAX_WORKERS,
+    PARALLEL_THRESHOLD,
+    # Watch mode
+    DEFAULT_POLL_INTERVAL,
+    MAX_REBUILD_FAILURES,
+    DEFAULT_CONVERGENCE_LIMIT,
+    DEFAULT_CONVERGENCE_WINDOW,
+    # Plugin system
+    DEFAULT_PLUGIN_PRIORITY,
+)
+
 # Re-export logging functions for convenience
 from .logging import (
     log_info,
@@ -128,6 +158,27 @@ from .commands_plugin import (
 )
 
 __all__ = [
+    # Constants
+    "HTTP_TIMEOUT",
+    "RATE_LIMIT_REQUESTS_PER_MINUTE",
+    "RATE_LIMIT_REQUESTS_PER_10MIN",
+    "MAX_NETWORK_RETRIES",
+    "RETRY_BASE_DELAY",
+    "MAX_FLOWS_FILE_SIZE",
+    "MAX_NODE_FILE_SIZE",
+    "MAX_NODES",
+    "FILE_BUFFER_SIZE",
+    "HASH_DIGEST_LENGTH",
+    "SUBPROCESS_TIMEOUT",
+    "MAX_PATH_LENGTH",
+    "WINDOWS_RESERVED_NAMES",
+    "DEFAULT_MAX_WORKERS",
+    "PARALLEL_THRESHOLD",
+    "DEFAULT_POLL_INTERVAL",
+    "MAX_REBUILD_FAILURES",
+    "DEFAULT_CONVERGENCE_LIMIT",
+    "DEFAULT_CONVERGENCE_WINDOW",
+    "DEFAULT_PLUGIN_PRIORITY",
     # Logging
     "log_info",
     "log_success",
@@ -151,14 +202,6 @@ __all__ = [
     "cleanup_old_backups",
     "clear_watch_state_after_failure",
     "RateLimiter",
-    "MAX_FLOWS_FILE_SIZE",
-    "MAX_NODE_FILE_SIZE",
-    "MAX_NODES",
-    "SUBPROCESS_TIMEOUT",
-    "MAX_PATH_LENGTH",
-    "RATE_LIMIT_REQUESTS_PER_MINUTE",
-    "RATE_LIMIT_REQUESTS_PER_10MIN",
-    "WINDOWS_RESERVED_NAMES",
     # Config
     "load_config",
     "validate_config",

@@ -21,7 +21,7 @@ except ImportError:
 
 from .logging import log_info, log_success, log_warning, log_error
 from .dashboard import WatchConfig
-from .utils import HTTP_TIMEOUT
+from .constants import HTTP_TIMEOUT
 
 
 def authenticate(config: WatchConfig) -> bool:

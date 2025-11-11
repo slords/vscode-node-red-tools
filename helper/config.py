@@ -203,7 +203,7 @@ def validate_config(config_path: Path = None, repo_root: Path = None) -> int:
                         )
                 else:
                     # Import default and show it
-                    from .dashboard import DEFAULT_CONVERGENCE_LIMIT
+                    from .constants import DEFAULT_CONVERGENCE_LIMIT
 
                     log_info(
                         f"✓ watch.convergenceLimit using default ({DEFAULT_CONVERGENCE_LIMIT} cycles)"
@@ -221,14 +221,14 @@ def validate_config(config_path: Path = None, repo_root: Path = None) -> int:
                         )
                 else:
                     # Import default and show it
-                    from .dashboard import DEFAULT_CONVERGENCE_WINDOW
+                    from .constants import DEFAULT_CONVERGENCE_WINDOW
 
                     log_info(
                         f"✓ watch.convergenceWindow using default ({DEFAULT_CONVERGENCE_WINDOW}s)"
                     )
         else:
             # No watch section - show defaults
-            from .dashboard import DEFAULT_CONVERGENCE_LIMIT, DEFAULT_CONVERGENCE_WINDOW
+            from .constants import DEFAULT_CONVERGENCE_LIMIT, DEFAULT_CONVERGENCE_WINDOW
 
             log_info("✓ watch section using defaults:")
             log_info(f"  - convergenceLimit: {DEFAULT_CONVERGENCE_LIMIT} cycles")

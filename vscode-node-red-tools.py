@@ -57,8 +57,10 @@ from helper.commands_plugin import (
     list_plugins_command,
 )
 
-# Constants (referenced by CLI)
-DEFAULT_POLL_INTERVAL = 1  # seconds
+# Import constants
+from helper import DEFAULT_POLL_INTERVAL
+
+# CLI-specific constant (not in helper/constants.py as it's CLI-only)
 DEFAULT_DEBOUNCE = 2.0  # seconds
 
 

@@ -17,31 +17,20 @@ from .logging import log_info, log_warning
 import time
 import threading
 
-# Constants
-HTTP_TIMEOUT = 30
-FILE_BUFFER_SIZE = 65536  # 64KB for streaming hash computation
-HASH_DIGEST_LENGTH = 16  # First N chars of SHA256 hex digest
-
-# File size limits (for security and resource management)
-MAX_FLOWS_FILE_SIZE = 100 * 1024 * 1024  # 100 MB for flows.json
-MAX_NODE_FILE_SIZE = 10 * 1024 * 1024  # 10 MB per individual node file
-MAX_NODES = 10000  # Maximum number of nodes in a flow
-
-# Subprocess security limits
-SUBPROCESS_TIMEOUT = 300  # 5 minutes max for external commands
-MAX_PATH_LENGTH = 4096  # Maximum path length for subprocess args
-
-# Rate limiting constants (for API calls to Node-RED)
-# These are generous limits suitable for local development servers
-RATE_LIMIT_REQUESTS_PER_MINUTE = 60  # Allow 1/second normal operation
-RATE_LIMIT_REQUESTS_PER_10MIN = 600  # Allow bursts but prevent runaway
-
-# Windows reserved filenames (case-insensitive)
-WINDOWS_RESERVED_NAMES = {
-    "CON", "PRN", "AUX", "NUL",
-    "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9",
-    "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9",
-}
+# Import constants from centralized location
+from .constants import (
+    HTTP_TIMEOUT,
+    FILE_BUFFER_SIZE,
+    HASH_DIGEST_LENGTH,
+    MAX_FLOWS_FILE_SIZE,
+    MAX_NODE_FILE_SIZE,
+    MAX_NODES,
+    SUBPROCESS_TIMEOUT,
+    MAX_PATH_LENGTH,
+    RATE_LIMIT_REQUESTS_PER_MINUTE,
+    RATE_LIMIT_REQUESTS_PER_10MIN,
+    WINDOWS_RESERVED_NAMES,
+)
 
 
 class RateLimiter:
