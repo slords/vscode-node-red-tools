@@ -29,10 +29,12 @@ python3 vscode-node-red-tools.py explode flows/flows.json
 python3 vscode-node-red-tools.py rebuild flows/flows.json
 
 # Or use watch mode for live bidirectional sync
-python3 vscode-node-red-tools.py watch \
-  --server http://localhost:1880 \
-  --username admin \
-  --password yourpassword
+# First, set up authentication (one time):
+echo "your-token-here" > ~/.nodered-token
+chmod 600 ~/.nodered-token
+
+# Then start watch mode
+python3 vscode-node-red-tools.py watch --server http://localhost:1880
 ```
 
 ## What It Does

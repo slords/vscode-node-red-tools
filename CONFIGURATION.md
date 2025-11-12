@@ -33,7 +33,7 @@ If no configuration file exists, the tool uses these defaults:
 - `flows`: `flows/flows.json`
 - `src`: `src`
 - All plugins enabled
-- Default watch intervals (poll: 1s, debounce: 2s)
+- Server URL: `http://127.0.0.1:1880` (no authentication)
 
 ## Configuration Options
 
@@ -48,9 +48,18 @@ If no configuration file exists, the tool uses these defaults:
     "disabled": [],
     "order": []
   },
-  "watch": {
-    "pollInterval": 5,
-    "debounce": 0.5
+  "server": {
+    "url": "http://127.0.0.1:1880",
+    "username": null,
+    "password": null,
+    "token": null,
+    "tokenFile": null,
+    "verifySSL": true
+  },
+  "backup": {
+    "enabled": true,
+    "directory": "backups",
+    "maxBackups": 10
   }
 }
 ```
@@ -100,6 +109,199 @@ Backup configuration (optional).
     "enabled": true,
     "directory": "backups",
     "maxBackups": 10
+  }
+}
+```
+
+## Server Configuration
+
+The `server` section configures connection to the Node-RED server for watch mode.
+
+### server.url
+
+Node-RED server URL.
+
+**Type:** String
+**Default:** `"http://127.0.0.1:1880"`
+
+**Example:**
+
+```json
+{
+  "server": {
+    "url": "https://myserver.example.com:1880"
+  }
+}
+```
+
+### server.username
+
+Username for HTTP Basic authentication (optional).
+
+**Type:** String or null
+**Default:** `null`
+
+**Example:**
+
+```json
+{
+  "server": {
+    "username": "admin"
+  }
+}
+```
+
+**Note:** Password must be provided via environment variable (`NODERED_PASSWORD`) or CLI parameter for security. See [Authentication](#authentication) section below.
+
+### server.password
+
+Password for HTTP Basic authentication (optional, **NOT RECOMMENDED**).
+
+**Type:** String or null
+**Default:** `null`
+
+**Security Warning:** Storing passwords in config files is insecure. Use the `NODERED_PASSWORD` environment variable instead.
+
+### server.token
+
+Bearer token for authentication (optional, **NOT RECOMMENDED**).
+
+**Type:** String or null
+**Default:** `null`
+
+**Security Warning:** Storing tokens in config files is insecure. Use the `NODERED_TOKEN` environment variable or token file instead.
+
+### server.tokenFile
+
+Path to file containing bearer token (recommended for token authentication).
+
+**Type:** String or null
+**Default:** `null`
+
+**Example:**
+
+```json
+{
+  "server": {
+    "tokenFile": "~/.nodered-token"
+  }
+}
+```
+
+The token file should contain only the token string with no extra whitespace.
+
+### server.verifySSL
+
+Enable/disable SSL certificate verification for HTTPS connections.
+
+**Type:** Boolean
+**Default:** `true`
+
+**Example:**
+
+```json
+{
+  "server": {
+    "url": "https://localhost:1880",
+    "verifySSL": false
+  }
+}
+```
+
+**Warning:** Only disable SSL verification for development/testing with self-signed certificates.
+
+## Authentication
+
+The tool supports multiple authentication methods with automatic credential resolution:
+
+### Authentication Methods
+
+1. **Bearer Token** (Recommended) - Most secure, supports token rotation
+2. **HTTP Basic** (Username/Password) - Traditional authentication
+3. **Anonymous** - No authentication (local development only)
+
+### Credential Resolution Priority
+
+Credentials are resolved from multiple sources in priority order:
+
+**For Token Authentication:**
+1. `--token-file` CLI parameter
+2. `--token` CLI parameter (with security warning)
+3. `config.server.tokenFile`
+4. `config.server.token` (with security warning)
+5. Token file search (`./.nodered-token`, `~/.nodered-token`)
+6. `NODERED_TOKEN` environment variable
+
+**For Basic Authentication:**
+1. `--username` and `--password` CLI parameters
+2. `config.server.username` and `config.server.password`
+3. `NODERED_PASSWORD` environment variable (if username configured)
+4. Secure password prompt (if username configured)
+
+### Using Environment Variables (Recommended)
+
+The most secure way to provide credentials:
+
+```bash
+# Bearer token (recommended)
+export NODERED_TOKEN="your-token-here"
+python3 vscode-node-red-tools.py watch
+
+# Basic authentication
+export NODERED_PASSWORD="your-password-here"
+python3 vscode-node-red-tools.py watch --username admin
+```
+
+### Using Token Files (Recommended)
+
+Store your token in a file for automatic loading:
+
+```bash
+# Create token file
+echo "your-token-here" > ~/.nodered-token
+chmod 600 ~/.nodered-token
+
+# Tool will automatically find and use it
+python3 vscode-node-red-tools.py watch
+```
+
+The tool searches for `.nodered-token` in:
+1. Current directory (`./.nodered-token`)
+2. Home directory (`~/.nodered-token`)
+
+### Configuration Examples
+
+**Token authentication with file:**
+
+```json
+{
+  "server": {
+    "url": "https://nodered.example.com:1880",
+    "tokenFile": "~/.nodered-token",
+    "verifySSL": true
+  }
+}
+```
+
+**Basic authentication (password via environment):**
+
+```json
+{
+  "server": {
+    "url": "http://localhost:1880",
+    "username": "admin"
+  }
+}
+```
+
+Then set `NODERED_PASSWORD` environment variable.
+
+**Local development (no authentication):**
+
+```json
+{
+  "server": {
+    "url": "http://127.0.0.1:1880"
   }
 }
 ```
@@ -189,57 +391,20 @@ This overrides the default priority-based ordering.
 | `prettier-pre-rebuild`  | pre-rebuild  | 400      | Format files before rebuild                |
 | `prettier-post-rebuild` | post-rebuild | 500      | Format flows.json after rebuild            |
 
-## Watch Mode Configuration
+## Watch Mode Constants
 
-The `watch` section controls watch mode behavior.
+Watch mode timing parameters are runtime constants defined in `helper/constants.py`. These are NOT configurable via the config file or CLI to prevent misconfiguration.
 
-### watch.pollInterval
+**If you need to adjust these values**, edit `helper/constants.py`:
 
-How often to poll the Node-RED server for changes (in seconds).
-
-**Type:** Number
-**Default:** `1`
-**Range:** 1-60 recommended
-
-**Example:**
-
-```json
-{
-  "watch": {
-    "pollInterval": 10
-  }
-}
+```python
+DEFAULT_POLL_INTERVAL = 1      # Poll interval for watch mode (seconds)
+DEFAULT_DEBOUNCE = 2           # Wait after last change for local files (seconds)
+DEFAULT_CONVERGENCE_LIMIT = 5  # Max upload/download cycles before warning
+DEFAULT_CONVERGENCE_WINDOW = 60 # Time window for convergence detection (seconds)
 ```
 
-**Considerations:**
-
-- Lower values = faster detection, more server load
-- Higher values = slower detection, less server load
-- 1-5 seconds is a good balance
-
-### watch.debounce
-
-Wait time after file change before uploading (in seconds).
-
-**Type:** Number
-**Default:** `2.0`
-**Range:** 0.1-5.0 recommended
-
-**Example:**
-
-```json
-{
-  "watch": {
-    "debounce": 2.0
-  }
-}
-```
-
-**Considerations:**
-
-- Lower values = faster uploads, may upload incomplete changes
-- Higher values = slower uploads, groups multiple changes
-- 1-3 seconds works well for most cases
+**Note:** Very low poll intervals or debounce values can cause excessive server load or upload/download oscillation. The defaults are tuned for typical use cases.
 
 ## Examples
 
@@ -268,32 +433,39 @@ If you don't want functions wrapped for testing:
 
 This uses the legacy func plugin that extracts to `.js` files without wrapping.
 
-### Fast Watch Mode
+### Secure Production Configuration
 
-For faster change detection:
+For production with token authentication:
 
 ```json
 {
-  "watch": {
-    "pollInterval": 2,
-    "debounce": 0.2
+  "flows": "flows/flows.json",
+  "src": "src",
+  "server": {
+    "url": "https://nodered.production.example.com:1880",
+    "tokenFile": "~/.nodered-token",
+    "verifySSL": true
+  },
+  "plugins": {
+    "enabled": [
+      "normalize-ids",
+      "action",
+      "global-function",
+      "wrap_func",
+      "template",
+      "info",
+      "prettier-explode",
+      "prettier-post-rebuild"
+    ]
   }
 }
 ```
 
-**Warning:** Very low intervals may cause excessive server load.
+Store your token in `~/.nodered-token` with restricted permissions:
 
-### Conservative Watch Mode
-
-For slower but more stable sync:
-
-```json
-{
-  "watch": {
-    "pollInterval": 15,
-    "debounce": 3.0
-  }
-}
+```bash
+echo "your-token-here" > ~/.nodered-token
+chmod 600 ~/.nodered-token
 ```
 
 ### Custom Plugin Order
@@ -340,6 +512,9 @@ For team consistency:
 {
   "flows": "flows/flows.json",
   "src": "src",
+  "server": {
+    "url": "http://localhost:1880"
+  },
   "plugins": {
     "enabled": [
       "normalize-ids",
@@ -351,15 +526,13 @@ For team consistency:
       "prettier-explode",
       "prettier-post-rebuild"
     ]
-  },
-  "watch": {
-    "pollInterval": 5,
-    "debounce": 1.0
   }
 }
 ```
 
 Commit this configuration to your repository so all team members use the same settings.
+
+**Note:** Each team member should configure their own credentials via environment variables or token files (not in the committed config).
 
 ## Configuration Validation
 
@@ -388,21 +561,36 @@ python3 vscode-node-red-tools.py explode custom/flows.json
 # Override src directory
 python3 vscode-node-red-tools.py explode flows/flows.json custom_src/
 
-# Override watch intervals
+# Override server and authentication
 python3 vscode-node-red-tools.py watch \
-  --server http://localhost:1880 \
-  --username admin \
-  --password pass \
-  --poll-interval 10 \
-  --debounce 2.0
+  --server https://myserver:1880 \
+  --token-file ~/.nodered-token \
+  --no-verify-ssl
 ```
 
 ## Environment Variables
 
-Currently, the tool does not use environment variables. All configuration is via:
+The tool supports environment variables for secure credential management:
 
-1. Configuration file (`.vscode-node-red-tools.json`)
-2. Command-line arguments
+### NODERED_TOKEN
+
+Bearer token for authentication (recommended for token-based auth).
+
+```bash
+export NODERED_TOKEN="your-token-here"
+python3 vscode-node-red-tools.py watch
+```
+
+### NODERED_PASSWORD
+
+Password for HTTP Basic authentication (when username is configured).
+
+```bash
+export NODERED_PASSWORD="your-password-here"
+python3 vscode-node-red-tools.py watch --username admin
+```
+
+**Security Best Practice:** Always use environment variables or token files instead of storing credentials in config files or CLI parameters.
 
 ## Best Practices
 
@@ -414,7 +602,9 @@ Currently, the tool does not use environment variables. All configuration is via
 
 **Don't commit:**
 
-- Sensitive credentials (use command-line arguments)
+- Sensitive credentials (use environment variables or token files)
+- Token files (`.nodered-token`)
+- Passwords or tokens in config files
 - Local overrides specific to your setup
 
 ### Plugin Selection
@@ -437,25 +627,20 @@ Currently, the tool does not use environment variables. All configuration is via
 - You prefer simpler .js files
 - You're migrating from an older tool
 
-### Watch Mode Tuning
+### Authentication Best Practices
 
-**Increase pollInterval if:**
+**Always use:**
 
-- Server is under heavy load
-- You don't need instant sync
-- You're on a slow network
+- Token files (`~/.nodered-token`) or environment variables for credentials
+- Token authentication over username/password when possible
+- SSL/TLS (`https://`) for production servers
+- `verifySSL: true` for production (only disable for dev/testing)
 
-**Decrease debounce if:**
+**Never:**
 
-- You want faster uploads
-- You rarely make batch edits
-- You have a fast system
-
-**Increase debounce if:**
-
-- You make frequent batch edits
-- You want to group changes
-- You have a slower system
+- Commit credentials to version control
+- Store passwords or tokens in config files
+- Use `--password` or `--token` CLI parameters (visible in process list)
 
 ## Troubleshooting Configuration
 
@@ -475,13 +660,15 @@ Check:
 2. No typos in `enabled` or `disabled` arrays
 3. Plugins aren't conflicting (e.g., both enabled and disabled)
 
-### Watch Mode Issues
+### Authentication Issues
 
 Check:
 
-1. `pollInterval` is positive number
-2. `debounce` is non-negative number
-5. Values are reasonable (not too low or too high)
+1. Credentials are set via environment variables or token files (not config)
+2. Token file has correct permissions (`chmod 600 ~/.nodered-token`)
+3. Server URL is correct and accessible
+4. SSL verification is appropriate for your setup (`verifySSL` setting)
+5. For basic auth, password is provided via `NODERED_PASSWORD` or prompt
 
 ## Next Steps
 
