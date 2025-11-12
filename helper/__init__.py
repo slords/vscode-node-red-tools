@@ -38,14 +38,51 @@ from .constants import (
 
 # Re-export logging functions for convenience
 from .logging import (
+    LogLevel,
+    log_debug,
     log_info,
     log_success,
     log_warning,
     log_error,
+    set_log_level,
+    get_log_level,
+    set_log_level_from_env,
     create_progress_context,
     show_progress_bar,
     set_active_dashboard,
     get_active_dashboard,
+)
+
+# Re-export exit codes
+from .exit_codes import (
+    SUCCESS,
+    GENERAL_ERROR,
+    KEYBOARD_INTERRUPT,
+    CONFIG_ERROR,
+    CONFIG_INVALID,
+    CONFIG_NOT_FOUND,
+    FILE_NOT_FOUND,
+    FILE_PERMISSION_ERROR,
+    FILE_INVALID,
+    DIRECTORY_ERROR,
+    SERVER_CONNECTION_ERROR,
+    SERVER_AUTH_ERROR,
+    SERVER_CONFLICT,
+    SERVER_NOT_FOUND,
+    SERVER_ERROR,
+    VALIDATION_ERROR,
+    VERIFICATION_FAILED,
+    ROUND_TRIP_FAILED,
+    PLUGIN_ERROR,
+    PLUGIN_NOT_FOUND,
+    PLUGIN_LOAD_ERROR,
+    EXPLODE_ERROR,
+    REBUILD_ERROR,
+    DIFF_ERROR,
+    WATCH_ERROR,
+    get_exit_code_name,
+    get_exit_code_description,
+    list_exit_codes,
 )
 
 # Re-export utility functions

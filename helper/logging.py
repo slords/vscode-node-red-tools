@@ -1,12 +1,14 @@
 """
 Logging and progress display utilities for vscode-node-red-tools
 
-Provides console logging functions and progress bar support with
-optional rich/textual integration.
+Provides console logging functions with configurable levels and progress bar
+support with optional rich/textual integration.
 """
 
+import os
 import sys
 from typing import Optional
+from enum import IntEnum
 
 # Optional imports
 try:
@@ -23,8 +25,59 @@ except ImportError:
     RICH_AVAILABLE = False
 
 
+class LogLevel(IntEnum):
+    """Logging levels for controlling output verbosity"""
+    DEBUG = 10
+    INFO = 20
+    WARNING = 30
+    ERROR = 40
+
+
+# Global logging level (can be set via environment or API)
+_LOG_LEVEL = LogLevel.INFO
+
 # Global dashboard reference for log redirection
 _ACTIVE_DASHBOARD: Optional[object] = None
+
+
+def set_log_level(level: LogLevel):
+    """Set the global logging level
+
+    Args:
+        level: LogLevel to set (DEBUG, INFO, WARNING, ERROR)
+    """
+    global _LOG_LEVEL
+    _LOG_LEVEL = level
+
+
+def get_log_level() -> LogLevel:
+    """Get the current logging level
+
+    Returns:
+        Current LogLevel
+    """
+    return _LOG_LEVEL
+
+
+def set_log_level_from_env():
+    """Set logging level from NODERED_TOOLS_LOG_LEVEL environment variable
+
+    Valid values: DEBUG, INFO, WARNING, ERROR (case-insensitive)
+    Default: INFO
+    """
+    global _LOG_LEVEL
+    env_level = os.environ.get("NODERED_TOOLS_LOG_LEVEL", "INFO").upper()
+    level_map = {
+        "DEBUG": LogLevel.DEBUG,
+        "INFO": LogLevel.INFO,
+        "WARNING": LogLevel.WARNING,
+        "ERROR": LogLevel.ERROR,
+    }
+    _LOG_LEVEL = level_map.get(env_level, LogLevel.INFO)
+
+
+# Initialize from environment on module load
+set_log_level_from_env()
 
 
 def set_active_dashboard(dashboard):
@@ -42,13 +95,30 @@ def get_active_dashboard():
     return _ACTIVE_DASHBOARD
 
 
-def log_info(msg: str):
-    """Print info message
+def log_debug(msg: str):
+    """Print debug message (only if log level is DEBUG)
 
     Args:
         msg: Message to print (icon will be added automatically)
     """
-    global _ACTIVE_DASHBOARD
+    global _ACTIVE_DASHBOARD, _LOG_LEVEL
+    if _LOG_LEVEL > LogLevel.DEBUG:
+        return
+    if _ACTIVE_DASHBOARD:
+        _ACTIVE_DASHBOARD.log_activity(f"🐛 {msg}")
+    else:
+        print(f"🐛 {msg}")
+
+
+def log_info(msg: str):
+    """Print info message (only if log level is INFO or lower)
+
+    Args:
+        msg: Message to print (icon will be added automatically)
+    """
+    global _ACTIVE_DASHBOARD, _LOG_LEVEL
+    if _LOG_LEVEL > LogLevel.INFO:
+        return
     if _ACTIVE_DASHBOARD:
         _ACTIVE_DASHBOARD.log_activity(f"→ {msg}")
     else:
@@ -56,12 +126,14 @@ def log_info(msg: str):
 
 
 def log_success(msg: str):
-    """Print success message
+    """Print success message (only if log level is INFO or lower)
 
     Args:
         msg: Message to print (icon will be added automatically)
     """
-    global _ACTIVE_DASHBOARD
+    global _ACTIVE_DASHBOARD, _LOG_LEVEL
+    if _LOG_LEVEL > LogLevel.INFO:
+        return
     if _ACTIVE_DASHBOARD:
         _ACTIVE_DASHBOARD.log_activity(f"✓ {msg}")
     else:
@@ -69,12 +141,14 @@ def log_success(msg: str):
 
 
 def log_warning(msg: str):
-    """Print warning message
+    """Print warning message (only if log level is WARNING or lower)
 
     Args:
         msg: Message to print (icon will be added automatically)
     """
-    global _ACTIVE_DASHBOARD
+    global _ACTIVE_DASHBOARD, _LOG_LEVEL
+    if _LOG_LEVEL > LogLevel.WARNING:
+        return
     if _ACTIVE_DASHBOARD:
         _ACTIVE_DASHBOARD.log_activity(f"⚠ {msg}")
     else:
@@ -82,7 +156,7 @@ def log_warning(msg: str):
 
 
 def log_error(msg: str):
-    """Print error message
+    """Print error message (always shown)
 
     Args:
         msg: Message to print (icon will be added automatically)
