@@ -391,26 +391,30 @@ if TEXTUAL_AVAILABLE:
             input_widget.focus()
 
         def _build_connection_text(self) -> str:
-            """Build connection panel (left column) - compact 7 line layout"""
+            """Build connection panel (left column)"""
             sc = getattr(self.watch_config, "server_client", None)
             is_connected = bool(sc and sc.is_authenticated)
             status_icon = "✓" if is_connected else "✗"
             status_color = "green" if is_connected else "red"
 
+            # FIXME: Too long and things break.  Blank lines between boxes.
+            rev = sc.last_rev[:20] if sc and sc.last_rev else "(none)"
             etag = sc.last_etag if sc and sc.last_etag else "(none)"
-            rev = sc.last_rev if sc and sc.last_rev else "(none)"
 
-            # Minimal working version - 4 lines, no trailing newline
             return (
-                f"[bold]Node-RED Watch Mode[/bold] - {datetime.now().strftime('%H:%M:%S')}\n"
+                f"[bold]Node-RED Watch Mode[/bold] - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
                 f"[cyan]Server:[/cyan] {self.watch_config.server_url}\n"
                 f"[cyan]Status:[/cyan] [{status_color}]{status_icon} "
                 f"{'Connected' if is_connected else 'Disconnected'}[/{status_color}]\n"
-                f"[cyan]User:[/cyan] {self.watch_config.username}"
+                f"[cyan]User:[/cyan] {self.watch_config.username}\n"
+                f"\n"
+                f"[bold]Synchronization:[/bold]\n"
+                f"  Rev: {rev}\n"
+                f"  ETag: {etag}"
             )
 
         def _build_stats_text(self) -> str:
-            """Build statistics panel (right column) - compact 7 line layout"""
+            """Build statistics panel (right column)"""
             sc = getattr(self.watch_config, "server_client", None)
 
             # Statistics + timestamps from ServerClient
@@ -428,12 +432,24 @@ if TEXTUAL_AVAILABLE:
                 ago = int((datetime.now() - sc.last_upload_time).total_seconds())
                 upload_ago = f" ({ago}s ago)"
 
-            # Simple stats display
+            # Get rate limiting stats
+            rate_1m = rate_10m = limit_1m = limit_10m = 0
+            if sc and sc.rate_limiter:
+                rl_stats = sc.rate_limiter.get_stats()
+                rate_1m = rl_stats["requests_last_minute"]
+                limit_1m = rl_stats["limit_per_minute"]
+                rate_10m = rl_stats["requests_last_10min"]
+                limit_10m = rl_stats["limit_per_10min"]
+
             return (
                 f"[bold]Statistics:[/bold]\n"
                 f"  Downloads: {downloads}{download_ago}\n"
                 f"  Uploads: {uploads}{upload_ago}\n"
-                f"  Errors: [red]{errors}[/red]"
+                f"  Errors: [red]{errors}[/red]\n"
+                f"\n"
+                f"[bold]Rate Limiting:[/bold]\n"
+                f"  1-min: {rate_1m}/{limit_1m}\n"
+                f"  10-min: {rate_10m}/{limit_10m}"
             )
 
         def update_stats(self) -> None:
@@ -486,4 +502,3 @@ if TEXTUAL_AVAILABLE:
                 self.add_log_message(
                     "Command handling not yet configured", is_error=True
                 )
-
