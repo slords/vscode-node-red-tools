@@ -162,6 +162,26 @@ python3 vscode-node-red-tools.py --version
 
 See [USAGE.md](USAGE.md) for detailed command documentation.
 
+## Logging and Error Handling
+
+Built-in logging levels and error codes for better debugging and automation:
+
+```bash
+# Control output verbosity
+python3 vscode-node-red-tools.py --quiet explode    # Warnings/errors only
+python3 vscode-node-red-tools.py --verbose rebuild  # Debug messages
+export NODERED_TOOLS_LOG_LEVEL=DEBUG               # Set globally
+
+# All errors include codes for easy troubleshooting
+✗ [E20] File not found: flows/flows.json
+✗ [E30] Failed to connect to Node-RED server
+✗ [E30] Next steps:
+✗ [E30]   1. Verify Node-RED is running at http://localhost:1880
+⚠ [W10] Config file not found, using defaults
+```
+
+See [CONFIGURATION.md](CONFIGURATION.md) for logging configuration and [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for error code reference.
+
 ## Requirements
 
 - Python 3.8+

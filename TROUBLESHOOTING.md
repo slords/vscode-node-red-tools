@@ -11,6 +11,10 @@ Common issues and their solutions when using vscode-node-red-tools.
 - [Plugin Issues](#plugin-issues)
 - [Verification Issues](#verification-issues)
 - [Performance Issues](#performance-issues)
+- [Common Pitfalls](#common-pitfalls)
+  - [Security Pitfalls](#security-pitfalls)
+  - [Performance Tuning](#performance-tuning)
+  - [Large File Handling](#large-file-handling)
 
 ## Installation Issues
 
@@ -700,12 +704,423 @@ def explode_node(self, node, node_dir, node_id, claimed_fields):
     # ... rest of code
 ```
 
+## Common Pitfalls
+
+This section covers common mistakes and best practices to avoid issues.
+
+### Security Pitfalls
+
+#### Password Exposure in Command History
+
+**Problem:** Passwords passed on command line are visible in shell history.
+
+**Bad Practice:**
+
+```bash
+# DON'T DO THIS - password visible in history
+python3 vscode-node-red-tools.py watch \
+  --server http://localhost:1880 \
+  --username admin \
+  --password mysecretpassword
+```
+
+**Best Practices:**
+
+1. **Use environment variables (recommended):**
+
+   ```bash
+   # Set password in environment
+   export NODERED_PASSWORD="mysecretpassword"
+
+   # Run without --password flag
+   python3 vscode-node-red-tools.py watch \
+     --server http://localhost:1880 \
+     --username admin
+   ```
+
+2. **Use token authentication (most secure):**
+
+   ```bash
+   # Store token in file
+   echo "your-access-token" > ~/.nodered-token
+   chmod 600 ~/.nodered-token
+
+   # Or use environment variable
+   export NODERED_TOKEN="your-access-token"
+
+   # Run with token auth (no username/password needed)
+   python3 vscode-node-red-tools.py watch \
+     --server http://localhost:1880
+   ```
+
+3. **Use token file in config:**
+
+   ```json
+   {
+     "server": {
+       "url": "http://localhost:1880",
+       "tokenFile": "~/.nodered-token"
+     }
+   }
+   ```
+
+4. **Never commit credentials to git:**
+   ```bash
+   # Add to .gitignore
+   echo ".vscode-node-red-tools.json" >> .gitignore
+   echo ".nodered-token" >> .gitignore
+   ```
+
+#### Config Files with Embedded Credentials
+
+**Problem:** Config files contain plaintext passwords in version control.
+
+**Bad Practice:**
+
+```json
+{
+  "server": {
+    "url": "http://localhost:1880",
+    "username": "admin",
+    "password": "mysecretpassword"
+  }
+}
+```
+
+**Best Practice:**
+
+```json
+{
+  "server": {
+    "url": "http://localhost:1880",
+    "tokenFile": "~/.nodered-token"
+  }
+}
+```
+
+Then set token outside of version control:
+
+```bash
+echo "your-token" > ~/.nodered-token
+chmod 600 ~/.nodered-token
+```
+
+#### SSL Verification Disabled Without Understanding Risks
+
+**Problem:** Using `--no-verify-ssl` without understanding security implications.
+
+**When It's Acceptable:**
+
+- Development environments with self-signed certificates
+- Localhost connections
+- Trusted internal networks
+
+**When It's Dangerous:**
+
+- Production environments
+- Public networks
+- Untrusted servers
+
+**Best Practice:**
+
+1. Use proper SSL certificates in production
+2. Only disable verification for development:
+
+   ```bash
+   # Add to development-specific config
+   {
+     "server": {
+       "verifySSL": false  // Only for dev!
+     }
+   }
+   ```
+
+3. Document why verification is disabled
+
+### Performance Tuning
+
+#### Understanding Plugin Performance Impact
+
+**Issue:** Plugins can significantly impact performance, especially prettier.
+
+**Performance Impact by Plugin Type:**
+
+1. **Prettier plugins (slowest):**
+   - `prettier-explode` - Formats all extracted files
+   - `prettier-post-rebuild` - Formats rebuilt flows.json
+   - Impact: 2-10x slower depending on flow size
+
+2. **Pre-explode plugins (medium):**
+   - `normalize-ids` - Scans and modifies all nodes
+   - Impact: 1.5-3x slower
+
+3. **Explode plugins (fast):**
+   - `function-code` - Only processes function nodes
+   - Impact: <10% overhead
+
+**Optimization Strategies:**
+
+1. **Disable prettier for large flows:**
+
+   ```json
+   {
+     "plugins": {
+       "disabled": ["prettier-explode", "prettier-post-rebuild"]
+     }
+   }
+   ```
+
+2. **Use prettier selectively:**
+
+   ```bash
+   # Explode without formatting
+   python3 vscode-node-red-tools.py explode --disable prettier-explode flows/flows.json
+
+   # Format manually when needed
+   npx prettier --write "src/**/*.{js,json,md}"
+   ```
+
+3. **Profile plugin impact:**
+
+   ```bash
+   # Time with all plugins
+   time python3 vscode-node-red-tools.py explode flows/flows.json
+
+   # Time without plugins
+   time python3 vscode-node-red-tools.py explode --disable all flows/flows.json
+   ```
+
+#### Watch Mode Performance
+
+**Issue:** Watch mode can be CPU-intensive with large flows.
+
+**Optimization Tips:**
+
+1. **Disable expensive plugins in watch mode:**
+
+   ```bash
+   export NODERED_TOKEN="your-token"
+   python3 vscode-node-red-tools.py watch \
+     --server http://localhost:1880 \
+     --disable prettier-explode,prettier-post-rebuild
+   ```
+
+2. **Use logging levels to reduce output:**
+
+   ```bash
+   # Reduce noise in watch mode
+   python3 vscode-node-red-tools.py watch \
+     --log-level WARNING \
+     --server http://localhost:1880
+   ```
+
+3. **Monitor for oscillation:**
+   - Dashboard shows convergence cycles
+   - Tool automatically pauses after detecting oscillation
+   - Resume with manual upload (Ctrl+U in dashboard)
+
+4. **Adjust timing if needed:**
+   - Default poll interval: 5 seconds
+   - Default debounce: 2 seconds
+   - Can be adjusted in `helper/constants.py` if needed
+
+#### Network Optimization
+
+**Issue:** Excessive polling can impact Node-RED server.
+
+**Best Practices:**
+
+1. **Use reasonable poll intervals:**
+   - Default 5s is appropriate for most cases
+   - Don't poll more frequently unless needed
+
+2. **Rate limiting is built-in:**
+   - 30-second minimum between deploys
+   - Prevents overwhelming server
+
+3. **Use dashboard to monitor activity:**
+   ```bash
+   python3 vscode-node-red-tools.py watch --dashboard
+   ```
+
+### Large File Handling
+
+#### Large flows.json Files
+
+**Issue:** Very large flows (>1MB) can cause performance issues.
+
+**Symptoms:**
+
+- Slow explode/rebuild times
+- High memory usage
+- Watch mode oscillation
+
+**Solutions:**
+
+1. **Split flows into multiple tabs:**
+   - Keep individual tabs under 200 nodes
+   - Use Link nodes to connect between tabs
+
+2. **Disable prettier for large flows:**
+
+   ```json
+   {
+     "plugins": {
+       "disabled": ["prettier-explode", "prettier-post-rebuild"]
+     }
+   }
+   ```
+
+3. **Process in stages:**
+
+   ```bash
+   # Explode without plugins first
+   python3 vscode-node-red-tools.py explode --disable all flows/flows.json
+
+   # Format manually if needed
+   npx prettier --write "src/**/*.js"
+   ```
+
+#### Many Small Files (>1000 nodes)
+
+**Issue:** Thousands of files can slow down file system operations.
+
+**Solutions:**
+
+1. **Use .gitignore patterns:**
+
+   ```gitignore
+   src/*/node_*.json
+   src/*/.flow-skeleton.json
+   ```
+
+2. **Consider breaking up flows:**
+   - Use subflows for repeated patterns
+   - Move config nodes to shared tabs
+
+3. **Optimize IDE settings:**
+   - Exclude src/ from file watchers in IDE
+   - Disable auto-save on src/ directory
+
+#### Function Nodes with Large Code
+
+**Issue:** Function nodes with 1000+ lines of code.
+
+**Best Practice:**
+
+1. **Keep function code concise:**
+   - Move complex logic to external modules
+   - Use require() in function nodes
+
+2. **Watch for wrapped vs unwrapped:**
+   - `.wrapped.js` - Code wrapped in function
+   - `.js` - Raw code (advanced use)
+
+3. **Consider refactoring:**
+   - Split large functions into multiple nodes
+   - Use subflows for reusable logic
+
+#### Memory Considerations
+
+**Issue:** Long-running watch mode may accumulate memory over time.
+
+**Monitoring:**
+
+```bash
+# Check memory usage (Linux/Mac)
+ps aux | grep vscode-node-red-tools
+
+# Watch over time
+watch -n 30 'ps aux | grep vscode-node-red-tools'
+```
+
+**Best Practices:**
+
+1. **Restart watch mode periodically:**
+   - Daily restarts for long-running instances
+   - Monitor for memory growth
+
+2. **Use exit codes to detect issues:**
+   - All errors now have specific codes
+   - Monitor for error patterns
+
+3. **Report suspected memory leaks:**
+   - Note how long watch mode was running
+   - Document memory growth rate
+   - Include flow size and plugin configuration
+
+## Error Codes Reference
+
+All errors and warnings now include error codes for easier troubleshooting:
+
+**Format:**
+- Errors: `[E##]`
+- Warnings: `[W##]`
+
+**Code Ranges:**
+- 0: Success
+- 1-9: General errors
+- 10-19: Configuration errors
+- 20-29: File system errors
+- 30-39: Server/network errors
+- 40-49: Validation errors
+- 50-59: Plugin errors
+- 60-69: Operation errors
+
+**Examples:**
+
+```
+✗ [E20] File not found: flows/flows.json
+✗ [E30] Failed to connect to Node-RED server
+⚠ [W10] Config file not found, using defaults
+```
+
+Use error codes when:
+- Searching documentation
+- Reporting issues
+- Automating error handling
+- Monitoring watch mode
+
+## Logging Levels
+
+Control output verbosity with logging levels:
+
+**Available Levels:**
+- `DEBUG` - Show all messages including debug info
+- `INFO` - Normal operation messages (default)
+- `WARNING` - Only warnings and errors
+- `ERROR` - Only errors
+
+**Usage:**
+
+```bash
+# Quiet mode (warnings and errors only)
+python3 vscode-node-red-tools.py explode --quiet flows/flows.json
+
+# Verbose mode (includes debug messages)
+python3 vscode-node-red-tools.py explode --verbose flows/flows.json
+
+# Explicit level
+python3 vscode-node-red-tools.py explode --log-level DEBUG flows/flows.json
+
+# Environment variable (applies to all commands)
+export NODERED_TOOLS_LOG_LEVEL=WARNING
+python3 vscode-node-red-tools.py explode flows/flows.json
+```
+
+**When to Use:**
+
+- `--quiet` - CI/CD pipelines, cron jobs
+- `--verbose` - Debugging issues, development
+- `--log-level ERROR` - Monitoring scripts (only show failures)
+
 ## Still Having Issues?
 
 Open an issue on GitHub with:
 
 - Exact commands run
-- Error messages (full stack trace)
+- Error messages with error codes (e.g., [E30])
 - System information
 - Sample flows.json (if possible)
 - Steps to reproduce
+- Log level output (try with --verbose)
