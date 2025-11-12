@@ -45,6 +45,13 @@ from helper import (
     watch_mode,
 )
 
+# Import exit codes
+from helper.exit_codes import (
+    SUCCESS,
+    GENERAL_ERROR,
+    KEYBOARD_INTERRUPT,
+)
+
 # Import command implementations
 from helper.commands import (
     stats_command,
@@ -340,7 +347,7 @@ def main():
         # Setup (config, server_client, plugins)
         init = initialize_system(args)
         if init is None:
-            return 1
+            return GENERAL_ERROR
         config, plugins_dict, server_client = init
         flows_path = Path(args.flows).resolve()
         src_path = Path(args.src).resolve()
@@ -416,18 +423,18 @@ def main():
                 iterations=args.iterations,
             )
         else:
-            log_error(f"Unknown command: {args.command}")
-            return 1
+            log_error(f"Unknown command: {args.command}", code=GENERAL_ERROR)
+            return GENERAL_ERROR
 
     except KeyboardInterrupt:
         print("\nInterrupted by user")
-        return 1
+        return KEYBOARD_INTERRUPT
     except Exception as e:
-        log_error(f"Error: {e}")
+        log_error(f"Error: {e}", code=GENERAL_ERROR)
         import traceback
 
         traceback.print_exc()
-        return 1
+        return GENERAL_ERROR
 
 
 if __name__ == "__main__":

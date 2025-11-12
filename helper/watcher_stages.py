@@ -29,6 +29,7 @@ from .logging import (
     log_error,
     create_progress_context,
 )
+from .exit_codes import SERVER_CONNECTION_ERROR, REBUILD_ERROR
 from .utils import clear_watch_state_after_failure
 from .rebuild import rebuild_flows
 from .explode import (
@@ -217,7 +218,7 @@ def sync_from_server(
     try:
         sc = getattr(watch_config, "server_client", None)
         if not sc:
-            log_error("No ServerClient attached to watch_config")
+            log_error("No ServerClient attached to watch_config", code=SERVER_CONNECTION_ERROR)
             return False
 
         changed, flows = sc.get_and_store_flows(force=force)
@@ -289,7 +290,7 @@ def sync_from_server(
                 plugins_dict=watch_config.plugins_dict,
             )
             if result != 0:
-                log_error("Rebuild failed")
+                log_error("Rebuild failed", code=REBUILD_ERROR)
                 return False
 
             if not deploy_to_nodered(watch_config, count_stats=False):
@@ -310,7 +311,7 @@ def sync_from_server(
         return True
 
     except requests.exceptions.RequestException as e:
-        log_error(f"Download failed: {e}")
+        log_error(f"Download failed: {e}", code=SERVER_CONNECTION_ERROR)
         if watch_config.dashboard:
             watch_config.dashboard.log_activity(f"Download failed: {e}", is_error=True)
         return False
@@ -328,7 +329,7 @@ def rebuild_and_deploy(watch_config: WatchConfig) -> bool:
         plugins_dict=watch_config.plugins_dict,
     )
     if result != 0:
-        log_error("Rebuild failed")
+        log_error("Rebuild failed", code=REBUILD_ERROR)
         return False
 
     # Deploy

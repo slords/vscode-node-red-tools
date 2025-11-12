@@ -34,6 +34,7 @@ from .logging import (
     log_warning,
     log_error,
 )
+from .exit_codes import SUCCESS, GENERAL_ERROR, REBUILD_ERROR, SERVER_CONNECTION_ERROR, WATCH_ERROR, FILE_INVALID, PLUGIN_LOAD_ERROR
 from .plugin_loader import load_plugins
 from .rebuild import rebuild_flows
 from .watcher_stages import sync_from_server, rebuild_and_deploy
@@ -93,12 +94,14 @@ def poll_nodered(watch_config: WatchConfig) -> None:
             if consecutive_failures <= max_retries:
                 delay = base_delay * (2 ** (consecutive_failures - 1))
                 log_warning(
-                    f"Download failed (attempt {consecutive_failures}/{max_retries}), retrying in {delay}s..."
+                    f"Download failed (attempt {consecutive_failures}/{max_retries}), retrying in {delay}s...",
+                    code=SERVER_CONNECTION_ERROR
                 )
                 time.sleep(delay)
             else:
                 log_error(
-                    f"Download failed after {max_retries} retries, will retry on next poll interval"
+                    f"Download failed after {max_retries} retries, will retry on next poll interval",
+                    code=SERVER_CONNECTION_ERROR
                 )
                 consecutive_failures = 0
 
@@ -136,7 +139,7 @@ def _reload_plugins_cached_set(watch_config: WatchConfig) -> None:
                     spec.loader.exec_module(module)
                     cls = getattr(module, cls_name, None)
                     if cls is None:
-                        log_warning(f"Reload skipped: class {cls_name} not found in reloaded module {source_path}")
+                        log_warning(f"Reload skipped: class {cls_name} not found in reloaded module {source_path}", code=PLUGIN_LOAD_ERROR)
                         continue
                     new_instance = cls()
                     # Re-attach metadata for future reloads
@@ -149,7 +152,7 @@ def _reload_plugins_cached_set(watch_config: WatchConfig) -> None:
                     log_info(f"  Reloaded: {new_instance.get_name()} ({p_type})")
                     continue
                 except Exception as e:
-                    log_warning(f"Path-based reload failed for {source_path}: {e}; attempting module fallback")
+                    log_warning(f"Path-based reload failed for {source_path}: {e}; attempting module fallback", code=PLUGIN_LOAD_ERROR)
 
             # Fallback: attempt module import by name (may fail if not on sys.path)
             try:
@@ -163,13 +166,13 @@ def _reload_plugins_cached_set(watch_config: WatchConfig) -> None:
                 module.loader.exec_module(reloaded)  # type: ignore[attr-defined]
                 cls = getattr(reloaded, cls_name, None)
                 if cls is None:
-                    log_warning(f"Reload skipped: class {cls_name} not found in module {mod_name}")
+                    log_warning(f"Reload skipped: class {cls_name} not found in module {mod_name}", code=PLUGIN_LOAD_ERROR)
                     continue
                 new_instance = cls()
                 new_mapping[p_type].append(new_instance)
                 log_info(f"  Reloaded via fallback: {new_instance.get_name()} ({p_type})")
             except Exception as e:
-                log_warning(f"Failed to reload plugin {cls_name} ({mod_name}): {e}")
+                log_warning(f"Failed to reload plugin {cls_name} ({mod_name}): {e}", code=PLUGIN_LOAD_ERROR)
 
     watch_config.plugins_dict = new_mapping
     log_success("Plugins reloaded successfully (cached set)")
@@ -261,17 +264,17 @@ def handle_command(watch_config: WatchConfig, command: str) -> None:
             quiet_plugins=True,
             plugins_dict=watch_config.plugins_dict,
         )
-        if result == 0:
+        if result == SUCCESS:
             if sc:
                 try:
                     sc.deploy_flows(json.loads(watch_config.flows_file.read_text()))
                 except Exception as e:
-                    log_error(f"Upload failed: {e}")
+                    log_error(f"Upload failed: {e}", code=SERVER_CONNECTION_ERROR)
                     return
             log_info("Verifying upload...")
             sync_from_server(watch_config, force=True, count_stats=False)
         else:
-            log_error("Rebuild failed, cannot upload")
+            log_error("Rebuild failed, cannot upload", code=REBUILD_ERROR)
         return
 
     if command in {"c", "check"}:
@@ -279,7 +282,7 @@ def handle_command(watch_config: WatchConfig, command: str) -> None:
         try:
             original = json.loads(watch_config.flows_file.read_text())
         except Exception:
-            log_error("Failed to read flows file for comparison")
+            log_error("Failed to read flows file for comparison", code=FILE_INVALID)
             return
         result = rebuild_flows(
             watch_config.flows_file,
@@ -287,13 +290,13 @@ def handle_command(watch_config: WatchConfig, command: str) -> None:
             quiet_plugins=True,
             plugins_dict=watch_config.plugins_dict,
         )
-        if result != 0:
-            log_error("Rebuild failed")
+        if result != SUCCESS:
+            log_error("Rebuild failed", code=REBUILD_ERROR)
             return
         try:
             rebuilt = json.loads(watch_config.flows_file.read_text())
         except Exception:
-            log_error("Failed to read rebuilt flows file for comparison")
+            log_error("Failed to read rebuilt flows file for comparison", code=FILE_INVALID)
             return
         if original != rebuilt:
             log_info("Changes detected, uploading...")
@@ -301,7 +304,7 @@ def handle_command(watch_config: WatchConfig, command: str) -> None:
                 try:
                     sc.deploy_flows(json.loads(watch_config.flows_file.read_text()))
                 except Exception as e:
-                    log_error(f"Upload failed: {e}")
+                    log_error(f"Upload failed: {e}", code=SERVER_CONNECTION_ERROR)
                     return
         else:
             log_info("No changes detected")
@@ -312,10 +315,10 @@ def handle_command(watch_config: WatchConfig, command: str) -> None:
         try:
             _reload_plugins_cached_set(watch_config)
         except Exception as e:  # Defensive – unexpected errors during reload
-            log_error(f"Plugin reload failed: {e}")
+            log_error(f"Plugin reload failed: {e}", code=PLUGIN_LOAD_ERROR)
         return
 
-    log_error(f"Unknown command: {command}")
+    log_error(f"Unknown command: {command}", code=GENERAL_ERROR)
 
 
 def watch_src_and_rebuild(watch_config: WatchConfig) -> None:
@@ -348,7 +351,8 @@ def watch_src_and_rebuild(watch_config: WatchConfig) -> None:
                     watch_config.rebuild_pending = False
                     if consecutive_failures >= max_consecutive_failures:
                         log_error(
-                            f"Skipping rebuild after {max_consecutive_failures} consecutive failures"
+                            f"Skipping rebuild after {max_consecutive_failures} consecutive failures",
+                            code=REBUILD_ERROR
                         )
                         log_error(
                             "Fix the errors and save a file again to retry, or use 'upload' command"
@@ -362,7 +366,8 @@ def watch_src_and_rebuild(watch_config: WatchConfig) -> None:
                             else:
                                 consecutive_failures += 1
                                 log_warning(
-                                    f"Rebuild/deploy failed (failure {consecutive_failures}/{max_consecutive_failures})"
+                                    f"Rebuild/deploy failed (failure {consecutive_failures}/{max_consecutive_failures})",
+                                    code=REBUILD_ERROR
                                 )
                         finally:
                             watch_config.pause_watching = False
@@ -408,15 +413,15 @@ def watch_mode(
     """Entry point for watch mode (bidirectional sync with Node-RED)."""
     if not WATCH_AVAILABLE or not WATCH_MODULES_AVAILABLE:
         log_error("Watch mode requires: pip install requests watchdog")
-        return 1
+        return WATCH_ERROR
 
     watch_config = None
     try:
         if config is None:
             config = {}
         if server_client is None:
-            log_error("No server_client provided to watch_mode")
-            return 1
+            log_error("No server_client provided to watch_mode", code=SERVER_CONNECTION_ERROR)
+            return SERVER_CONNECTION_ERROR
 
         # Create WatchConfig with ServerClient and file paths
         watch_config = WatchConfig(
@@ -429,8 +434,8 @@ def watch_mode(
         # Verify connection (ServerClient may already be authenticated from initialize_system)
         if not server_client.is_authenticated:
             if not server_client.connect():
-                log_error("Connection failed for watch mode")
-                return 1
+                log_error("Connection failed for watch mode", code=SERVER_CONNECTION_ERROR)
+                return SERVER_CONNECTION_ERROR
 
         # Attach plugins and command handler
         if plugins_dict is not None:
@@ -458,14 +463,14 @@ def watch_mode(
             watch_config.dashboard.start()
             watch_config.dashboard.run()
             if not setup_complete.is_set():
-                log_error("Dashboard exited before initial setup completed")
+                log_error("Dashboard exited before initial setup completed", code=WATCH_ERROR)
             elif not setup_success[0]:
-                log_error("Setup thread reported failure")
+                log_error("Setup thread reported failure", code=WATCH_ERROR)
             else:
                 # Normal successful dashboard run
                 pass
-            # Return 0 for graceful exit regardless; errors already logged
-            return 0
+            # Return SUCCESS for graceful exit regardless; errors already logged
+            return SUCCESS
 
         # Non-dashboard mode
         if not watch_config.src_dir.exists():
@@ -478,7 +483,7 @@ def watch_mode(
         except KeyboardInterrupt:
             watch_config.request_shutdown()
             time.sleep(0.5)  # allow threads to observe shutdown flag
-        return 0
+        return SUCCESS
     finally:
         if watch_config and watch_config.dashboard:
             try:

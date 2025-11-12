@@ -22,7 +22,7 @@ from .logging import (
     log_success,
     show_progress_bar,
 )
- 
+from .exit_codes import SUCCESS, GENERAL_ERROR, FILE_NOT_FOUND, REBUILD_ERROR, FILE_INVALID
 from .skeleton import get_node_directory, load_skeleton
 from .utils import (
     create_backup,
@@ -81,7 +81,7 @@ def rebuild_single_node(
                 node_data.update(base_data)
             except ValueError as e:
                 # Log error but don't fail - node will use skeleton data
-                log_error(f"Cannot load node file {node_id}: {e}")
+                log_error(f"Cannot load node file {node_id}: {e}", code=FILE_INVALID)
 
 
     # Track claimed fields
@@ -188,7 +188,7 @@ def _rebuild_single_node(
             node_data.update(base_data)
         except ValueError as e:
             # Log error but don't fail - node will use skeleton data
-            log_error(f"Cannot load node file {node_id}: {e}")
+            log_error(f"Cannot load node file {node_id}: {e}", code=FILE_INVALID)
 
     # Track claimed fields to prevent conflicts
     claimed_fields = set()
@@ -367,7 +367,7 @@ def rebuild_flows(
         plugins_dict: Pre-loaded plugins dictionary (required)
 
     Returns:
-        Exit code (0 = success, 1 = error)
+        Exit code (SUCCESS = success, REBUILD_ERROR = error)
     """
     # Handle dry-run by using temp file and comparing
     if dry_run:
@@ -420,8 +420,8 @@ def rebuild_flows(
         try:
             skeleton_data, skeleton_map = load_skeleton(src_dir, flows_path)
         except FileNotFoundError as e:
-            log_error(str(e))
-            return 1
+            log_error(str(e), code=FILE_NOT_FOUND)
+            return FILE_NOT_FOUND
 
         # Detect and handle new files (not in skeleton)
         new_files = find_new_files(src_dir, skeleton_data, explode_plugins)
@@ -490,11 +490,11 @@ def rebuild_flows(
                 )
 
         log_success(f"Rebuilt {len(rebuilt_nodes)} nodes to {flows_path}")
-        return 0
+        return SUCCESS
 
     except Exception as e:
-        log_error(f"Rebuild failed: {e}")
+        log_error(f"Rebuild failed: {e}", code=REBUILD_ERROR)
         import traceback
 
         traceback.print_exc()
-        return 1
+        return REBUILD_ERROR

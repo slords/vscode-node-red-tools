@@ -11,7 +11,14 @@ import time
 from pathlib import Path
 
 from .logging import log_info, log_success, log_warning, log_error
- 
+from .exit_codes import (
+    SUCCESS,
+    GENERAL_ERROR,
+    FILE_NOT_FOUND,
+    EXPLODE_ERROR,
+    REBUILD_ERROR,
+    VERIFICATION_FAILED,
+)
 from .utils import compute_file_hash, compute_dir_hash
 from .explode import explode_flows
 from .rebuild import rebuild_flows
@@ -32,8 +39,8 @@ def stats_command(
         config: Pre-loaded configuration dictionary
     """
     if plugins_dict is None or config is None:
-        log_error("stats_command requires pre-loaded plugins_dict and config. None was provided.")
-        return 1
+        log_error("stats_command requires pre-loaded plugins_dict and config. None was provided.", code=GENERAL_ERROR)
+        return GENERAL_ERROR
     try:
         log_info("=== Flow Statistics ===")
 
@@ -97,7 +104,7 @@ def stats_command(
             log_info(f"  Hash (first 16 chars): {hash_value[:16]}")
 
         else:
-            log_warning(f"Flows file not found: {flows_path}")
+            log_warning(f"Flows file not found: {flows_path}", code=FILE_NOT_FOUND)
 
         # Source statistics
         if src_path.exists():
@@ -137,7 +144,7 @@ def stats_command(
             log_info(f"\n  Directory hash (first 16 chars): {hash_value[:16]}")
 
         else:
-            log_warning(f"Source directory not found: {src_path}")
+            log_warning(f"Source directory not found: {src_path}", code=FILE_NOT_FOUND)
 
         # Plugin statistics (use pre-loaded plugins only)
         log_info("\n=== Plugin Statistics ===")
@@ -150,14 +157,14 @@ def stats_command(
                 for plugin in plugins:
                     log_info(f"      - {plugin.get_name()}")
 
-        return 0
+        return SUCCESS
 
     except Exception as e:
-        log_error(f"Stats failed: {e}")
+        log_error(f"Stats failed: {e}", code=GENERAL_ERROR)
         import traceback
 
         traceback.print_exc()
-        return 1
+        return GENERAL_ERROR
 
 
 def benchmark_command(
@@ -216,9 +223,9 @@ def benchmark_command(
                 explode_time = time.time() - start
                 explode_times.append(explode_time)
 
-                if result != 0:
-                    log_error("Explode failed")
-                    return 1
+                if result != SUCCESS:
+                    log_error("Explode failed", code=EXPLODE_ERROR)
+                    return EXPLODE_ERROR
 
                 log_info(f"  Explode: {explode_time:.3f}s")
 
@@ -233,9 +240,9 @@ def benchmark_command(
                 rebuild_time = time.time() - start
                 rebuild_times.append(rebuild_time)
 
-                if result != 0:
-                    log_error("Rebuild failed")
-                    return 1
+                if result != SUCCESS:
+                    log_error("Rebuild failed", code=REBUILD_ERROR)
+                    return REBUILD_ERROR
 
                 log_info(f"  Rebuild: {rebuild_time:.3f}s")
                 log_info(f"  Total: {explode_time + rebuild_time:.3f}s")
@@ -273,14 +280,14 @@ def benchmark_command(
         log_info(f"  Explode: {nodes_per_sec_explode:.1f} nodes/sec")
         log_info(f"  Rebuild: {nodes_per_sec_rebuild:.1f} nodes/sec")
 
-        return 0
+        return SUCCESS
 
     except Exception as e:
-        log_error(f"Benchmark failed: {e}")
+        log_error(f"Benchmark failed: {e}", code=GENERAL_ERROR)
         import traceback
 
         traceback.print_exc()
-        return 1
+        return GENERAL_ERROR
 
 
 def verify_flows(
@@ -296,16 +303,16 @@ def verify_flows(
         config: Pre-loaded configuration dictionary
     """
     if plugins_dict is None or config is None:
-        log_error("verify_flows requires pre-loaded plugins_dict and config. None was provided.")
-        return 1
+        log_error("verify_flows requires pre-loaded plugins_dict and config. None was provided.", code=GENERAL_ERROR)
+        return GENERAL_ERROR
     log_info(f"Verifying round-trip stability for {flows_path}")
 
     try:
         # Load original flows
         if not flows_path.exists():
-            log_error(f"File not found: {flows_path}")
-            log_error("Run 'download' first to fetch flows from Node-RED, or provide a flows.json file")
-            return 1
+            log_error(f"File not found: {flows_path}", code=FILE_NOT_FOUND)
+            log_error("Provide a valid flows.json file path with --flows, or use watch mode to sync from server")
+            return FILE_NOT_FOUND
 
         with open(flows_path, "r") as f:
             original_flows = json.load(f)
@@ -329,9 +336,9 @@ def verify_flows(
                 temp_src,
                 plugins_dict=plugins_dict,
             )
-            if result != 0:
-                log_error("Explode failed during verification")
-                return 1
+            if result != SUCCESS:
+                log_error("Explode failed during verification", code=EXPLODE_ERROR)
+                return EXPLODE_ERROR
 
             # Step 2: Rebuild (pass pre-loaded plugins)
             log_info("Step 2: Rebuilding flows...")
@@ -341,9 +348,9 @@ def verify_flows(
                 continued_from_explode=True,
                 plugins_dict=plugins_dict,
             )
-            if result != 0:
-                log_error("Rebuild failed during verification")
-                return 1
+            if result != SUCCESS:
+                log_error("Rebuild failed during verification", code=REBUILD_ERROR)
+                return REBUILD_ERROR
 
             # Step 3: Compare
             log_info("Step 3: Comparing original vs rebuilt...")
@@ -364,17 +371,18 @@ def verify_flows(
                 log_success(
                     "\u2713 Round-trip verification passed - flows are identical (content and order)"
                 )
-                return 0
+                return SUCCESS
             else:
-                log_error("\u2717 Round-trip verification failed - flows differ")
+                log_error("\u2717 Round-trip verification failed - flows differ", code=VERIFICATION_FAILED)
 
                 # Check if content is same but order differs
                 if original_flows == rebuilt_flows:
                     log_warning(
-                        "Content is identical but field ORDER differs (critical for Node-RED!)"
+                        "Content is identical but field ORDER differs (critical for Node-RED!)",
+                        code=VERIFICATION_FAILED
                     )
                 else:
-                    log_error("Content differs (not just field order)")
+                    log_error("Content differs (not just field order)", code=VERIFICATION_FAILED)
 
                 # Show differences (use indented format for readability, but no sort_keys)
                 original_pretty = json.dumps(
@@ -400,12 +408,11 @@ def verify_flows(
                 if len(diff) > 50:
                     print(f"\n... ({len(diff) - 50} more lines)")
 
-                return 1
+                return VERIFICATION_FAILED
 
     except Exception as e:
-        log_error(f"Verification failed: {e}")
+        log_error(f"Verification failed: {e}", code=VERIFICATION_FAILED)
         import traceback
 
         traceback.print_exc()
-        return 1
-        return 1
+        return VERIFICATION_FAILED

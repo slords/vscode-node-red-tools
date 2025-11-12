@@ -42,6 +42,7 @@ if TYPE_CHECKING:
     import requests as _requests
 
 from .logging import log_info, log_success, log_warning, log_error
+from .exit_codes import SERVER_CONNECTION_ERROR, SERVER_AUTH_ERROR, SERVER_CONFLICT, SERVER_ERROR, FILE_NOT_FOUND, GENERAL_ERROR
 from .auth import resolve_auth_config, AuthConfig
 from .constants import HTTP_TIMEOUT, DEFAULT_CONVERGENCE_LIMIT, DEFAULT_CONVERGENCE_WINDOW
 from .utils import RateLimiter
@@ -150,14 +151,14 @@ class ServerClient:
             log_info("Using anonymous access (no authentication)")
         else:
             if self.auth_type not in ["bearer", "basic", "none"]:
-                log_error(f"Unknown authentication type: {self.auth_type}")
+                log_error(f"Unknown authentication type: {self.auth_type}", code=SERVER_AUTH_ERROR)
                 raise ValueError(f"Unknown authentication type: {self.auth_type}")
 
         if not self.verify_ssl:
             try:
                 import urllib3
                 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-                log_warning("SSL verification disabled")
+                log_warning("SSL verification disabled", code=SERVER_CONNECTION_ERROR)
             except Exception:
                 pass
 
@@ -178,7 +179,8 @@ class ServerClient:
             if not self.rate_limiter.try_acquire():
                 stats = self.rate_limiter.get_stats()
                 log_error(
-                    f"Rate limit exceeded during authentication: {stats['requests_last_minute']}/{stats['limit_per_minute']} requests/min"
+                    f"Rate limit exceeded during authentication: {stats['requests_last_minute']}/{stats['limit_per_minute']} requests/min",
+                    code=SERVER_CONNECTION_ERROR
                 )
                 return False
             resp = self.session.get(f"{self.url}/flows", timeout=HTTP_TIMEOUT)
@@ -188,7 +190,7 @@ class ServerClient:
             return True
         except Exception as e:
             self.error_count += 1
-            log_error(f"Connection failed: {e}")
+            log_error(f"Connection failed: {e}", code=SERVER_CONNECTION_ERROR)
             return False
 
     def _ensure_auth(self) -> bool:
@@ -201,7 +203,8 @@ class ServerClient:
             stats = self.rate_limiter.get_stats()
             log_error(
                 f"Rate limit exceeded: {stats['requests_last_minute']}/{stats['limit_per_minute']} requests/min, "
-                f"{stats['requests_last_10min']}/{stats['limit_per_10min']} requests/10min"
+                f"{stats['requests_last_10min']}/{stats['limit_per_10min']} requests/10min",
+                code=SERVER_CONNECTION_ERROR
             )
             return False
         return True
@@ -241,7 +244,7 @@ class ServerClient:
         self.last_download_time = datetime.now()
         # Persist flows immediately
         if not self.flows_file:
-            log_error("flows_file path not set on ServerClient")
+            log_error("flows_file path not set on ServerClient", code=FILE_NOT_FOUND)
             return False, None
         try:
             self.flows_file.parent.mkdir(parents=True, exist_ok=True)
@@ -249,7 +252,7 @@ class ServerClient:
             self.flows_file.write_text(_json.dumps(flows, separators=(",", ":"), ensure_ascii=False) + "\n")
         except Exception as e:
             self.error_count += 1
-            log_error(f"Failed to write flows file: {e}")
+            log_error(f"Failed to write flows file: {e}", code=GENERAL_ERROR)
             return False, None
         return True, flows
 
@@ -275,10 +278,10 @@ class ServerClient:
         )
         # Re-auth flow
         if resp.status_code in (401, 403):
-            log_warning("Authentication expired, re-authenticating...")
+            log_warning("Authentication expired, re-authenticating...", code=SERVER_AUTH_ERROR)
             self._authenticated = False
             if not self._ensure_auth():
-                log_error("Re-authentication failed")
+                log_error("Re-authentication failed", code=SERVER_AUTH_ERROR)
                 return False
             if not self._check_rate():
                 return False
@@ -286,7 +289,7 @@ class ServerClient:
                 f"{self.url}/flows", data=formatted_body, headers=headers, params=params, timeout=HTTP_TIMEOUT
             )
         if resp.status_code == 409:
-            log_error("Conflict detected (409) - server flows changed while you were editing")
+            log_error("Conflict detected (409) - server flows changed while you were editing", code=SERVER_CONFLICT)
             # Fetch latest to update rev/etag
             try:
                 if not self._check_rate():
@@ -302,9 +305,9 @@ class ServerClient:
                     log_info(f"Updated to server rev: {self.last_rev}")
                 if verify_etag:
                     self.last_etag = verify_etag
-                log_warning("Your local changes were not deployed - server was updated by someone else")
+                log_warning("Your local changes were not deployed - server was updated by someone else", code=SERVER_CONFLICT)
             except Exception as e:
-                log_error(f"Failed to fetch latest server state: {e}")
+                log_error(f"Failed to fetch latest server state: {e}", code=SERVER_ERROR)
             return False
         resp.raise_for_status()
         result = resp.json()
@@ -319,9 +322,10 @@ class ServerClient:
         self.convergence_cycles = [ts for ts in self.convergence_cycles if ts.timestamp() > cutoff]
         if len(self.convergence_cycles) > self.convergence_limit and not self.convergence_paused:
             log_warning(
-                f"⚠️  Oscillation detected: {len(self.convergence_cycles)} cycles in {self.convergence_window}s"
+                f"⚠️  Oscillation detected: {len(self.convergence_cycles)} cycles in {self.convergence_window}s",
+                code=SERVER_ERROR
             )
-            log_warning("Pausing convergence - manual uploads only until resumed")
+            log_warning("Pausing convergence - manual uploads only until resumed", code=SERVER_ERROR)
             self.convergence_paused = True
         if count_stats:
             self.upload_count += 1
