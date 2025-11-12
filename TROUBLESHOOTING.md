@@ -279,30 +279,23 @@ python3 vscode-node-red-tools.py list-plugins
 1. Enable dashboard to see what's happening:
 
    ```bash
+   export NODERED_PASSWORD="pass"
    python3 vscode-node-red-tools.py watch --dashboard \
      --server http://localhost:1880 \
-     --username admin \
-     --password pass
+     --username admin
    ```
 
 2. Skip plugins temporarily:
 
    ```bash
+   export NODERED_PASSWORD="pass"
    python3 vscode-node-red-tools.py watch --disable all \
      --server http://localhost:1880 \
-     --username admin \
-     --password pass
+     --username admin
    ```
 
-3. Increase debounce:
-
-   ```json
-   {
-     "watch": {
-       "debounce": 2.0
-     }
-   }
-   ```
+3. Adjust watch timing constants (if needed):
+   Edit `helper/constants.py` to increase `DEFAULT_DEBOUNCE` from 2 to a higher value.
 
 4. Check prettier config is consistent:
    ```bash
@@ -332,10 +325,9 @@ python3 vscode-node-red-tools.py list-plugins
 3. Try explicit protocol:
    ```bash
    # Use http:// or https:// explicitly
+   export NODERED_TOKEN="your-token"
    python3 vscode-node-red-tools.py watch \
-     --server http://localhost:1880 \
-     --username admin \
-     --password pass
+     --server http://localhost:1880
    ```
 
 ### Authentication Failed
@@ -344,22 +336,40 @@ python3 vscode-node-red-tools.py list-plugins
 
 **Solutions:**
 
-1. Verify credentials:
+1. Verify credentials are correctly configured:
 
    ```bash
-   # Try logging into Node-RED UI with same credentials
+   # Check which authentication method you're using
+
+   # For token authentication:
+   cat ~/.nodered-token  # Should contain valid token
+
+   # For basic auth:
+   echo $NODERED_PASSWORD  # Should be set
    ```
 
-2. Check Node-RED security settings:
+2. Test authentication method:
+
+   ```bash
+   # Token authentication (recommended)
+   export NODERED_TOKEN="your-token"
+   python3 vscode-node-red-tools.py watch --server http://localhost:1880
+
+   # Basic authentication
+   export NODERED_PASSWORD="your-password"
+   python3 vscode-node-red-tools.py watch --server http://localhost:1880 --username admin
+   ```
+
+3. Check Node-RED security settings:
 
    ```bash
    # Check settings.js for adminAuth configuration
    cat ~/.node-red/settings.js | grep -A 10 adminAuth
    ```
 
-3. Use different authentication:
-   - Some Node-RED setups use different auth methods
-   - Check Node-RED documentation for your setup
+4. Verify token hasn't expired (if using token authentication)
+
+5. Try logging into Node-RED UI with same credentials to verify they work
 
 ### SSL Certificate Errors
 
@@ -370,10 +380,9 @@ python3 vscode-node-red-tools.py list-plugins
 1. Use `--no-verify-ssl` flag:
 
    ```bash
+   export NODERED_TOKEN="your-token"
    python3 vscode-node-red-tools.py watch \
      --server https://myserver:1880 \
-     --username admin \
-     --password pass \
      --no-verify-ssl
    ```
 
@@ -589,33 +598,15 @@ python3 vscode-node-red-tools.py list-plugins
 
 **Solutions:**
 
-1. Increase poll interval:
+1. Adjust watch timing constants (if needed):
+   Edit `helper/constants.py` to increase `DEFAULT_POLL_INTERVAL` or `DEFAULT_DEBOUNCE`.
 
-   ```json
-   {
-     "watch": {
-       "pollInterval": 10
-     }
-   }
-   ```
-
-2. Increase debounce:
-
-   ```json
-   {
-     "watch": {
-       "debounce": 2.0
-     }
-   }
-   ```
-
-3. Skip plugins:
+2. Skip plugins to improve performance:
 
    ```bash
+   export NODERED_TOKEN="your-token"
    python3 vscode-node-red-tools.py watch --disable all \
-     --server http://localhost:1880 \
-     --username admin \
-     --password pass
+     --server http://localhost:1880
    ```
 
 4. Check for watch mode looping (see above)

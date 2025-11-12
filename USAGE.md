@@ -164,18 +164,24 @@ Bidirectional sync between source files and Node-RED server.
 python3 vscode-node-red-tools.py [GLOBAL_OPTIONS] watch [OPTIONS]
 ```
 
-**Required Options:**
+**Server Options:**
 
-- `--server URL` - Node-RED server URL (e.g., `http://localhost:1880`)
-- `--username USER` - Node-RED username
-- `--password PASS` - Node-RED password
+- `--server URL` - Node-RED server URL (default: `http://127.0.0.1:1880`)
 
-**Optional:**
+**Authentication Options (choose one method):**
+
+Bearer Token (Recommended):
+- `--token TOKEN` - Bearer token (not recommended - use env var or file instead)
+- `--token-file PATH` - Path to file containing bearer token
+
+HTTP Basic:
+- `--username USER` - Username for HTTP Basic authentication
+- `--password PASS` - Password (not recommended - use env var instead)
+
+**Other Options:**
 
 - `--flows FLOWS_FILE` - Path to flows.json (default: `flows/flows.json`)
 - `--src SRC_DIR` - Source directory (default: `src/`)
-- `--poll-interval SECONDS` - Server polling interval (default: 1)
-- `--debounce SECONDS` - File change debounce delay (default: 2.0)
 - `--no-verify-ssl` - Disable SSL certificate verification
 - `--dashboard` - Enable TUI dashboard (requires textual)
 
@@ -207,34 +213,80 @@ python3 vscode-node-red-tools.py [GLOBAL_OPTIONS] watch [OPTIONS]
 **Examples:**
 
 ```bash
-# Basic watch mode
+# Watch with token file (recommended)
 python3 vscode-node-red-tools.py watch \
   --server http://localhost:1880 \
-  --username admin \
-  --password yourpassword
+  --token-file ~/.nodered-token
+
+# Watch with token from environment variable (recommended)
+export NODERED_TOKEN="your-token-here"
+python3 vscode-node-red-tools.py watch --server http://localhost:1880
+
+# Watch with basic auth (password from environment)
+export NODERED_PASSWORD="your-password"
+python3 vscode-node-red-tools.py watch \
+  --server http://localhost:1880 \
+  --username admin
 
 # Watch with TUI dashboard
 python3 vscode-node-red-tools.py watch \
   --server http://localhost:1880 \
-  --username admin \
-  --password yourpassword \
+  --token-file ~/.nodered-token \
   --dashboard
 
-# Custom polling and debounce
-python3 vscode-node-red-tools.py watch \
-  --server http://localhost:1880 \
-  --username admin \
-  --password yourpassword \
-  --poll-interval 10 \
-  --debounce 2.0
+# Local development (no authentication)
+python3 vscode-node-red-tools.py watch
 
 # HTTPS with self-signed certificate
 python3 vscode-node-red-tools.py watch \
   --server https://myserver:1880 \
-  --username admin \
-  --password yourpassword \
+  --token-file ~/.nodered-token \
   --no-verify-ssl
 ```
+
+**Authentication Methods:**
+
+The tool supports multiple authentication methods with automatic credential resolution:
+
+1. **Token File** (Most Secure):
+   ```bash
+   # Create token file
+   echo "your-token-here" > ~/.nodered-token
+   chmod 600 ~/.nodered-token
+
+   # Use with watch
+   python3 vscode-node-red-tools.py watch --token-file ~/.nodered-token
+   ```
+
+2. **Environment Variables** (Recommended):
+   ```bash
+   # Bearer token
+   export NODERED_TOKEN="your-token-here"
+   python3 vscode-node-red-tools.py watch
+
+   # Basic auth password
+   export NODERED_PASSWORD="your-password"
+   python3 vscode-node-red-tools.py watch --username admin
+   ```
+
+3. **Auto-discovery** (Token Files):
+   The tool automatically searches for `.nodered-token` in:
+   - Current directory (`./.nodered-token`)
+   - Home directory (`~/.nodered-token`)
+
+   ```bash
+   # Just run watch - token file auto-discovered
+   python3 vscode-node-red-tools.py watch
+   ```
+
+4. **Secure Prompt** (Basic Auth):
+   If username is provided without password, you'll be prompted securely:
+   ```bash
+   python3 vscode-node-red-tools.py watch --username admin
+   # Enter password for 'admin': [secure input]
+   ```
+
+**Security Warning:** Never use `--password` or `--token` CLI parameters in production - they're visible in process lists. Always use environment variables or token files.
 
 **Dashboard Mode:**
 
@@ -679,11 +731,12 @@ python3 vscode-node-red-tools.py rebuild flows/flows.json
 ### Watch Mode Workflow
 
 ```bash
+# Set up token file (one time)
+echo "your-token-here" > ~/.nodered-token
+chmod 600 ~/.nodered-token
+
 # Start watch mode
-python3 vscode-node-red-tools.py watch \
-  --server http://localhost:1880 \
-  --username admin \
-  --password yourpassword
+python3 vscode-node-red-tools.py watch --server http://localhost:1880
 
 # Now edit in either place:
 # - Edit src/ files → auto-uploads to Node-RED
