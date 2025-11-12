@@ -262,59 +262,94 @@ class ServerClient:
             return False
         if not self._check_rate():
             return False
-        headers = {
-            "Content-Type": "application/json",
-            "Node-RED-Deployment-Type": "full",
-            "Node-RED-API-Version": "v2",
-        }
-        body = {"flows": flows_array}
-        import json as _json
-        formatted_body = _json.dumps(body, separators=(",", ":"), ensure_ascii=False)
-        params = {}
-        if self.last_rev:
-            params["rev"] = self.last_rev
-        resp = self.session.post(
-            f"{self.url}/flows", data=formatted_body, headers=headers, params=params, timeout=HTTP_TIMEOUT
-        )
-        # Re-auth flow
-        if resp.status_code in (401, 403):
-            log_warning("Authentication expired, re-authenticating...", code=SERVER_AUTH_ERROR)
-            self._authenticated = False
-            if not self._ensure_auth():
-                log_error("Re-authentication failed", code=SERVER_AUTH_ERROR)
-                return False
-            if not self._check_rate():
-                return False
+
+        try:
+            headers = {
+                "Content-Type": "application/json",
+                "Node-RED-Deployment-Type": "full",
+                "Node-RED-API-Version": "v2",
+            }
+            body = {"flows": flows_array}
+            import json as _json
+            formatted_body = _json.dumps(body, separators=(",", ":"), ensure_ascii=False)
+            params = {}
+            if self.last_rev:
+                params["rev"] = self.last_rev
             resp = self.session.post(
                 f"{self.url}/flows", data=formatted_body, headers=headers, params=params, timeout=HTTP_TIMEOUT
             )
-        if resp.status_code == 409:
-            log_error("Conflict detected (409) - server flows changed while you were editing", code=SERVER_CONFLICT)
-            # Fetch latest to update rev/etag
-            try:
+            # Re-auth flow
+            if resp.status_code in (401, 403):
+                log_warning("Authentication expired, re-authenticating...", code=SERVER_AUTH_ERROR)
+                self._authenticated = False
+                if not self._ensure_auth():
+                    log_error("Re-authentication failed", code=SERVER_AUTH_ERROR)
+                    return False
                 if not self._check_rate():
                     return False
-                verify_resp = self.session.get(
-                    f"{self.url}/flows", headers={"Node-RED-API-Version": "v2"}, timeout=HTTP_TIMEOUT
+                resp = self.session.post(
+                    f"{self.url}/flows", data=formatted_body, headers=headers, params=params, timeout=HTTP_TIMEOUT
                 )
-                verify_resp.raise_for_status()
-                verify_etag = verify_resp.headers.get("ETag")
-                verify_data = verify_resp.json()
-                if isinstance(verify_data, dict) and "rev" in verify_data:
-                    self.last_rev = verify_data["rev"]
-                    log_info(f"Updated to server rev: {self.last_rev}")
-                if verify_etag:
-                    self.last_etag = verify_etag
-                log_warning("Your local changes were not deployed - server was updated by someone else", code=SERVER_CONFLICT)
-            except Exception as e:
-                log_error(f"Failed to fetch latest server state: {e}", code=SERVER_ERROR)
+            if resp.status_code == 409:
+                log_error("Conflict detected (409) - server flows changed while you were editing", code=SERVER_CONFLICT)
+                # Fetch latest to update rev/etag
+                try:
+                    if not self._check_rate():
+                        return False
+                    verify_resp = self.session.get(
+                        f"{self.url}/flows", headers={"Node-RED-API-Version": "v2"}, timeout=HTTP_TIMEOUT
+                    )
+                    verify_resp.raise_for_status()
+                    verify_etag = verify_resp.headers.get("ETag")
+                    verify_data = verify_resp.json()
+                    if isinstance(verify_data, dict) and "rev" in verify_data:
+                        self.last_rev = verify_data["rev"]
+                        log_info(f"Updated to server rev: {self.last_rev}")
+                    if verify_etag:
+                        self.last_etag = verify_etag
+                    log_warning("Your local changes were not deployed - server was updated by someone else", code=SERVER_CONFLICT)
+                except Exception as e:
+                    log_error(f"Failed to fetch latest server state: {e}", code=SERVER_ERROR)
+                return False
+            resp.raise_for_status()
+            result = resp.json()
+            deploy_rev = result.get("rev")
+            if deploy_rev:
+                self.last_rev = deploy_rev
+            log_success("Deployed to Node-RED")
+        except requests.exceptions.ConnectionError as e:
+            log_error(f"Deploy failed: Connection error - {e}", code=SERVER_CONNECTION_ERROR)
+            log_error("Next steps:", code=SERVER_CONNECTION_ERROR)
+            log_error(f"  1. Verify Node-RED is running at {self.url}", code=SERVER_CONNECTION_ERROR)
+            log_error("  2. Check network connectivity", code=SERVER_CONNECTION_ERROR)
+            log_error("  3. Verify firewall settings allow the connection", code=SERVER_CONNECTION_ERROR)
+            self.error_count += 1
             return False
-        resp.raise_for_status()
-        result = resp.json()
-        deploy_rev = result.get("rev")
-        if deploy_rev:
-            self.last_rev = deploy_rev
-        log_success("Deployed to Node-RED")
+        except requests.exceptions.Timeout as e:
+            log_error(f"Deploy failed: Request timeout - {e}", code=SERVER_CONNECTION_ERROR)
+            log_error("Next steps:", code=SERVER_CONNECTION_ERROR)
+            log_error(f"  1. Check if Node-RED server at {self.url} is responding slowly", code=SERVER_CONNECTION_ERROR)
+            log_error("  2. Verify network latency", code=SERVER_CONNECTION_ERROR)
+            log_error("  3. Consider increasing timeout if server is slow", code=SERVER_CONNECTION_ERROR)
+            self.error_count += 1
+            return False
+        except requests.exceptions.HTTPError as e:
+            log_error(f"Deploy failed: HTTP {e.response.status_code} - {e}", code=SERVER_ERROR)
+            log_error("Next steps:", code=SERVER_ERROR)
+            log_error(f"  1. Check Node-RED server logs for details", code=SERVER_ERROR)
+            log_error("  2. Verify credentials are correct", code=SERVER_ERROR)
+            log_error("  3. Ensure flows.json format is valid", code=SERVER_ERROR)
+            self.error_count += 1
+            return False
+        except Exception as e:
+            log_error(f"Deploy failed: Unexpected error - {e}", code=SERVER_ERROR)
+            log_error("Next steps:", code=SERVER_ERROR)
+            log_error(f"  1. Check Node-RED server status at {self.url}", code=SERVER_ERROR)
+            log_error("  2. Verify credentials are correct", code=SERVER_ERROR)
+            log_error("  3. Check network connection", code=SERVER_ERROR)
+            log_error("  4. Review server logs for more details", code=SERVER_ERROR)
+            self.error_count += 1
+            return False
         # Convergence tracking
         now = datetime.now()
         self.convergence_cycles.append(now)
