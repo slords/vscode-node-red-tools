@@ -45,11 +45,12 @@ class WatchConfig:
         self.repo_root = flows_path.parent.parent
         self.src_dir = src_path
         self.flows_file = flows_path
-        self.server_url = validate_server_url(args.server)
-        self.username = args.username
-        self.password = args.password
+        # Server URL will be set later from credentials if not provided via args
+        self.server_url = validate_server_url(args.server) if getattr(args, 'server', None) else None
+        self.username = getattr(args, 'username', None)
+        self.password = getattr(args, 'password', None)
         self.poll_interval = DEFAULT_POLL_INTERVAL  # Runtime constant
-        self.verify_ssl = not args.no_verify_ssl
+        self.verify_ssl = not getattr(args, 'no_verify_ssl', False)
 
         # Plugin control (from global args)
         self.enabled_override = None
@@ -64,7 +65,7 @@ class WatchConfig:
             ]
 
         self.debounce_seconds = DEFAULT_DEBOUNCE  # Runtime constant
-        self.use_dashboard = args.dashboard
+        self.use_dashboard = getattr(args, 'dashboard', False)
 
         # Runtime state
         self.last_etag: Optional[str] = None
