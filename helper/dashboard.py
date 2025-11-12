@@ -296,28 +296,40 @@ if TEXTUAL_AVAILABLE:
             layout: grid;
             grid-size: 2;
             grid-rows: auto 1fr auto;
+            grid-gutter: 0;
         }
 
         #status_container {
             column-span: 2;
             layout: horizontal;
+            height: auto;
+            padding: 0;
+            margin: 0;
         }
 
         #connection_panel {
             width: 50%;
             border: solid $primary;
             content-align: left top;
+            height: auto;
+            padding: 0 1;
+            margin: 0;
         }
 
         #stats_panel {
             width: 50%;
             border: solid $accent;
             content-align: left top;
+            height: auto;
+            padding: 0 1;
+            margin: 0;
         }
 
         #activity_log {
             column-span: 2;
             border: solid $success;
+            margin: 0;
+            padding: 1;
         }
 
         #command_input {
@@ -337,10 +349,6 @@ if TEXTUAL_AVAILABLE:
         #command_input > * {
             background: #000000;
             color: #00ff00;
-        }
-
-        Static {
-            padding: 1;
         }
         """
 
@@ -383,7 +391,7 @@ if TEXTUAL_AVAILABLE:
             input_widget.focus()
 
         def _build_connection_text(self) -> str:
-            """Build connection panel (left column) - always 10 lines"""
+            """Build connection panel (left column) - compact 7 line layout"""
             sc = getattr(self.watch_config, "server_client", None)
             is_connected = bool(sc and sc.is_authenticated)
             status_icon = "✓" if is_connected else "✗"
@@ -392,24 +400,17 @@ if TEXTUAL_AVAILABLE:
             etag = sc.last_etag if sc and sc.last_etag else "(none)"
             rev = sc.last_rev if sc and sc.last_rev else "(none)"
 
-            # Exactly 11 lines of content (to match right panel)
+            # Minimal working version - 4 lines, no trailing newline
             return (
-                f"[bold]Node-RED Watch Mode[/bold]\n"           # 1
-                f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"  # 2
-                f"\n"                                            # 3 blank
-                f"[cyan]Server:[/cyan] {self.watch_config.server_url}\n"  # 4
+                f"[bold]Node-RED Watch Mode[/bold] - {datetime.now().strftime('%H:%M:%S')}\n"
+                f"[cyan]Server:[/cyan] {self.watch_config.server_url}\n"
                 f"[cyan]Status:[/cyan] [{status_color}]{status_icon} "
-                f"{'Connected' if is_connected else 'Disconnected'}[/{status_color}]\n"  # 5
-                f"[cyan]User:[/cyan] {self.watch_config.username}\n"  # 6
-                f"\n"                                            # 7 blank
-                f"[bold]Synchronization:[/bold]\n"              # 8
-                f"  ETag: {etag}\n"                            # 9
-                f"  Rev: {rev}\n"                              # 10
-                f"\n"                                            # 11 blank (trailing)
+                f"{'Connected' if is_connected else 'Disconnected'}[/{status_color}]\n"
+                f"[cyan]User:[/cyan] {self.watch_config.username}"
             )
 
         def _build_stats_text(self) -> str:
-            """Build statistics panel (right column) - always 11 lines to match left"""
+            """Build statistics panel (right column) - compact 7 line layout"""
             sc = getattr(self.watch_config, "server_client", None)
 
             # Statistics + timestamps from ServerClient
@@ -427,28 +428,12 @@ if TEXTUAL_AVAILABLE:
                 ago = int((datetime.now() - sc.last_upload_time).total_seconds())
                 upload_ago = f" ({ago}s ago)"
 
-            # Get rate limiting stats
-            rate_1m = rate_10m = limit_1m = limit_10m = 0
-            if sc and sc.rate_limiter:
-                rl_stats = sc.rate_limiter.get_stats()
-                rate_1m = rl_stats['requests_last_minute']
-                limit_1m = rl_stats['limit_per_minute']
-                rate_10m = rl_stats['requests_last_10min']
-                limit_10m = rl_stats['limit_per_10min']
-
-            # Exactly 11 lines of content (extra blank between sections)
+            # Simple stats display
             return (
-                f"\n"                                           # 1 blank (aligns with title)
-                f"[bold]Statistics:[/bold]\n"                   # 2
-                f"  Downloads: {downloads}{download_ago}\n"    # 3
-                f"  Uploads: {uploads}{upload_ago}\n"          # 4
-                f"  Errors: [red]{errors}[/red]\n"            # 5
-                f"\n"                                          # 6 blank
-                f"[bold]Rate Limiting:[/bold]\n"               # 7
-                f"  1-min: {rate_1m}/{limit_1m}\n"            # 8
-                f"  10-min: {rate_10m}/{limit_10m}\n"         # 9
-                f"\n"                                          # 10 blank
-                f"\n"                                          # 11 blank (matches left trailing)
+                f"[bold]Statistics:[/bold]\n"
+                f"  Downloads: {downloads}{download_ago}\n"
+                f"  Uploads: {uploads}{upload_ago}\n"
+                f"  Errors: [red]{errors}[/red]"
             )
 
         def update_stats(self) -> None:

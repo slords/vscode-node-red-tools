@@ -36,7 +36,7 @@ from .logging import (
 )
 from .plugin_loader import load_plugins
 from .rebuild import rebuild_flows
-from .watcher_stages import download_from_nodered, rebuild_and_deploy
+from .watcher_stages import sync_from_server, rebuild_and_deploy
 from .constants import (
     MAX_NETWORK_RETRIES,
     RETRY_BASE_DELAY,
@@ -86,7 +86,7 @@ def poll_nodered(watch_config: WatchConfig) -> None:
             log_info("Polling thread exiting gracefully...")
             break
 
-        success = download_from_nodered(watch_config)
+        success = sync_from_server(watch_config)
         if success:
             consecutive_failures = 0
         else:
@@ -251,7 +251,7 @@ def handle_command(watch_config: WatchConfig, command: str) -> None:
 
     if command in {"d", "download"}:
         log_info("Manual download triggered...")
-        download_from_nodered(watch_config, force=True)
+        sync_from_server(watch_config, force=True)
         return
 
     if command in {"u", "upload"}:
@@ -271,7 +271,7 @@ def handle_command(watch_config: WatchConfig, command: str) -> None:
                     log_error(f"Upload failed: {e}")
                     return
             log_info("Verifying upload...")
-            download_from_nodered(watch_config, force=True, count_stats=False)
+            sync_from_server(watch_config, force=True, count_stats=False)
         else:
             log_error("Rebuild failed, cannot upload")
         return

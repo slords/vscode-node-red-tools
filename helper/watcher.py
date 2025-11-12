@@ -14,11 +14,11 @@ except ImportError:  # pragma: no cover
     WATCH_AVAILABLE = False
 
 from .watcher_core import watch_mode
-from .watcher_stages import download_from_nodered, rebuild_and_deploy
+from .watcher_stages import sync_from_server, rebuild_and_deploy
 
 __all__ = [
     "WATCH_AVAILABLE",
     "watch_mode",
-    "download_from_nodered",
+    "sync_from_server",
     "rebuild_and_deploy",
 ]
