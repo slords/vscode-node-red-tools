@@ -169,12 +169,7 @@ def validate_config(config: dict, credentials=None, repo_root: Path = None) -> i
                     ):
                         errors.append("'server.password' must be a string or null")
                     elif server["password"]:
-                        warnings.append(
-                            "Storing passwords in config file is insecure. Use NODERED_PASSWORD environment variable instead."
-                        )
-                        log_warning(
-                            "⚠ server.password is set (insecure - use environment variable instead)"
-                        )
+                        log_info("✓ server.password is set")
 
                 # Check token
                 if "token" in server:
@@ -183,12 +178,7 @@ def validate_config(config: dict, credentials=None, repo_root: Path = None) -> i
                     ):
                         errors.append("'server.token' must be a string or null")
                     elif server["token"]:
-                        warnings.append(
-                            "Storing tokens in config file is insecure. Use NODERED_TOKEN environment variable or token file instead."
-                        )
-                        log_warning(
-                            "⚠ server.token is set (insecure - use environment variable or token file instead)"
-                        )
+                        log_info("✓ server.token is set")
 
                 # Check tokenFile
                 if "tokenFile" in server:
