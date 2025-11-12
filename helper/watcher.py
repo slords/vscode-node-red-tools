@@ -32,8 +32,6 @@ from .watcher_stages import (
 
 # Re-export core watch mode functions
 from .watcher_core import (
-    load_plugins_for_watch,
-    perform_initial_setup,
     watch_mode,
 )
 
@@ -51,8 +49,6 @@ __all__ = [
     "download_from_nodered",
     "rebuild_and_deploy",
     # Core watch mode
-    "load_plugins_for_watch",
-    "perform_initial_setup",
     "watch_mode",
     # Constants
     "HTTP_TIMEOUT",

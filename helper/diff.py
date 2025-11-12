@@ -29,16 +29,11 @@ from .utils import validate_path_for_subprocess
 from .constants import HTTP_TIMEOUT, SUBPROCESS_TIMEOUT
 
 
-def download_server_flows(
-    server_url: str, username: str, password: str, verify_ssl: bool
-) -> dict:
-    """Download flows from Node-RED server
+def download_server_flows(credentials) -> dict:
+    """Download flows from Node-RED server using credentials
 
     Args:
-        server_url: Node-RED server URL
-        username: Server username
-        password: Server password
-        verify_ssl: Whether to verify SSL certificates
+        credentials: ServerCredentials object with auth info
 
     Returns:
         Flow data as dictionary
@@ -50,16 +45,26 @@ def download_server_flows(
         raise ImportError("requests module required for server downloads")
 
     try:
+        from .auth import ServerCredentials
+
         session = requests.Session()
-        session.auth = HTTPBasicAuth(username, password)
-        session.verify = verify_ssl
+        session.verify = credentials.verify_ssl
 
-        if not verify_ssl:
+        # Configure authentication based on type
+        if credentials.auth_type == "bearer":
+            session.headers.update({"Authorization": f"Bearer {credentials.token}"})
+        elif credentials.auth_type == "basic":
+            session.auth = HTTPBasicAuth(credentials.username, credentials.password)
+        elif credentials.auth_type == "none":
+            pass  # No authentication needed
+        else:
+            raise ValueError(f"Unknown auth type: {credentials.auth_type}")
+
+        if not credentials.verify_ssl:
             import urllib3
-
             urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-        response = session.get(f"{server_url.rstrip('/')}/flows", timeout=HTTP_TIMEOUT)
+        response = session.get(f"{credentials.url.rstrip('/')}/flows", timeout=HTTP_TIMEOUT)
         response.raise_for_status()
         return response.json()
 
@@ -72,13 +77,10 @@ def prepare_source_for_diff(
     source_type: str,
     flows_path: Path,
     src_path: Path,
-    server_url: Optional[str],
-    username: Optional[str],
-    password: Optional[str],
-    verify_ssl: bool,
-    temp_dir: Path,
-    plugins_dict: dict,
-    repo_root: Path,
+    credentials=None,
+    temp_dir: Path = None,
+    plugins_dict: dict = None,
+    repo_root: Path = None,
 ) -> Path:
     """Prepare a source for comparison by creating an exploded directory
 
@@ -130,13 +132,28 @@ def prepare_source_for_diff(
 
     elif source_type == "server":
         # Download from server, write to temp file, explode
-        if not server_url or not username or not password:
-            raise ValueError(
-                "Server comparison requires --server, --username, and --password"
-            )
+        if credentials is None:
+            raise ValueError("Server comparison requires credentials object")
+        if credentials.auth_type == "basic":
+            if (
+                not credentials.url
+                or not credentials.username
+                or not credentials.password
+            ):
+                raise ValueError(
+                    "Server comparison requires server URL, username, and password in credentials"
+                )
+        elif credentials.auth_type == "bearer":
+            if not credentials.url or not credentials.token:
+                raise ValueError(
+                    "Server comparison requires server URL and token in credentials"
+                )
+        elif credentials.auth_type == "none":
+            if not credentials.url:
+                raise ValueError("Server comparison requires server URL in credentials")
 
-        log_info(f"Downloading flows from {server_url}")
-        flow_data = download_server_flows(server_url, username, password, verify_ssl)
+        log_info(f"Downloading flows from {credentials.url}")
+        flow_data = download_server_flows(credentials)
 
         # Write to temp flows file - compact format
         temp_flows = temp_dir / "server_flows.json"
@@ -351,11 +368,8 @@ def diff_flows(
     target: str,
     flows_path: Path,
     src_path: Path,
-    server_url: Optional[str],
-    username: Optional[str],
-    password: Optional[str],
-    verify_ssl: bool,
-    use_bcompare: bool,
+    credentials=None,
+    use_bcompare: bool = False,
     plugins_dict: dict = None,
     repo_root: Path = None,
     context: int = 3,
@@ -402,10 +416,7 @@ def diff_flows(
                 source,
                 flows_path,
                 src_path,
-                server_url,
-                username,
-                password,
-                verify_ssl,
+                credentials if source == "server" else None,
                 temp_path,
                 plugins_dict,
                 repo_root,
@@ -416,10 +427,7 @@ def diff_flows(
                 target,
                 flows_path,
                 src_path,
-                server_url,
-                username,
-                password,
-                verify_ssl,
+                credentials if target == "server" else None,
                 temp_path,
                 plugins_dict,
                 repo_root,

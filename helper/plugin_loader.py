@@ -259,12 +259,12 @@ def load_plugins(
     # Start with all loaded plugins
     plugin_names = {p["name"] for p in loaded_plugins}
     active_plugins = plugin_names.copy()
-    plugin_config = config.get("plugins", {})
+    plugins_section = config.get("plugins", {})
 
     # If no CLI overrides, use config
     if enabled_override is None and disabled_override is None:
-        config_enabled = plugin_config.get("enabled", [])
-        config_disabled = plugin_config.get("disabled", [])
+        config_enabled = plugins_section.get("enabled", [])
+        config_disabled = plugins_section.get("disabled", [])
 
         # Apply config filters
         if config_enabled:
@@ -296,7 +296,7 @@ def load_plugins(
     filtered_plugins = [p for p in loaded_plugins if p["name"] in active_plugins]
 
     # Apply ordering
-    config_order = plugin_config.get("order", [])
+    config_order = plugins_section.get("order", [])
     if config_order:
         # Config order takes precedence
         ordered_plugins = []

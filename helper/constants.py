@@ -78,6 +78,7 @@ PARALLEL_THRESHOLD = 20  # Minimum nodes required to enable parallel processing
 # =============================================================================
 
 DEFAULT_POLL_INTERVAL = 1  # Poll interval for watch mode (seconds)
+DEFAULT_DEBOUNCE = 2  # Seconds to wait after last change for local files
 MAX_REBUILD_FAILURES = 5  # Max consecutive rebuild failures before stopping
 
 # Convergence detection (prevents infinite upload/download cycles)

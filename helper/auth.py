@@ -15,7 +15,7 @@ from .logging import log_info, log_warning, log_error
 
 @dataclass
 class ServerCredentials:
-    """Resolved server credentials"""
+    """Resolved server credentials, with provenance for troubleshooting"""
 
     url: str
     auth_type: str  # 'none', 'basic', 'bearer'
@@ -23,6 +23,11 @@ class ServerCredentials:
     password: Optional[str] = None
     token: Optional[str] = None
     verify_ssl: bool = True
+    sources: dict = None  # e.g. {'url': 'CLI parameter', 'token': 'env', ...}
+
+    def __post_init__(self):
+        if self.sources is None:
+            self.sources = {}
 
 
 def read_token_file(token_file_path: Path) -> Optional[str]:
@@ -125,14 +130,7 @@ def resolve_password(
 
 
 def resolve_credentials(
-    # CLI parameters
-    server_param: Optional[str],
-    username_param: Optional[str],
-    password_param: Optional[str],
-    token_param: Optional[str],
-    token_file_param: Optional[str],
-    verify_ssl_param: bool,
-    # Config
+    args,
     config: dict,
 ) -> Optional[ServerCredentials]:
     """Resolve server credentials from all sources
@@ -149,30 +147,41 @@ def resolve_credentials(
     9. No authentication (local mode)
 
     Args:
-        server_param: Server URL from CLI
-        username_param: Username from CLI
-        password_param: Password from CLI
-        token_param: Token from CLI
-        token_file_param: Token file path from CLI
-        verify_ssl_param: Whether to verify SSL
+        args: Namespace of parsed CLI arguments (should have .server, .username, .password, .token, .token_file, .no_verify_ssl)
         config: Configuration dictionary
 
     Returns:
         ServerCredentials or None if resolution fails
     """
+    # Extract server config group
+    server_config = config.get("server", {})
+
     # Get server URL (parameter > config > default)
-    server_url = server_param
-    if not server_url:
-        server_config = config.get("server", {})
-        server_url = server_config.get("url", "http://127.0.0.1:1880")
+    server_param = getattr(args, "server", None)
+    if server_param:
+        server_url = server_param
+        url_source = "CLI parameter"
+    elif "url" in server_config:
+        server_url = server_config["url"]
+        url_source = "config file"
+    else:
+        server_url = "http://127.0.0.1:1880"
+        url_source = "default"
 
     log_info(f"Server URL: {server_url}")
 
     # Get SSL verification setting (parameter overrides config)
-    server_config = config.get("server", {})
-    verify_ssl = verify_ssl_param
-    if not verify_ssl and "verifySSL" in server_config:
+    no_verify_ssl = getattr(args, "no_verify_ssl", None)
+    if no_verify_ssl is not None:
+        # If --no-verify-ssl is present and True, set verify_ssl to False
+        verify_ssl = not no_verify_ssl
+        verify_ssl_source = "CLI parameter"
+    elif "verifySSL" in server_config:
         verify_ssl = server_config.get("verifySSL", True)
+        verify_ssl_source = "config file"
+    else:
+        verify_ssl = True
+        verify_ssl_source = "default"
 
     # =========================================================================
     # Token Resolution Chain
@@ -182,26 +191,25 @@ def resolve_credentials(
     token_source = None
 
     # 1. --token-file parameter
+    token_file_param = getattr(args, "token_file", None)
     if token_file_param:
         token_path = Path(token_file_param)
         token = read_token_file(token_path)
         if token:
-            token_source = "parameter (--token-file)"
-            log_warning(
-                "⚠️  WARNING: Passing token file via CLI parameter is insecure. "
-                "Use config file or standard token file locations instead."
-            )
+            token_source = "CLI parameter (--token-file)"
 
     # 2. --token parameter
+    token_param = getattr(args, "token", None)
     if not token and token_param:
         token = token_param
-        token_source = "parameter (--token)"
+        token_source = "CLI parameter (--token)"
         log_warning(
             "⚠️  WARNING: Passing token via CLI parameter is insecure. "
             "Use NODERED_TOKEN environment variable or token file instead."
         )
 
     # 3. Check if we have username from parameter (skip to username/password auth)
+    username_param = getattr(args, "username", None)
     has_param_username = username_param is not None
 
     # 4. config.server.tokenFile
@@ -211,15 +219,14 @@ def resolve_credentials(
             token_path = Path(token_file_config)
             token = read_token_file(token_path)
             if token:
-                token_source = "config (tokenFile)"
+                token_source = "config file (tokenFile)"
 
     # 5. config.server.token
     if not token and not has_param_username:
         token_config = server_config.get("token")
         if token_config:
             token = token_config
-            token_source = "config (token)"
-            log_info("Using token from config file")
+            token_source = "config file (token)"
 
     # 6. Check if we have username from config (skip to username/password auth)
     has_config_username = server_config.get("username") is not None
@@ -228,7 +235,7 @@ def resolve_credentials(
     if not token and not has_param_username and not has_config_username:
         token = find_token_file()
         if token:
-            token_source = "token file"
+            token_source = "standard token file location"
 
     # 8. NODERED_TOKEN environment variable
     if not token and not has_param_username and not has_config_username:
@@ -236,7 +243,6 @@ def resolve_credentials(
         if env_token:
             token = env_token
             token_source = "NODERED_TOKEN environment variable"
-            log_info("Using token from NODERED_TOKEN environment variable")
 
     # If we found a token, use bearer authentication
     if token:
@@ -246,6 +252,12 @@ def resolve_credentials(
             auth_type="bearer",
             token=token,
             verify_ssl=verify_ssl,
+            sources={
+                "url": url_source,
+                "auth_type": "bearer",
+                "token": token_source,
+                "verify_ssl": verify_ssl_source,
+            },
         )
 
     # =========================================================================
@@ -253,13 +265,32 @@ def resolve_credentials(
     # =========================================================================
 
     # Get username (parameter > config)
-    username = username_param or server_config.get("username")
+    username = None
+    username_source = None
+    password = None
+    password_source = None
+    if username_param:
+        username = username_param
+        username_source = "CLI parameter"
+    elif server_config.get("username") is not None:
+        username = server_config.get("username")
+        username_source = "config file"
 
     if username:
         log_info(f"Using basic authentication for user: {username}")
 
         # Resolve password
         password_config = server_config.get("password")
+        password_param = getattr(args, "password", None)
+        # Track password source
+        if password_param:
+            password_source = "CLI parameter"
+        elif password_config:
+            password_source = "config file"
+        elif os.environ.get("NODERED_PASSWORD"):
+            password_source = "NODERED_PASSWORD environment variable"
+        else:
+            password_source = "prompt"
         password = resolve_password(
             password_param,
             password_config,
@@ -277,6 +308,13 @@ def resolve_credentials(
             username=username,
             password=password,
             verify_ssl=verify_ssl,
+            sources={
+                "url": url_source,
+                "auth_type": "basic",
+                "username": username_source,
+                "password": password_source,
+                "verify_ssl": verify_ssl_source,
+            },
         )
 
     # =========================================================================
@@ -288,4 +326,9 @@ def resolve_credentials(
         url=server_url,
         auth_type="none",
         verify_ssl=verify_ssl,
+        sources={
+            "url": url_source,
+            "auth_type": "none",
+            "verify_ssl": verify_ssl_source,
+        },
     )

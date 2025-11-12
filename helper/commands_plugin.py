@@ -8,7 +8,6 @@ import importlib.util
 from pathlib import Path
 
 from .logging import log_info, log_success, log_warning, log_error
-from .config import load_config
 from .plugin_loader import extract_numeric_prefix, DEFAULT_PLUGIN_PRIORITY
 
 
@@ -283,28 +282,26 @@ class {class_name}(Plugin):
 def list_plugins_command(
     repo_root: Path,
     plugins_dict: dict = None,
-    plugin_config: dict = None,
+    config: dict = None,
 ) -> int:
     """List all available plugins with their status and priority
 
     Args:
         repo_root: Repository root path
         plugins_dict: Pre-loaded plugins dictionary (shows actual loaded state)
-        plugin_config: Pre-loaded plugin configuration
+        config: Pre-loaded configuration dictionary
     """
+
+    if config is None:
+        log_error("list_plugins_command requires pre-loaded config. None was provided.")
+        return 1
     try:
         log_info("Available plugins:")
+        plugins_section = config.get("plugins", {})
 
-        # Load config if not provided
-        if plugin_config is None:
-            config = load_config(repo_root, config_path=None)
-            plugin_config = config.get("plugins", {})
-        else:
-            plugin_config = plugin_config.get("plugins", {})
-
-        enabled_list = plugin_config.get("enabled", [])
-        disabled_list = plugin_config.get("disabled", [])
-        config_order = plugin_config.get("order", [])
+        enabled_list = plugins_section.get("enabled", [])
+        disabled_list = plugins_section.get("disabled", [])
+        config_order = plugins_section.get("order", [])
 
         # Get actually loaded plugin names (from CLI overrides)
         loaded_plugin_names = set()

@@ -574,8 +574,6 @@ Validating configuration...
 ✓ plugins.enabled is valid (5 plugins)
 ✓ watch.pollInterval is valid (1s)
 ✓ watch.debounce is valid (2s)
-✓ watch.convergenceLimit is valid (5 cycles)
-✓ watch.convergenceWindow is valid (60s)
 
 ✓ Configuration is valid
 ```

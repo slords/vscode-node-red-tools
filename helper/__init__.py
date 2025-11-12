@@ -28,6 +28,7 @@ from .constants import (
     PARALLEL_THRESHOLD,
     # Watch mode
     DEFAULT_POLL_INTERVAL,
+    DEFAULT_DEBOUNCE,
     MAX_REBUILD_FAILURES,
     DEFAULT_CONVERGENCE_LIMIT,
     DEFAULT_CONVERGENCE_WINDOW,
@@ -74,7 +75,6 @@ from .utils import (
 
 # Re-export config functions
 from .config import (
-    load_config,
     validate_config,
 )
 
@@ -126,7 +126,6 @@ from .file_ops import (
 from .plugin_loader import (
     Plugin,
     extract_numeric_prefix,
-    load_plugins,
     DEFAULT_PLUGIN_PRIORITY,
 )
 
@@ -144,12 +143,10 @@ from .explode import (
 # Re-export watcher operations
 from .watcher import (
     WATCH_AVAILABLE,
-    load_plugins_for_watch,
     authenticate,
     download_from_nodered,
     deploy_to_nodered,
     rebuild_and_deploy,
-    perform_initial_setup,
     watch_mode,
 )
 
@@ -164,6 +161,11 @@ from .commands import (
 from .commands_plugin import (
     new_plugin_command,
     list_plugins_command,
+)
+
+# Re-export initialization
+from .initialize import (
+    initialize_system,
 )
 
 __all__ = [
@@ -218,7 +220,6 @@ __all__ = [
     "clear_watch_state_after_failure",
     "RateLimiter",
     # Config
-    "load_config",
     "validate_config",
     # Dashboard
     "WatchConfig",
@@ -246,7 +247,6 @@ __all__ = [
     # Plugin Loader
     "Plugin",
     "extract_numeric_prefix",
-    "load_plugins",
     "DEFAULT_PLUGIN_PRIORITY",
     # Rebuild
     "rebuild_single_node",
@@ -255,12 +255,10 @@ __all__ = [
     "explode_flows",
     # Watcher
     "WATCH_AVAILABLE",
-    "load_plugins_for_watch",
     "authenticate",
     "download_from_nodered",
     "deploy_to_nodered",
     "rebuild_and_deploy",
-    "perform_initial_setup",
     "watch_mode",
     # Commands (general)
     "stats_command",
@@ -269,4 +267,6 @@ __all__ = [
     # Commands (plugin)
     "new_plugin_command",
     "list_plugins_command",
+    # Initialization
+    "initialize_system",
 ]

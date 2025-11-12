@@ -11,170 +11,48 @@ from pathlib import Path
 from .logging import log_info, log_success, log_warning, log_error
 
 
-def load_config(repo_root: Path, config_path: Path = None) -> dict:
-    """Load configuration from .vscode-node-red-tools.json
 
-    Searches for config file in the following order (unless config_path is specified):
-    1. Specified config_path (if provided via --config flag)
-    2. Current working directory (project-specific config)
-    3. User's home directory (~/.vscode-node-red-tools.json)
-    4. Tool installation directory (default config)
+
+def validate_config(config: dict, credentials=None, repo_root: Path = None) -> int:
+    """Validate configuration structure and values
 
     Args:
-        repo_root: Repository root directory (not used, kept for API compatibility)
-        config_path: Optional explicit path to config file (overrides search)
-
-    Returns:
-        Configuration dictionary with default values for missing keys
-
-    Notes:
-        - First found config file is used
-        - Returns default configuration if no config file found or has errors
-    """
-    config_filename = ".vscode-node-red-tools.json"
-
-    # If explicit config path provided, use it exclusively
-    if config_path is not None:
-        config_file = Path(config_path)
-        if config_file.exists():
-            try:
-                with open(config_file, "r") as f:
-                    config = json.load(f)
-                log_info(f"Using config from: {config_file}")
-                return config
-            except Exception as e:
-                log_warning(f"Failed to load config from {config_file}: {e}")
-                # Fall through to defaults
-        else:
-            log_warning(f"Config file not found: {config_file}")
-            # Fall through to defaults
-
-    # Search locations in priority order
-    search_paths = [
-        Path.cwd() / config_filename,  # 1. Current working directory
-        Path.home() / config_filename,  # 2. User home directory
-        Path(__file__).parent.parent / config_filename,  # 3. Tool directory
-    ]
-
-    # Try each location
-    for config_file in search_paths:
-        if config_file.exists():
-            try:
-                with open(config_file, "r") as f:
-                    config = json.load(f)
-                log_info(f"Using config from: {config_file}")
-                return config
-            except Exception as e:
-                log_warning(f"Failed to load config from {config_file}: {e}")
-                # Continue to next location
-
-    # No config file found or all failed to load - return defaults
-    log_info("No config file found, using defaults")
-    return {
-        "flows": "flows/flows.json",
-        "src": "src",
-        "plugins": {
-            "enabled": [],  # Empty = all enabled
-            "disabled": [],
-            "order": [],  # Empty = use priority/filename
-        },
-        "watch": {"pollInterval": 1, "debounce": 2.0},
-        "server": {
-            "url": "http://127.0.0.1:1880",
-            "username": None,
-            "password": None,
-            "token": None,
-            "tokenFile": None,
-            "verifySSL": True,
-        },
-    }
-
-
-def validate_config(config_path: Path = None, repo_root: Path = None) -> int:
-    """Validate configuration file
-
-    Args:
-        config_path: Path to specific config file (optional, will search standard locations)
-        repo_root: Repository root (optional, will use cwd)
+        config: Configuration dictionary to validate
+        credentials: Optional credentials object (for testing auth resolution)
+        repo_root: Repository root path (defaults to current directory)
 
     Returns:
         Exit code (0 = valid, 1 = invalid)
     """
-    try:
-        # Determine paths
-        if repo_root is None:
-            repo_root = Path.cwd()
-
-        log_info("Validating configuration...")
-        errors = []
-        warnings = []
-
-        if config_path is None:
-            # Search for config file in standard locations
-            config_filename = ".vscode-node-red-tools.json"
-            search_paths = [
-                Path.cwd() / config_filename,
-                Path.home() / config_filename,
-                Path(__file__).parent.parent / config_filename,
-            ]
-
-            # Find first existing config
-            config_path = None
-            for path in search_paths:
-                if path.exists():
-                    config_path = path
-                    break
-
-            if config_path is None:
-                log_info("✓ No config file found in standard locations")
-                log_info("  Locations checked:")
-                for path in search_paths:
-                    log_info(f"    - {path}")
-                log_info("  Using default configuration")
-                config = load_config(repo_root, config_path=None)
+    # Helper: recursively display config values and their sources
+    def display_config_with_sources(config, defaults, prefix=""):
+        for key in sorted(defaults.keys()):
+            val = config.get(key, None)
+            default_val = defaults[key]
+            if isinstance(default_val, dict):
+                log_info(f"{prefix}{key}:")
+                display_config_with_sources(val or {}, default_val, prefix + "  ")
             else:
-                log_info(f"✓ Config file found: {config_path}")
-                # Check JSON validity
-                try:
-                    with open(config_path, "r") as f:
-                        config = json.load(f)
-                    log_info("✓ Valid JSON format")
-                except json.JSONDecodeError as e:
-                    errors.append(f"Invalid JSON: {e}")
-                    log_error(f"✗ Invalid JSON format: {e}")
-                    return 1
-                except Exception as e:
-                    errors.append(f"Failed to read config: {e}")
-                    log_error(f"✗ Failed to read config: {e}")
-                    return 1
-        else:
-            # Specific config path provided
-            if not config_path.exists():
-                log_error(f"✗ Config file not found: {config_path}")
-                return 1
+                if key in config:
+                    source = "config file"
+                else:
+                    source = "default"
+                log_info(f"{prefix}{key}: {val!r}  [source: {source}]")
 
-            log_info(f"✓ Config file found: {config_path}")
+    # Determine paths
+    if repo_root is None:
+        repo_root = Path.cwd()
 
-            # Check JSON validity
-            try:
-                with open(config_path, "r") as f:
-                    config = json.load(f)
-                log_info("✓ Valid JSON format")
-            except json.JSONDecodeError as e:
-                errors.append(f"Invalid JSON: {e}")
-                log_error(f"✗ Invalid JSON format: {e}")
-                return 1
-            except Exception as e:
-                errors.append(f"Failed to read config: {e}")
-                log_error(f"✗ Failed to read config: {e}")
-                return 1
+    log_info("Validating configuration...")
+    errors = []
+    warnings = []
 
-        # Validate structure
-        if not isinstance(config, dict):
-            errors.append("Config must be a JSON object")
-            log_error("✗ Config must be a JSON object")
-        else:
-            log_info("✓ Valid config structure")
+    # Validate structure
+    if not isinstance(config, dict):
+        errors.append("Config must be a JSON object")
+        log_error("✗ Config must be a JSON object")
+    else:
+        log_info("✓ Valid config structure")
 
         # Validate flows path
         if "flows" in config:
@@ -240,75 +118,26 @@ def validate_config(config_path: Path = None, repo_root: Path = None) -> int:
                     else:
                         errors.append("'plugins.order' must contain only strings")
 
-        # Validate watch section
+        # Validate watch section (if present, warn user these are no longer used)
         if "watch" in config:
             if not isinstance(config["watch"], dict):
                 errors.append("'watch' must be an object")
             else:
                 watch = config["watch"]
 
-                # Check pollInterval
-                if "pollInterval" in watch:
-                    if not isinstance(watch["pollInterval"], (int, float)):
-                        errors.append("'watch.pollInterval' must be a number")
-                    elif watch["pollInterval"] <= 0:
-                        errors.append("'watch.pollInterval' must be positive")
-                    else:
-                        log_info(
-                            f"✓ watch.pollInterval is valid ({watch['pollInterval']}s)"
-                        )
+                # Warn about deprecated settings
+                deprecated_watch_settings = ["pollInterval", "debounce", "convergenceLimit", "convergenceWindow"]
+                found_deprecated = [key for key in deprecated_watch_settings if key in watch]
 
-                # Check debounce
-                if "debounce" in watch:
-                    if not isinstance(watch["debounce"], (int, float)):
-                        errors.append("'watch.debounce' must be a number")
-                    elif watch["debounce"] < 0:
-                        errors.append("'watch.debounce' must be non-negative")
-                    else:
-                        log_info(f"✓ watch.debounce is valid ({watch['debounce']}s)")
-
-                # Check convergenceLimit
-                if "convergenceLimit" in watch:
-                    if not isinstance(watch["convergenceLimit"], int):
-                        errors.append("'watch.convergenceLimit' must be an integer")
-                    elif watch["convergenceLimit"] <= 0:
-                        errors.append("'watch.convergenceLimit' must be positive")
-                    else:
-                        log_info(
-                            f"✓ watch.convergenceLimit is valid ({watch['convergenceLimit']} cycles)"
-                        )
-                else:
-                    # Import default and show it
-                    from .constants import DEFAULT_CONVERGENCE_LIMIT
-
-                    log_info(
-                        f"✓ watch.convergenceLimit using default ({DEFAULT_CONVERGENCE_LIMIT} cycles)"
+                if found_deprecated:
+                    warnings.append(
+                        f"watch.{', watch.'.join(found_deprecated)} are no longer configurable - "
+                        "these are runtime constants. Modify helper/constants.py to change these values."
                     )
-
-                # Check convergenceWindow
-                if "convergenceWindow" in watch:
-                    if not isinstance(watch["convergenceWindow"], (int, float)):
-                        errors.append("'watch.convergenceWindow' must be a number")
-                    elif watch["convergenceWindow"] <= 0:
-                        errors.append("'watch.convergenceWindow' must be positive")
-                    else:
-                        log_info(
-                            f"✓ watch.convergenceWindow is valid ({watch['convergenceWindow']}s)"
-                        )
-                else:
-                    # Import default and show it
-                    from .constants import DEFAULT_CONVERGENCE_WINDOW
-
-                    log_info(
-                        f"✓ watch.convergenceWindow using default ({DEFAULT_CONVERGENCE_WINDOW}s)"
+                    log_warning(
+                        f"⚠ watch.{', watch.'.join(found_deprecated)} settings ignored "
+                        "(now constants - see helper/constants.py)"
                     )
-        else:
-            # No watch section - show defaults
-            from .constants import DEFAULT_CONVERGENCE_LIMIT, DEFAULT_CONVERGENCE_WINDOW
-
-            log_info("✓ watch section using defaults:")
-            log_info(f"  - convergenceLimit: {DEFAULT_CONVERGENCE_LIMIT} cycles")
-            log_info(f"  - convergenceWindow: {DEFAULT_CONVERGENCE_WINDOW}s")
 
         # Validate server section
         if "server" in config:
@@ -388,7 +217,7 @@ def validate_config(config_path: Path = None, repo_root: Path = None) -> int:
                         )
 
         # Check for unknown top-level keys
-        known_keys = {"flows", "src", "plugins", "watch", "backup", "server"}
+        known_keys = {"flows", "src", "plugins", "watch", "backup", "server", "_config_path"}
         unknown_keys = set(config.keys()) - known_keys
         if unknown_keys:
             warnings.append(
@@ -410,7 +239,3 @@ def validate_config(config_path: Path = None, repo_root: Path = None) -> int:
 
         return 0
 
-    except Exception as e:
-        log_error(f"Validation failed: {e}")
-        traceback.print_exc()
-        return 1

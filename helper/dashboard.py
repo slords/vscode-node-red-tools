@@ -48,7 +48,7 @@ class WatchConfig:
         self.server_url = validate_server_url(args.server)
         self.username = args.username
         self.password = args.password
-        self.poll_interval = args.poll_interval
+        self.poll_interval = DEFAULT_POLL_INTERVAL  # Runtime constant
         self.verify_ssl = not args.no_verify_ssl
 
         # Plugin control (from global args)
@@ -63,7 +63,7 @@ class WatchConfig:
                 name.strip() for name in args.disable.split(",") if name.strip()
             ]
 
-        self.debounce_seconds = args.debounce
+        self.debounce_seconds = DEFAULT_DEBOUNCE  # Runtime constant
         self.use_dashboard = args.dashboard
 
         # Runtime state
@@ -90,8 +90,11 @@ class WatchConfig:
         self.dashboard = WatchDashboard(self) if self.use_dashboard else None
 
         # Plugin cache (loaded once, reloaded on demand)
-        self.plugin_config: Optional[dict] = None
-        self.plugins_dict: Optional[dict] = None
+        self.config = None
+        self.plugins_dict = None
+
+        # Server credentials (set by watch_mode from initialize_system)
+        self.credentials = None
 
         # Command handler callback for dashboard (will be set by watch_mode)
         self.command_handler = None
@@ -200,13 +203,13 @@ class WatchDashboard:
     Provides real-time UI with status panel, activity log, and command input.
     """
 
-    def __init__(self, config: WatchConfig):
+    def __init__(self, watch_config: WatchConfig):
         """Initialize dashboard
 
         Args:
             config: Watch configuration object
         """
-        self.config = config
+        self.watch_config = watch_config
         self.app = None  # Will be set when starting
 
         # Import here to avoid circular dependency
@@ -236,8 +239,8 @@ class WatchDashboard:
 
     def log_download(self):
         """Record download event and update stats"""
-        self.config.last_download_time = datetime.now()
-        self.config.download_count += 1
+        self.watch_config.last_download_time = datetime.now()
+        self.watch_config.download_count += 1
         self.log_activity("Downloaded from server")
 
         if self.app and self.app.is_running:
@@ -248,8 +251,8 @@ class WatchDashboard:
 
     def log_upload(self):
         """Record upload event and update stats"""
-        self.config.last_upload_time = datetime.now()
-        self.config.upload_count += 1
+        self.watch_config.last_upload_time = datetime.now()
+        self.watch_config.upload_count += 1
         self.log_activity("Uploaded to server")
 
         if self.app and self.app.is_running:
@@ -328,14 +331,14 @@ if TEXTUAL_AVAILABLE:
             ("ctrl+c", "quit", "Quit"),
         ]
 
-        def __init__(self, config: WatchConfig):
+        def __init__(self, watch_config: WatchConfig):
             """Initialize dashboard app
 
             Args:
                 config: Watch configuration object
             """
             super().__init__()
-            self.config = config
+            self.watch_config = watch_config
             self.title = "Node-RED Watch Mode Dashboard"
 
         def compose(self) -> ComposeResult:
@@ -363,31 +366,31 @@ if TEXTUAL_AVAILABLE:
             Returns:
                 Formatted status text with markup
             """
-            status_icon = "✓" if self.config.session else "✗"
-            status_color = "green" if self.config.session else "red"
+            status_icon = "✓" if self.watch_config.session else "✗"
+            status_color = "green" if self.watch_config.session else "red"
 
-            etag = self.config.last_etag or "(none)"
-            rev = self.config.last_rev or "(none)"
+            etag = self.watch_config.last_etag or "(none)"
+            rev = self.watch_config.last_rev or "(none)"
 
             # Time since last sync
             download_ago = ""
-            if self.config.last_download_time:
+            if self.watch_config.last_download_time:
                 ago = int(
-                    (datetime.now() - self.config.last_download_time).total_seconds()
+                    (datetime.now() - self.watch_config.last_download_time).total_seconds()
                 )
                 download_ago = f" ({ago}s ago)"
 
             upload_ago = ""
-            if self.config.last_upload_time:
+            if self.watch_config.last_upload_time:
                 ago = int(
-                    (datetime.now() - self.config.last_upload_time).total_seconds()
+                    (datetime.now() - self.watch_config.last_upload_time).total_seconds()
                 )
                 upload_ago = f" ({ago}s ago)"
 
             return f"""[bold]Node-RED Watch Mode[/bold] - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
 
-[cyan]Server:[/cyan] {self.config.server_url}
-[cyan]Status:[/cyan] [{status_color}]{status_icon} {"Connected" if self.config.session else "Disconnected"}[/{status_color}]
+[cyan]Server:[/cyan] {self.watch_config.server_url}
+[cyan]Status:[/cyan] [{status_color}]{status_icon} {"Connected" if self.watch_config.session else "Disconnected"}[/{status_color}]
 [cyan]User:[/cyan] {self.config.username}
 
 [bold]Synchronization:[/bold]
@@ -395,8 +398,8 @@ if TEXTUAL_AVAILABLE:
   Rev: {rev}
 
 [bold]Statistics:[/bold]
-  Downloads: {self.config.download_count}{download_ago}
-  Uploads: {self.config.upload_count}{upload_ago}
+  Downloads: {self.watch_config.download_count}{download_ago}
+  Uploads: {self.watch_config.upload_count}{upload_ago}
   Errors: [red]{self.config.error_count}[/red]"""
 
         def update_stats(self) -> None:
