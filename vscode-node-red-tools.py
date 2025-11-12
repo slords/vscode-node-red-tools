@@ -106,6 +106,25 @@ def main():
         help="Comma-separated list of plugins to disable, or 'all' to disable all",
     )
 
+    # Global logging control options
+    log_group = parser.add_mutually_exclusive_group()
+    log_group.add_argument(
+        "--quiet",
+        action="store_true",
+        help="Suppress info messages (warnings and errors only)",
+    )
+    log_group.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Show debug messages",
+    )
+    log_group.add_argument(
+        "--log-level",
+        type=str,
+        choices=["DEBUG", "INFO", "WARNING", "ERROR"],
+        help="Set log level explicitly (overrides --quiet/--verbose and NODERED_TOOLS_LOG_LEVEL)",
+    )
+
     # Subcommands
     subparsers = parser.add_subparsers(dest="command", required=True)
 
@@ -299,6 +318,22 @@ def main():
         pass  # Shell completion is optional
 
     args = parser.parse_args()
+
+    # Set logging level from CLI args (before any logging occurs)
+    from helper import LogLevel, set_log_level
+    if hasattr(args, "log_level") and args.log_level:
+        level_map = {
+            "DEBUG": LogLevel.DEBUG,
+            "INFO": LogLevel.INFO,
+            "WARNING": LogLevel.WARNING,
+            "ERROR": LogLevel.ERROR,
+        }
+        set_log_level(level_map[args.log_level])
+    elif hasattr(args, "quiet") and args.quiet:
+        set_log_level(LogLevel.WARNING)
+    elif hasattr(args, "verbose") and args.verbose:
+        set_log_level(LogLevel.DEBUG)
+    # Otherwise use environment variable (already set in logging module init)
 
     try:
         # --- Main command dispatch ---
