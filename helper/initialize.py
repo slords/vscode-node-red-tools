@@ -15,10 +15,10 @@ from .server_client import ServerClient
 def initialize_system(args):
     """
     Centralized initialization and command dispatch: loads config, builds ServerClient,
-    authenticates (if needed), loads plugins, determines repo_root.
+    authenticates (if needed), loads plugins.
 
     Returns:
-        tuple: (config, plugins_dict, server_client, repo_root) or (None, None, None, None) on failure
+        tuple: (config, plugins_dict, server_client) or (None, None, None) on failure
     """
 
     def parse_plugin_list(value: str):
@@ -30,11 +30,6 @@ def initialize_system(args):
     flows_path = Path(args.flows).resolve()
     config_path = (
         Path(args.config).resolve() if hasattr(args, "config") and args.config else None
-    )
-    repo_root = (
-        Path(args.flows).parent.parent
-        if Path(args.flows).parent.name == "flows"
-        else Path.cwd()
     )
 
     # Load configuration
@@ -112,7 +107,7 @@ def initialize_system(args):
             log_error("Failed to connect to Node-RED server")
             log_error(f"Server URL: {server_client.url}")
             log_error(f"Auth type: {server_client.auth_type}")
-            return None, None, None, None
+            return None, None, None
 
     # Load plugins
     enabled_override = (
@@ -127,7 +122,6 @@ def initialize_system(args):
     )
 
     plugins_dict = load_plugins(
-        repo_root,
         config,
         enabled_override=enabled_override,
         disabled_override=disabled_override,
@@ -135,4 +129,4 @@ def initialize_system(args):
     )
 
     # Return server_client in place of legacy credentials (call sites expecting .url/.auth_type still work)
-    return config, plugins_dict, server_client, repo_root
+    return config, plugins_dict, server_client

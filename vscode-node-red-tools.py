@@ -302,11 +302,11 @@ def main():
 
     try:
         # --- Main command dispatch ---
-        # Setup (config, server_client, plugins, repo_root)
+        # Setup (config, server_client, plugins)
         init = initialize_system(args)
         if init is None:
             return 1
-        config, plugins_dict, server_client, repo_root = init
+        config, plugins_dict, server_client = init
         flows_path = Path(args.flows).resolve()
         src_path = Path(args.src).resolve()
 
@@ -319,7 +319,7 @@ def main():
             priority = args.priority if hasattr(args, "priority") else None
             return new_plugin_command(args.name, args.type, priority)
         elif args.command == "list-plugins":
-            return list_plugins_command(repo_root, plugins_dict, config)
+            return list_plugins_command(plugins_dict, config)
         elif args.command == "watch":
             return watch_mode(
                 args,
@@ -327,7 +327,6 @@ def main():
                 src_path,
                 plugins_dict=plugins_dict,
                 config=config,
-                repo_root=repo_root,
                 server_client=server_client,
             )
         elif args.command == "explode":
@@ -338,7 +337,6 @@ def main():
                 delete_orphaned=args.delete_orphaned,
                 dry_run=args.dry_run,
                 plugins_dict=plugins_dict,
-                repo_root=repo_root,
             )
         elif args.command == "rebuild":
             return rebuild_flows(
@@ -349,14 +347,12 @@ def main():
                 delete_new=args.delete_new,
                 dry_run=args.dry_run,
                 plugins_dict=plugins_dict,
-                repo_root=repo_root,
             )
         elif args.command == "verify":
             return verify_flows(
                 flows_path,
                 plugins_dict=plugins_dict,
                 config=config,
-                repo_root=repo_root,
             )
         elif args.command == "diff":
             return diff_flows(
@@ -367,7 +363,6 @@ def main():
                 server_client,
                 args.bcomp,
                 plugins_dict=plugins_dict,
-                repo_root=repo_root,
                 context=args.context,
             )
         elif args.command == "stats":
@@ -376,7 +371,6 @@ def main():
                 src_path,
                 plugins_dict=plugins_dict,
                 config=config,
-                repo_root=repo_root,
             )
         elif args.command == "benchmark":
             return benchmark_command(
@@ -384,7 +378,6 @@ def main():
                 src_path,
                 plugins_dict=plugins_dict,
                 config=config,
-                repo_root=repo_root,
                 iterations=args.iterations,
             )
         else:

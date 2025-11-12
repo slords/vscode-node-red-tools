@@ -27,10 +27,10 @@ class PrettierPostRebuildPlugin:
     def get_plugin_type(self) -> str:
         return "post-rebuild"
 
-    def process_flows_post_rebuild(self, flows_path: Path, repo_root: Path) -> bool:
+    def process_flows_post_rebuild(self, flows_path: Path) -> bool:
         """Format flows.json after rebuild"""
         # Format flows.json
-        result = run_prettier(flows_path, repo_root)
+        result = run_prettier(flows_path)
 
         if result:
             print(f"   Formatted {flows_path.name}")

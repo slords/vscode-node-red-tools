@@ -22,7 +22,6 @@ def stats_command(
     src_path: Path,
     plugins_dict: dict,
     config: dict,
-    repo_root: Path = None,
 ) -> int:
     """Display comprehensive flow and source statistics
 
@@ -31,7 +30,6 @@ def stats_command(
         src_path: Path to source directory
         plugins_dict: Pre-loaded plugins dictionary
         config: Pre-loaded configuration dictionary
-        repo_root: Repository root path (optional)
     """
     if plugins_dict is None or config is None:
         log_error("stats_command requires pre-loaded plugins_dict and config. None was provided.")
@@ -167,7 +165,6 @@ def benchmark_command(
     src_path: Path,
     plugins_dict: dict = None,
     config: dict = None,
-    repo_root: Path = None,
     iterations: int = 3,
 ) -> int:
     """Benchmark explode and rebuild performance
@@ -177,7 +174,6 @@ def benchmark_command(
         src_path: Path to source directory
         plugins_dict: Pre-loaded plugins dictionary
         config: Pre-loaded configuration dictionary
-        repo_root: Repository root path (optional)
         iterations: Number of iterations
     """
     try:
@@ -216,7 +212,6 @@ def benchmark_command(
                     temp_src,
                     quiet_plugins=True,
                     plugins_dict=plugins_dict,
-                    repo_root=repo_root,
                 )
                 explode_time = time.time() - start
                 explode_times.append(explode_time)
@@ -234,7 +229,6 @@ def benchmark_command(
                     temp_src,
                     quiet_plugins=True,
                     plugins_dict=plugins_dict,
-                    repo_root=repo_root,
                 )
                 rebuild_time = time.time() - start
                 rebuild_times.append(rebuild_time)
@@ -293,7 +287,6 @@ def verify_flows(
     flows_path: Path,
     plugins_dict: dict,
     config: dict,
-    repo_root: Path = None,
 ) -> int:
     """Verify round-trip stability: explode → rebuild → compare
 
@@ -301,7 +294,6 @@ def verify_flows(
         flows_path: Path to flows.json
         plugins_dict: Pre-loaded plugins dictionary
         config: Pre-loaded configuration dictionary
-        repo_root: Repository root path (optional)
     """
     if plugins_dict is None or config is None:
         log_error("verify_flows requires pre-loaded plugins_dict and config. None was provided.")
@@ -310,6 +302,11 @@ def verify_flows(
 
     try:
         # Load original flows
+        if not flows_path.exists():
+            log_error(f"File not found: {flows_path}")
+            log_error("Run 'download' first to fetch flows from Node-RED, or provide a flows.json file")
+            return 1
+
         with open(flows_path, "r") as f:
             original_flows = json.load(f)
 
@@ -331,7 +328,6 @@ def verify_flows(
                 temp_flows,
                 temp_src,
                 plugins_dict=plugins_dict,
-                repo_root=repo_root,
             )
             if result != 0:
                 log_error("Explode failed during verification")
@@ -344,7 +340,6 @@ def verify_flows(
                 temp_src,
                 continued_from_explode=True,
                 plugins_dict=plugins_dict,
-                repo_root=repo_root,
             )
             if result != 0:
                 log_error("Rebuild failed during verification")

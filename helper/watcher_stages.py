@@ -44,7 +44,6 @@ from .dashboard import WatchConfig
 def _run_pre_explode_download_stage(
     watch_config: WatchConfig,
     plugins_dict: dict,
-    repo_root: Path,
     progress_task: tuple = None,
 ) -> bool:
     """Run pre-explode plugins and upload if modified
@@ -52,7 +51,6 @@ def _run_pre_explode_download_stage(
     Args:
         config: Watch configuration
         plugins_dict: Plugin dictionary
-        repo_root: Repository root directory
         progress_task: Optional (progress, task_id) tuple for progress tracking
 
     Returns:
@@ -72,7 +70,6 @@ def _run_pre_explode_download_stage(
         flow_data = _run_pre_explode_stage(
             flow_data,
             pre_explode_plugins,
-            repo_root,
             quiet_plugins=True,  # Suppress plugin names in watch mode
             progress_task=progress_task,
         )
@@ -102,7 +99,6 @@ def _run_pre_explode_download_stage(
 def _run_explode_download_stage(
     watch_config: WatchConfig,
     plugins_dict: dict,
-    repo_root: Path,
     progress_task: tuple = None,
 ) -> tuple:
     """Explode flows to src/
@@ -110,7 +106,6 @@ def _run_explode_download_stage(
     Args:
         config: Watch configuration
         plugins_dict: Plugin dictionary
-        repo_root: Repository root directory
         progress_task: Optional (progress, task_id) tuple for progress tracking
 
     Returns:
@@ -145,7 +140,6 @@ def _run_explode_download_stage(
             explode_plugins,
             watch_config.src_dir,
             tab_ids,
-            repo_root,
             quiet_plugins=True,  # Suppress plugin names in watch mode
             progress_task=progress_task,
         )
@@ -167,7 +161,6 @@ def _run_explode_download_stage(
 def _run_post_explode_download_stage(
     watch_config: WatchConfig,
     plugins_dict: dict,
-    repo_root: Path,
     progress_task: tuple = None,
 ) -> tuple:
     """Run post-explode plugins
@@ -175,7 +168,6 @@ def _run_post_explode_download_stage(
     Args:
         config: Watch configuration
         plugins_dict: Plugin dictionary
-        repo_root: Repository root directory
         progress_task: Optional (progress, task_id) tuple for progress tracking
 
     Returns:
@@ -193,7 +185,6 @@ def _run_post_explode_download_stage(
             post_explode_plugins,
             watch_config.src_dir,
             watch_config.flows_file,
-            repo_root,
             quiet_plugins=True,  # Suppress plugin names in watch mode
             progress_task=progress_task,
         )
@@ -241,7 +232,6 @@ def sync_from_server(
 
         # Use cached plugins (loaded once at startup)
         plugins_dict = watch_config.plugins_dict
-        repo_root = watch_config.repo_root
 
         # STAGE 1: Run pre-explode plugins (with its own progress context)
         pre_explode_plugins = plugins_dict["pre-explode"]
@@ -251,7 +241,7 @@ def sync_from_server(
                     "Pre-explode plugins", total=len(pre_explode_plugins)
                 )
                 if not _run_pre_explode_download_stage(
-                    watch_config, plugins_dict, repo_root, progress_task=(progress, pre_task)
+                    watch_config, plugins_dict, progress_task=(progress, pre_task)
                 ):
                     return False
 
@@ -261,7 +251,7 @@ def sync_from_server(
         with create_progress_context(True) as progress:
             nodes_task = progress.add_task("Exploding nodes", total=nodes_count)
             success, explode_changed = _run_explode_download_stage(
-                watch_config, plugins_dict, repo_root, progress_task=(progress, nodes_task)
+                watch_config, plugins_dict, progress_task=(progress, nodes_task)
             )
             if not success:
                 return False
@@ -279,7 +269,7 @@ def sync_from_server(
                     "Post-explode plugins", total=len(post_explode_plugins)
                 )
                 success, post_explode_changed = _run_post_explode_download_stage(
-                    watch_config, plugins_dict, repo_root, progress_task=(progress, post_task)
+                    watch_config, plugins_dict, progress_task=(progress, post_task)
                 )
             # Log "No changes" after progress bar completes
             if not post_explode_changed:
@@ -297,7 +287,6 @@ def sync_from_server(
                 continued_from_explode=True,
                 quiet_plugins=True,
                 plugins_dict=watch_config.plugins_dict,
-                repo_root=watch_config.repo_root,
             )
             if result != 0:
                 log_error("Rebuild failed")
@@ -310,11 +299,8 @@ def sync_from_server(
 
         log_success("Download and explode complete")
 
-        # Clear file watcher state to prevent false rebuild triggers
-        # (explode/post-explode wrote files from server, not user edits)
-        # Note: os.sync() + sleep already done inside explode/post-explode stages
-        # while pause_watching was still True, so buffered events were ignored
-        watch_config.clear_file_watcher_state()
+        # File watcher state already cleared by pause_watching setter
+        # when transitioning from paused to active in explode/post-explode finally blocks
 
         # Update statistics (only if this is a counted download, not a stability check)
         # Stats already tracked in ServerClient; dashboard may still log
@@ -340,7 +326,6 @@ def rebuild_and_deploy(watch_config: WatchConfig) -> bool:
         watch_config.src_dir,
         quiet_plugins=True,
         plugins_dict=watch_config.plugins_dict,
-        repo_root=watch_config.repo_root,
     )
     if result != 0:
         log_error("Rebuild failed")
@@ -351,10 +336,8 @@ def rebuild_and_deploy(watch_config: WatchConfig) -> bool:
     if not sc or not sc.deploy_flows(json.loads(watch_config.flows_file.read_text())):
         return False
 
-    # Clear file watcher state to prevent false rebuild triggers
-    # (deploy completed successfully, already synced with server)
-    # Note: os.sync() will be called automatically when pause_watching is set to False
-    watch_config.clear_file_watcher_state()
+    # File watcher state will be cleared automatically by pause_watching setter
+    # when the caller's finally block sets pause_watching = False
 
     # ETag cleared by deploy - next poll will download and check convergence
     log_success("Rebuild and deploy complete")

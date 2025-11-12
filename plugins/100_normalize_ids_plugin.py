@@ -229,7 +229,7 @@ class NormalizeIdsPlugin:
     def get_plugin_type(self) -> str:
         return "pre-explode"
 
-    def process_flows_pre_explode(self, flow_data: list, repo_root: Path) -> list:
+    def process_flows_pre_explode(self, flow_data: list) -> list:
         """Normalize all node IDs in the flow"""
         # Run normalize
         normalized_flow, id_map = normalize_flow_ids(flow_data)

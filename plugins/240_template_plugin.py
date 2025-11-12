@@ -99,7 +99,7 @@ class TemplatePlugin:
             # Unknown template type - use generic
             return ".template.txt"
 
-    def explode_node(self, node: dict, node_dir: Path, repo_root: Path) -> list:
+    def explode_node(self, node: dict, node_dir: Path) -> list:
         """Extract template field to appropriate file
 
         Returns:
@@ -125,7 +125,7 @@ class TemplatePlugin:
             return []
 
     def rebuild_node(
-        self, node_id: str, node_dir: Path, skeleton: dict, repo_root: Path
+        self, node_id: str, node_dir: Path, skeleton: dict
     ) -> dict:
         """Rebuild template from file"""
         data = {}

@@ -13,13 +13,12 @@ from .logging import log_info, log_success, log_warning, log_error
 
 
 
-def validate_config(config: dict, server_client=None, repo_root: Path = None) -> int:
+def validate_config(config: dict, server_client=None) -> int:
     """Validate configuration structure and values
 
     Args:
         config: Configuration dictionary to validate
         server_client: Optional ServerClient instance (for testing auth resolution)
-        repo_root: Repository root path (defaults to current directory)
 
     Returns:
         Exit code (0 = valid, 1 = invalid)
@@ -40,8 +39,7 @@ def validate_config(config: dict, server_client=None, repo_root: Path = None) ->
                 log_info(f"{prefix}{key}: {val!r}  [source: {source}]")
 
     # Determine paths
-    if repo_root is None:
-        repo_root = Path.cwd()
+    repo_root = Path.cwd()
 
     log_info("Validating configuration...")
     errors = []

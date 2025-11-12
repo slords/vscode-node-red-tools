@@ -117,13 +117,12 @@ class {class_name}(Plugin):
     # Add type-specific template methods
     if plugin_type == "pre-explode":
         template += '''
-    def process_flows_pre_explode(self, flow_data: list, repo_root: Path) -> list:
+    def process_flows_pre_explode(self, flow_data: list) -> list:
         """
         Modify flow data before exploding.
 
         Args:
             flow_data: List of flow nodes
-            repo_root: Repository root directory
 
         Returns:
             Modified flow_data
@@ -166,14 +165,13 @@ class {class_name}(Plugin):
 
         return []
 
-    def explode_node(self, node: dict, node_dir: Path, repo_root: Path) -> List[str]:
+    def explode_node(self, node: dict, node_dir: Path) -> List[str]:
         """
         Explode node-specific files.
 
         Args:
             node: Node dictionary
             node_dir: Directory for this node's files
-            repo_root: Repository root directory
 
         Returns:
             List of created filenames (relative to node_dir)
@@ -189,7 +187,7 @@ class {class_name}(Plugin):
         return []
 
     def rebuild_node(
-        self, node_id: str, node_dir: Path, skeleton: dict, repo_root: Path
+        self, node_id: str, node_dir: Path, skeleton: dict
     ) -> dict:
         """
         Rebuild node data from files.
@@ -198,7 +196,6 @@ class {class_name}(Plugin):
             node_id: Node ID
             node_dir: Directory containing this node's files
             skeleton: Skeleton node dictionary
-            repo_root: Repository root directory
 
         Returns:
             Dictionary to merge into node (e.g., {"myfield": "value"})
@@ -216,7 +213,7 @@ class {class_name}(Plugin):
     elif plugin_type == "post-explode":
         template += '''
     def process_directory_post_explode(
-        self, src_dir: Path, flows_path: Path, repo_root: Path
+        self, src_dir: Path, flows_path: Path
     ) -> bool:
         """
         Process files after exploding (e.g., formatting).
@@ -224,7 +221,6 @@ class {class_name}(Plugin):
         Args:
             src_dir: Source directory containing exploded files
             flows_path: Path to flows.json file
-            repo_root: Repository root directory
 
         Returns:
             True if changes were made, False otherwise
@@ -238,13 +234,12 @@ class {class_name}(Plugin):
 
     elif plugin_type == "pre-rebuild":
         template += '''
-    def process_directory_pre_rebuild(self, src_dir: Path, repo_root: Path) -> bool:
+    def process_directory_pre_rebuild(self, src_dir: Path) -> bool:
         """
         Process files before rebuilding (e.g., validation).
 
         Args:
             src_dir: Source directory containing files to rebuild
-            repo_root: Repository root directory
 
         Returns:
             True if changes were made, False otherwise
@@ -258,13 +253,12 @@ class {class_name}(Plugin):
 
     elif plugin_type == "post-rebuild":
         template += '''
-    def process_flows_post_rebuild(self, flows_path: Path, repo_root: Path) -> bool:
+    def process_flows_post_rebuild(self, flows_path: Path) -> bool:
         """
         Process flows.json after rebuilding (e.g., formatting).
 
         Args:
             flows_path: Path to flows.json file
-            repo_root: Repository root directory
 
         Returns:
             True if changes were made, False otherwise
@@ -280,14 +274,12 @@ class {class_name}(Plugin):
 
 
 def list_plugins_command(
-    repo_root: Path,
     plugins_dict: dict = None,
     config: dict = None,
 ) -> int:
     """List all available plugins with their status and priority
 
     Args:
-        repo_root: Repository root path
         plugins_dict: Pre-loaded plugins dictionary (shows actual loaded state)
         config: Pre-loaded configuration dictionary
     """

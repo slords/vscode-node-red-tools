@@ -29,7 +29,7 @@ class InfoPlugin:
         """Claim the info field"""
         return ["info"]
 
-    def explode_node(self, node: dict, node_dir: Path, repo_root: Path) -> list:
+    def explode_node(self, node: dict, node_dir: Path) -> list:
         """Extract info field to .md file
 
         Returns:
@@ -52,7 +52,7 @@ class InfoPlugin:
             return []
 
     def rebuild_node(
-        self, node_id: str, node_dir: Path, skeleton: dict, repo_root: Path
+        self, node_id: str, node_dir: Path, skeleton: dict
     ) -> dict:
         """Rebuild info from .md file"""
         data = {}

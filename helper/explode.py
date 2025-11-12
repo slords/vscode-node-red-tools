@@ -39,7 +39,7 @@ from .constants import (
 )
 
 
-def _load_flows_for_explode(flows_path: Path, backup: bool) -> tuple[list, Path]:
+def _load_flows_for_explode(flows_path: Path, backup: bool) -> list:
     """Load and validate flows file for exploding
 
     Args:
@@ -47,7 +47,7 @@ def _load_flows_for_explode(flows_path: Path, backup: bool) -> tuple[list, Path]
         backup: Whether to create a timestamped backup
 
     Returns:
-        tuple of (flow_data, repo_root)
+        flow_data list
 
     Raises:
         ValueError: If flows file has invalid format
@@ -79,16 +79,12 @@ def _load_flows_for_explode(flows_path: Path, backup: bool) -> tuple[list, Path]
             f"This limit prevents resource exhaustion from huge flows."
         )
 
-    # Get repo root for plugins
-    repo_root = flows_path.parent.parent
-
-    return flow_data, repo_root
+    return flow_data
 
 
 def _run_pre_explode_stage(
     flow_data: list,
     pre_explode_plugins: list,
-    repo_root: Path,
     quiet_plugins: bool,
     progress_task: tuple = None,
 ) -> list:
@@ -97,7 +93,6 @@ def _run_pre_explode_stage(
     Args:
         flow_data: Flow data array
         pre_explode_plugins: List of pre-explode plugins
-        repo_root: Repository root directory
         quiet_plugins: Whether to suppress plugin messages
         progress_task: Optional (progress, task_id) tuple
 
@@ -109,7 +104,7 @@ def _run_pre_explode_stage(
         for plugin in pre_explode_plugins:
             if not quiet_plugins:
                 log_info(f"  {plugin.get_name()}")
-            flow_data = plugin.process_flows_pre_explode(flow_data, repo_root)
+            flow_data = plugin.process_flows_pre_explode(flow_data)
             if progress_task:
                 progress, task_id = progress_task
                 progress.update(task_id, advance=1)
@@ -125,7 +120,6 @@ def _explode_single_node(
     explode_plugins: list,
     src_dir: Path,
     tab_ids: set,
-    repo_root: Path,
     quiet_plugins: bool,
 ) -> tuple[int, dict, bool]:
     """Process a single node for exploding (thread-safe worker function)
@@ -136,7 +130,6 @@ def _explode_single_node(
         explode_plugins: List of explode plugins
         src_dir: Source directory
         tab_ids: Set of tab/subflow IDs
-        repo_root: Repository root directory
         quiet_plugins: Whether to suppress plugin messages
 
     Returns:
@@ -169,7 +162,7 @@ def _explode_single_node(
 
             # Claim fields and process node
             claimed_fields.update(plugin_fields)
-            plugin_files = plugin.explode_node(node, node_dir, repo_root)
+            plugin_files = plugin.explode_node(node, node_dir)
 
             # Collect metadata - map plugin name to files it created
             if plugin_files:
@@ -217,7 +210,7 @@ def _explode_single_node(
     is_unstable = False
     try:
         rebuilt_node = rebuild_single_node(
-            node_id, node_dir, skeleton, base_json_exists, explode_plugins, repo_root, src_dir
+            node_id, node_dir, skeleton, base_json_exists, explode_plugins, src_dir
         )
 
         # Compare original node to rebuilt node (excluding metadata)
@@ -257,7 +250,6 @@ def _explode_nodes_stage(
     explode_plugins: list,
     src_dir: Path,
     tab_ids: set,
-    repo_root: Path,
     quiet_plugins: bool,
     max_workers: int = DEFAULT_MAX_WORKERS,
     progress_task: tuple = None,
@@ -269,7 +261,6 @@ def _explode_nodes_stage(
         explode_plugins: List of explode plugins
         src_dir: Source directory
         tab_ids: Set of tab/subflow IDs
-        repo_root: Repository root directory
         quiet_plugins: Whether to suppress plugin messages
         max_workers: Max worker threads (None = cpu_count, 1 = sequential)
         progress_task: Optional (progress, task_id) tuple
@@ -319,7 +310,6 @@ def _explode_nodes_stage(
                     explode_plugins,
                     src_dir,
                     tab_ids,
-                    repo_root,
                     quiet_plugins,
                 ): idx
                 for idx, node in enumerate(flow_data)
@@ -349,7 +339,6 @@ def _explode_nodes_stage(
                 explode_plugins,
                 src_dir,
                 tab_ids,
-                repo_root,
                 quiet_plugins,
             )
 
@@ -371,7 +360,6 @@ def _run_post_explode_stage(
     post_explode_plugins: list,
     src_dir: Path,
     flows_path: Path,
-    repo_root: Path,
     quiet_plugins: bool,
     progress_task: tuple = None,
 ) -> bool:
@@ -381,7 +369,6 @@ def _run_post_explode_stage(
         post_explode_plugins: List of post-explode plugins
         src_dir: Source directory
         flows_path: Flows file path
-        repo_root: Repository root directory
         quiet_plugins: Whether to suppress plugin messages
         progress_task: Optional (progress, task_id) tuple for progress tracking
 
@@ -396,7 +383,7 @@ def _run_post_explode_stage(
             if not quiet_plugins:
                 log_info(f"  {plugin.get_name()}")
             changed = plugin.process_directory_post_explode(
-                src_dir, flows_path, repo_root
+                src_dir, flows_path
             )
             if changed:
                 any_modified = True
@@ -419,7 +406,6 @@ def explode_flows(
     quiet_plugins: bool = False,
     dry_run: bool = False,
     plugins_dict: dict = None,
-    repo_root: Path = None,
 ):
     """Explode flows.json into individual source files
 
@@ -432,7 +418,6 @@ def explode_flows(
         quiet_plugins: Suppress plugin loading messages
         dry_run: Show what would happen without making changes
         plugins_dict: Pre-loaded plugins dictionary (required)
-        repo_root: Repository root path (required)
 
     Returns:
         int: Exit code (0 = success, 1 = error) if return_info=False
@@ -457,7 +442,6 @@ def explode_flows(
                 quiet_plugins=True,
                 dry_run=False,
                 plugins_dict=plugins_dict,
-                repo_root=repo_root,
             )
 
             # Compare and report differences
@@ -470,9 +454,13 @@ def explode_flows(
 
         # STAGE 1: Load and validate flows
         try:
-            flow_data, loaded_repo_root = _load_flows_for_explode(flows_path, backup)
-            if repo_root is None:
-                repo_root = loaded_repo_root
+            flow_data = _load_flows_for_explode(flows_path, backup)
+        except FileNotFoundError as e:
+            log_error(str(e))
+            log_error("Run 'download' first to fetch flows from Node-RED, or provide a flows.json file")
+            if return_info:
+                return {"exit_code": 1, "needs_rebuild": False}
+            return 1
         except ValueError as e:
             log_error(str(e))
             log_error("Flows file should contain an array of node objects")
@@ -498,7 +486,6 @@ def explode_flows(
                 flow_data = _run_pre_explode_stage(
                     flow_data,
                     pre_explode_plugins,
-                    repo_root,
                     quiet_plugins,
                     progress_task=(progress, task),
                 )
@@ -506,7 +493,6 @@ def explode_flows(
             flow_data = _run_pre_explode_stage(
                 flow_data,
                 pre_explode_plugins,
-                repo_root,
                 quiet_plugins,
                 progress_task=None,
             )
@@ -531,7 +517,6 @@ def explode_flows(
                 explode_plugins,
                 src_dir,
                 tab_ids,
-                repo_root,
                 quiet_plugins,
                 progress_task=(progress, nodes_task),
             )
@@ -547,7 +532,6 @@ def explode_flows(
                     post_explode_plugins,
                     src_dir,
                     flows_path,
-                    repo_root,
                     quiet_plugins,
                     progress_task=(progress, post_task),
                 )
