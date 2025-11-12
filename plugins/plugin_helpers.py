@@ -145,9 +145,10 @@ def run_prettier_parallel(
     For subdirectories: passes each directory to prettier (recursive) in parallel threads.
 
     Args:
-        directory: Directory to format
+        directory: Directory to format (typically src_dir)
         repo_root: Repository root directory (cwd for prettier)
-        additional_files: Optional list of additional files to include with root files (e.g., flows.json)
+        additional_files: Optional list of additional files to include (e.g., flows.json)
+                         These files are validated against their own parent directories
 
     Returns:
         True if any formatting succeeded, False otherwise
@@ -182,10 +183,23 @@ def run_prettier_parallel(
 
         try:
             # Validate all file paths before passing to subprocess
+            # Files from directory (src files) are validated against directory's parent
+            # Additional files (like flows.json) are validated against their own parent
             validated_files = []
             for f in files:
                 try:
-                    validated = validate_path_for_subprocess(f, repo_root)
+                    # Determine appropriate validation directory based on file location
+                    # If file is within directory structure, validate against directory's parent
+                    # Otherwise (like flows.json), validate against file's own parent
+                    try:
+                        f.relative_to(directory)
+                        # File is within directory - validate against directory's parent
+                        validation_root = directory.parent
+                    except ValueError:
+                        # File is outside directory (e.g., flows.json) - validate against its parent
+                        validation_root = f.parent
+
+                    validated = validate_path_for_subprocess(f, validation_root)
                     validated_files.append(str(validated))
                 except ValueError as e:
                     print(f"⚠ Warning: skipping file {f.name}: {e}")
@@ -213,7 +227,8 @@ def run_prettier_parallel(
         """Format a subdirectory recursively"""
         try:
             # Validate directory path before passing to subprocess
-            validated_subdir = validate_path_for_subprocess(subdir, repo_root)
+            # Subdirectories are part of directory structure, validate against directory's parent
+            validated_subdir = validate_path_for_subprocess(subdir, directory.parent)
 
             # Pass directory to prettier (it handles recursion)
             subprocess.run(
