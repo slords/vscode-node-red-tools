@@ -492,40 +492,37 @@ def create_backup(
     if backup_dir is None:
         backup_dir = file_path.parent / ".backup"
 
-    backup_dir.mkdir(parents=True, exist_ok=True)
+        backup_dir.mkdir(parents=True, exist_ok=True)
 
-    # Create timestamped backup filename
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    backup_name = f"{file_path.stem}.{timestamp}{file_path.suffix}"
-    backup_path = backup_dir / backup_name
+        # Create timestamped backup filename
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        backup_name = f"{file_path.stem}.{timestamp}{file_path.suffix}"
+        backup_path = backup_dir / backup_name
 
-    shutil.copy2(file_path, backup_path)
-    log_info(f"Backup created: {backup_path}")
+        shutil.copy2(file_path, backup_path)
+        log_info(f"Backup created: {backup_path}")
 
-    # Auto cleanup old backups
-    if auto_cleanup:
-        try:
-            # Import here to avoid circular dependency
-            from .config import load_config
+        # Auto cleanup old backups
+        if auto_cleanup:
+            if config is None:
+                log_warning("backup_file requires pre-loaded config for retention settings. None was provided. Skipping cleanup.")
+            else:
+                backup_config = config.get("backup", {})
+                max_backups = backup_config.get("max_backups", 10)  # Default: keep 10
+                max_age_days = backup_config.get("max_age_days", 30)  # Default: 30 days
 
-            # Load config to get retention settings
-            repo_root = file_path.parent.parent
-            config = load_config(repo_root, config_path=None)
-            backup_config = config.get("backup", {})
-            max_backups = backup_config.get("max_backups", 10)  # Default: keep 10
-            max_age_days = backup_config.get("max_age_days", 30)  # Default: 30 days
+                try:
+                    cleanup_old_backups(
+                        backup_dir,
+                        max_backups=max_backups,
+                        max_age_days=max_age_days,
+                        file_pattern=f"{file_path.stem}.*{file_path.suffix}",
+                    )
+                except Exception as e:
+                    # Don't fail backup creation if cleanup fails
+                    log_warning(f"Backup cleanup failed: {e}")
 
-            cleanup_old_backups(
-                backup_dir,
-                max_backups=max_backups,
-                max_age_days=max_age_days,
-                file_pattern=f"{file_path.stem}.*{file_path.suffix}",
-            )
-        except Exception as e:
-            # Don't fail backup creation if cleanup fails
-            log_warning(f"Backup cleanup failed: {e}")
-
-    return backup_path
+        return backup_path
 
 
 def cleanup_old_backups(

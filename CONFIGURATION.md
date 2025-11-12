@@ -50,9 +50,7 @@ If no configuration file exists, the tool uses these defaults:
   },
   "watch": {
     "pollInterval": 5,
-    "debounce": 0.5,
-    "convergenceLimit": 5,
-    "convergenceWindow": 60
+    "debounce": 0.5
   }
 }
 ```
@@ -243,70 +241,6 @@ Wait time after file change before uploading (in seconds).
 - Higher values = slower uploads, groups multiple changes
 - 1-3 seconds works well for most cases
 
-### watch.convergenceLimit
-
-Maximum number of upload/download cycles before oscillation warning (in cycles).
-
-**Type:** Integer
-**Default:** `5`
-**Range:** 3-10 recommended
-
-**Example:**
-
-```json
-{
-  "watch": {
-    "convergenceLimit": 5
-  }
-}
-```
-
-**Purpose:**
-Prevents infinite loops when plugins cause changes that trigger endless cycles. When exceeded, convergence pauses until manual upload resumes it.
-
-**Considerations:**
-
-- Most flows converge in 1-2 cycles
-- Higher values allow more complex convergence scenarios
-- Lower values catch oscillation problems faster
-- 5 cycles is a good balance for most cases
-
-### watch.convergenceWindow
-
-Time window for counting convergence cycles (in seconds).
-
-**Type:** Number
-**Default:** `60`
-**Range:** 30-120 recommended
-
-**Example:**
-
-```json
-{
-  "watch": {
-    "convergenceWindow": 60
-  }
-}
-```
-
-**Purpose:**
-Only counts cycles within this time window. Older cycles are discarded from the count.
-
-**Considerations:**
-
-- Prevents false positives from normal editing over time
-- 60 seconds gives good detection without false alarms
-- Shorter windows catch oscillation faster
-- Longer windows are more forgiving of complex flows
-
-**How Convergence Protection Works:**
-
-1. Each upload/download is counted as a cycle
-2. If more than `convergenceLimit` cycles occur within `convergenceWindow` seconds
-3. Warning displayed and convergence pauses
-4. No more automatic uploads until you manually upload (which clears the pause)
-5. Prevents plugin oscillation from consuming resources
-
 ## Examples
 
 ### Minimal Configuration
@@ -342,9 +276,7 @@ For faster change detection:
 {
   "watch": {
     "pollInterval": 2,
-    "debounce": 0.2,
-    "convergenceLimit": 5,
-    "convergenceWindow": 60
+    "debounce": 0.2
   }
 }
 ```
@@ -359,9 +291,7 @@ For slower but more stable sync:
 {
   "watch": {
     "pollInterval": 15,
-    "debounce": 3.0,
-    "convergenceLimit": 5,
-    "convergenceWindow": 60
+    "debounce": 3.0
   }
 }
 ```
@@ -424,9 +354,7 @@ For team consistency:
   },
   "watch": {
     "pollInterval": 5,
-    "debounce": 1.0,
-    "convergenceLimit": 5,
-    "convergenceWindow": 60
+    "debounce": 1.0
   }
 }
 ```
@@ -553,8 +481,6 @@ Check:
 
 1. `pollInterval` is positive number
 2. `debounce` is non-negative number
-3. `convergenceLimit` is positive integer
-4. `convergenceWindow` is positive number
 5. Values are reasonable (not too low or too high)
 
 ## Next Steps

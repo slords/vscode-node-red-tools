@@ -22,49 +22,95 @@ except ImportError:
 from .logging import log_info, log_success, log_warning, log_error
 from .dashboard import WatchConfig
 from .constants import HTTP_TIMEOUT
+from .auth import ServerCredentials
 
 
-def authenticate(config: WatchConfig) -> bool:
-    """Authenticate with Node-RED"""
+def authenticate(watch_config: WatchConfig, credentials: ServerCredentials) -> bool:
+    """Authenticate with Node-RED using resolved credentials
+
+    Args:
+        watch_config: Watch mode runtime configuration
+        credentials: Resolved server credentials from auth.resolve_credentials()
+
+    Returns:
+        True if authentication successful, False otherwise
+    """
     try:
-        config.session = requests.Session()
-        config.session.auth = HTTPBasicAuth(config.username, config.password)
-        config.session.verify = config.verify_ssl
+        # Allow watch_config to be None for simple connection/auth test
+        if watch_config is None:
+            from .dashboard import WatchConfig
+            from pathlib import Path
+            dummy_args = type("Args", (), {})()
+            # Use minimal dummy paths; not used for actual file ops
+            dummy_config = WatchConfig(dummy_args, Path("/tmp/flows.json"), Path("/tmp/src"))
+            # Ensure rate_limiter exists
+            if not hasattr(dummy_config, "rate_limiter"):
+                from .utils import RateLimiter
+                dummy_config.rate_limiter = RateLimiter()
+            watch_config = dummy_config
+        watch_config.session = requests.Session()
+        watch_config.session.verify = credentials.verify_ssl
 
-        if not config.verify_ssl:
+        # Configure authentication based on type
+        if credentials.auth_type == "bearer":
+            # Bearer token authentication
+            watch_config.session.headers.update(
+                {"Authorization": f"Bearer {credentials.token}"}
+            )
+            log_info("Using bearer token authentication")
+
+        elif credentials.auth_type == "basic":
+            # HTTP Basic authentication
+            watch_config.session.auth = HTTPBasicAuth(
+                credentials.username, credentials.password
+            )
+            log_info(f"Using basic authentication for user: {credentials.username}")
+
+        elif credentials.auth_type == "none":
+            # No authentication (local development)
+            log_info("Using anonymous access (no authentication)")
+        else:
+            log_error(f"Unknown authentication type: {credentials.auth_type}")
+            return False
+
+        if not credentials.verify_ssl:
             import urllib3
 
             urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
             log_warning("SSL verification disabled")
 
         # Check rate limiter before making authentication request
-        if not config.rate_limiter.try_acquire():
-            stats = config.rate_limiter.get_stats()
+        if not watch_config.rate_limiter.try_acquire():
+            stats = watch_config.rate_limiter.get_stats()
             log_error(
                 f"Rate limit exceeded during authentication: "
                 f"{stats['requests_last_minute']}/{stats['limit_per_minute']} requests/min"
             )
             return False
 
-        response = config.session.get(
-            f"{config.server_url}/flows", timeout=HTTP_TIMEOUT
-        )
+        # Test connection with a simple GET request
+        response = watch_config.session.get(f"{credentials.url}/flows", timeout=HTTP_TIMEOUT)
         response.raise_for_status()
 
-        log_success(f"Authenticated with Node-RED at {config.server_url}")
+        # Store server URL in watch_config for other functions
+        watch_config.server_url = credentials.url
+        watch_config.verify_ssl = credentials.verify_ssl
+
+        log_success(f"Connected to Node-RED at {credentials.url}")
         return True
+
     except requests.exceptions.RequestException as e:
-        log_error(f"Authentication failed: {e}")
+        log_error(f"Connection failed: {e}")
         return False
 
 
 def _download_flows_from_server(
-    config: WatchConfig, force: bool
+    watch_config: WatchConfig, force: bool
 ) -> tuple[bool, list, str, str]:
     """Download flows from Node-RED server
 
     Args:
-        config: Watch configuration
+        watch_config: Watch mode runtime configuration
         force: If True, skip ETag check and always download
 
     Returns:
@@ -79,8 +125,8 @@ def _download_flows_from_server(
         RuntimeError: If rate limit exceeded
     """
     # Check rate limiter before making request
-    if not config.rate_limiter.try_acquire():
-        stats = config.rate_limiter.get_stats()
+    if not watch_config.rate_limiter.try_acquire():
+        stats = watch_config.rate_limiter.get_stats()
         raise RuntimeError(
             f"Rate limit exceeded: {stats['requests_last_minute']}/{stats['limit_per_minute']} requests/min, "
             f"{stats['requests_last_10min']}/{stats['limit_per_10min']} requests/10min. "
@@ -90,11 +136,11 @@ def _download_flows_from_server(
     headers = {"Node-RED-API-Version": "v2"}
 
     # Only use conditional GET (ETag) if not forced and we have an ETag
-    if not force and config.last_etag:
-        headers["If-None-Match"] = config.last_etag
+    if not force and watch_config.last_etag:
+        headers["If-None-Match"] = watch_config.last_etag
 
-    response = config.session.get(
-        f"{config.server_url}/flows", headers=headers, timeout=HTTP_TIMEOUT
+    response = watch_config.session.get(
+        f"{watch_config.server_url}/flows", headers=headers, timeout=HTTP_TIMEOUT
     )
 
     if response.status_code == 304:
@@ -115,17 +161,17 @@ def _download_flows_from_server(
     return (False, flows, new_etag, new_rev)
 
 
-def deploy_to_nodered(config: WatchConfig, count_stats: bool = True) -> bool:
+def deploy_to_nodered(watch_config: WatchConfig, count_stats: bool = True) -> bool:
     """Deploy flows to Node-RED
 
     Args:
-        config: Watch configuration
+        watch_config: Watch mode runtime configuration
         count_stats: If True, count this upload in statistics (False for plugin auto-uploads)
     """
     try:
         # Check rate limiter before making request
-        if not config.rate_limiter.try_acquire():
-            stats = config.rate_limiter.get_stats()
+        if not watch_config.rate_limiter.try_acquire():
+            stats = watch_config.rate_limiter.get_stats()
             log_error(
                 f"Rate limit exceeded: {stats['requests_last_minute']}/{stats['limit_per_minute']} requests/min, "
                 f"{stats['requests_last_10min']}/{stats['limit_per_10min']} requests/10min"
@@ -133,14 +179,14 @@ def deploy_to_nodered(config: WatchConfig, count_stats: bool = True) -> bool:
             log_error("Possible runaway loop or misconfiguration - deployment aborted")
             return False
 
-        if not config.flows_file.exists():
-            log_error(f"Flows file not found: {config.flows_file}")
+        if not watch_config.flows_file.exists():
+            log_error(f"Flows file not found: {watch_config.flows_file}")
             return False
 
-        with open(config.flows_file, "r") as f:
+        with open(watch_config.flows_file, "r") as f:
             flows_array = json.load(f)
 
-        log_info(f"Deploying to Node-RED at {config.server_url}...")
+        log_info(f"Deploying to Node-RED at {watch_config.server_url}...")
         headers = {
             "Content-Type": "application/json",
             "Node-RED-Deployment-Type": "full",
@@ -151,11 +197,11 @@ def deploy_to_nodered(config: WatchConfig, count_stats: bool = True) -> bool:
         formatted_body = json.dumps(body, separators=(",", ":"), ensure_ascii=False)
 
         params = {}
-        if config.last_rev:
-            params["rev"] = config.last_rev
+        if watch_config.last_rev:
+            params["rev"] = watch_config.last_rev
 
-        response = config.session.post(
-            f"{config.server_url}/flows",
+        response = watch_config.session.post(
+            f"{watch_config.server_url}/flows",
             data=formatted_body,
             headers=headers,
             params=params,
@@ -165,17 +211,17 @@ def deploy_to_nodered(config: WatchConfig, count_stats: bool = True) -> bool:
         # Handle auth expiration
         if response.status_code in (401, 403):
             log_warning("Authentication expired, re-authenticating...")
-            if not authenticate(config):
+            if not authenticate(watch_config, watch_config.credentials):
                 log_error("Re-authentication failed")
                 return False
 
             # Check rate limiter for retry request
-            if not config.rate_limiter.try_acquire():
+            if not watch_config.rate_limiter.try_acquire():
                 log_error("Rate limit exceeded - cannot retry deployment after re-auth")
                 return False
 
-            response = config.session.post(
-                f"{config.server_url}/flows",
+            response = watch_config.session.post(
+                f"{watch_config.server_url}/flows",
                 data=formatted_body,
                 headers=headers,
                 params=params,
@@ -191,12 +237,12 @@ def deploy_to_nodered(config: WatchConfig, count_stats: bool = True) -> bool:
             # Fetch latest flows and update state
             try:
                 # Check rate limiter for conflict resolution request
-                if not config.rate_limiter.try_acquire():
+                if not watch_config.rate_limiter.try_acquire():
                     log_error("Rate limit exceeded - cannot fetch latest flows")
                     return False
 
-                verify_response = config.session.get(
-                    f"{config.server_url}/flows",
+                verify_response = watch_config.session.get(
+                    f"{watch_config.server_url}/flows",
                     headers={"Node-RED-API-Version": "v2"},
                     timeout=HTTP_TIMEOUT,
                 )
@@ -208,11 +254,11 @@ def deploy_to_nodered(config: WatchConfig, count_stats: bool = True) -> bool:
 
                 if isinstance(verify_data, dict) and "rev" in verify_data:
                     new_rev = verify_data["rev"]
-                    config.last_rev = new_rev
+                    watch_config.last_rev = new_rev
                     log_info(f"Updated to server rev: {new_rev}")
 
                 if verify_etag:
-                    config.last_etag = verify_etag
+                    watch_config.last_etag = verify_etag
 
                 log_warning(
                     "Your local changes were not deployed - server was updated by someone else"
@@ -235,7 +281,7 @@ def deploy_to_nodered(config: WatchConfig, count_stats: bool = True) -> bool:
         result = response.json()
         deploy_rev = result.get("rev")
         if deploy_rev:
-            config.last_rev = deploy_rev
+            watch_config.last_rev = deploy_rev
 
         log_success("Deployed to Node-RED")
 
@@ -243,34 +289,34 @@ def deploy_to_nodered(config: WatchConfig, count_stats: bool = True) -> bool:
         from datetime import datetime
 
         now = datetime.now()
-        config.convergence_cycles.append(now)
+        watch_config.convergence_cycles.append(now)
 
         # Remove cycles outside the time window
-        cutoff = now.timestamp() - config.convergence_window
-        config.convergence_cycles = [
-            ts for ts in config.convergence_cycles if ts.timestamp() > cutoff
+        cutoff = now.timestamp() - watch_config.convergence_window
+        watch_config.convergence_cycles = [
+            ts for ts in watch_config.convergence_cycles if ts.timestamp() > cutoff
         ]
 
         # Check for oscillation (too many cycles in time window)
-        if len(config.convergence_cycles) > config.convergence_limit:
-            if not config.convergence_paused:
+        if len(watch_config.convergence_cycles) > watch_config.convergence_limit:
+            if not watch_config.convergence_paused:
                 log_warning(
-                    f"⚠️  Oscillation detected: {len(config.convergence_cycles)} upload/download cycles in {config.convergence_window}s"
+                    f"⚠️  Oscillation detected: {len(watch_config.convergence_cycles)} upload/download cycles in {watch_config.convergence_window}s"
                 )
                 log_warning(
                     "Pausing convergence - plugins may be oscillating. Manual upload will resume."
                 )
-                config.convergence_paused = True
+                watch_config.convergence_paused = True
 
         # Clear flag on user upload (count_stats=True means user-initiated)
-        if count_stats and config.convergence_paused:
+        if count_stats and watch_config.convergence_paused:
             log_success("✓ Convergence resumed by user upload")
-            config.convergence_paused = False
-            config.convergence_cycles = []  # Clear cycle history
+            watch_config.convergence_paused = False
+            watch_config.convergence_cycles = []  # Clear cycle history
 
         # Only clear ETag if convergence not paused
-        if not config.convergence_paused:
-            config.last_etag = None
+        if not watch_config.convergence_paused:
+            watch_config.last_etag = None
             log_info(
                 f"Updated state - ETag cleared (will re-download), rev: {deploy_rev}"
             )
@@ -281,17 +327,17 @@ def deploy_to_nodered(config: WatchConfig, count_stats: bool = True) -> bool:
 
         # Update statistics (only if this is a counted upload, not plugin auto-upload)
         if count_stats:
-            if config.dashboard:
-                config.dashboard.log_upload()
+            if watch_config.dashboard:
+                watch_config.dashboard.log_upload()
             else:
                 # Non-dashboard mode: still track stats
-                config.upload_count += 1
-                config.last_upload_time = datetime.now()
+                watch_config.upload_count += 1
+                watch_config.last_upload_time = datetime.now()
 
         return True
 
     except requests.exceptions.RequestException as e:
         log_error(f"Deploy failed: {e}")
-        if config.dashboard:
-            config.dashboard.log_activity(f"Deploy failed: {e}", is_error=True)
+        if watch_config.dashboard:
+            watch_config.dashboard.log_activity(f"Deploy failed: {e}", is_error=True)
         return False

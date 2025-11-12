@@ -14,7 +14,6 @@ import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
-from .config import load_config
 from .file_ops import find_new_files, handle_new_files
 from .logging import (
     create_progress_context,
@@ -23,7 +22,7 @@ from .logging import (
     log_success,
     show_progress_bar,
 )
-from .plugin_loader import load_plugins
+ 
 from .skeleton import get_node_directory, load_skeleton
 from .utils import (
     create_backup,

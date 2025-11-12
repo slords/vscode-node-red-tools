@@ -11,8 +11,7 @@ import time
 from pathlib import Path
 
 from .logging import log_info, log_success, log_warning, log_error
-from .config import load_config
-from .plugin_loader import load_plugins
+ 
 from .utils import compute_file_hash, compute_dir_hash
 from .explode import explode_flows
 from .rebuild import rebuild_flows
@@ -21,11 +20,22 @@ from .rebuild import rebuild_flows
 def stats_command(
     flows_path: Path,
     src_path: Path,
-    plugins_dict: dict = None,
-    plugin_config: dict = None,
+    plugins_dict: dict,
+    config: dict,
     repo_root: Path = None,
 ) -> int:
-    """Display comprehensive flow and source statistics"""
+    """Display comprehensive flow and source statistics
+
+    Args:
+        flows_path: Path to flows.json
+        src_path: Path to source directory
+        plugins_dict: Pre-loaded plugins dictionary
+        config: Pre-loaded configuration dictionary
+        repo_root: Repository root path (optional)
+    """
+    if plugins_dict is None or config is None:
+        log_error("stats_command requires pre-loaded plugins_dict and config. None was provided.")
+        return 1
     try:
         log_info("=== Flow Statistics ===")
 
@@ -131,22 +141,16 @@ def stats_command(
         else:
             log_warning(f"Source directory not found: {src_path}")
 
-        # Plugin statistics (use pre-loaded plugins or load them)
-        if plugins_dict is None:
-            repo_root = flows_path.parent.parent if repo_root is None else repo_root
-            plugin_config = load_config(repo_root, config_path=None)
-            plugins_dict = load_plugins(repo_root, plugin_config, quiet=True)
+        # Plugin statistics (use pre-loaded plugins only)
+        log_info("\n=== Plugin Statistics ===")
+        total_plugins = sum(len(plugins_dict[key]) for key in plugins_dict)
+        log_info(f"  Total loaded plugins: {total_plugins}")
 
-        if plugins_dict:
-            log_info("\n=== Plugin Statistics ===")
-            total_plugins = sum(len(plugins_dict[key]) for key in plugins_dict)
-            log_info(f"  Total loaded plugins: {total_plugins}")
-
-            for plugin_type, plugins in plugins_dict.items():
-                if plugins:
-                    log_info(f"    {plugin_type}: {len(plugins)}")
-                    for plugin in plugins:
-                        log_info(f"      - {plugin.get_name()}")
+        for plugin_type, plugins in plugins_dict.items():
+            if plugins:
+                log_info(f"    {plugin_type}: {len(plugins)}")
+                for plugin in plugins:
+                    log_info(f"      - {plugin.get_name()}")
 
         return 0
 
@@ -162,11 +166,20 @@ def benchmark_command(
     flows_path: Path,
     src_path: Path,
     plugins_dict: dict = None,
-    plugin_config: dict = None,
+    config: dict = None,
     repo_root: Path = None,
     iterations: int = 3,
 ) -> int:
-    """Benchmark explode and rebuild performance"""
+    """Benchmark explode and rebuild performance
+
+    Args:
+        flows_path: Path to flows.json
+        src_path: Path to source directory
+        plugins_dict: Pre-loaded plugins dictionary
+        config: Pre-loaded configuration dictionary
+        repo_root: Repository root path (optional)
+        iterations: Number of iterations
+    """
     try:
         log_info(f"Benchmarking with {iterations} iterations...")
 
@@ -278,20 +291,24 @@ def benchmark_command(
 
 def verify_flows(
     flows_path: Path,
-    plugins_dict: dict = None,
-    plugin_config: dict = None,
+    plugins_dict: dict,
+    config: dict,
     repo_root: Path = None,
 ) -> int:
-    """Verify round-trip stability: explode → rebuild → compare"""
+    """Verify round-trip stability: explode → rebuild → compare
+
+    Args:
+        flows_path: Path to flows.json
+        plugins_dict: Pre-loaded plugins dictionary
+        config: Pre-loaded configuration dictionary
+        repo_root: Repository root path (optional)
+    """
+    if plugins_dict is None or config is None:
+        log_error("verify_flows requires pre-loaded plugins_dict and config. None was provided.")
+        return 1
     log_info(f"Verifying round-trip stability for {flows_path}")
 
     try:
-        # Use pre-loaded plugins if provided, otherwise load them
-        if plugins_dict is None:
-            repo_root = flows_path.parent.parent if repo_root is None else repo_root
-            plugin_config = load_config(repo_root, config_path=None)
-            plugins_dict = load_plugins(repo_root, plugin_config, quiet=False)
-
         # Load original flows
         with open(flows_path, "r") as f:
             original_flows = json.load(f)
@@ -350,11 +367,11 @@ def verify_flows(
             # Compare serialized JSON (catches order differences)
             if original_json == rebuilt_json:
                 log_success(
-                    "✓ Round-trip verification passed - flows are identical (content and order)"
+                    "\u2713 Round-trip verification passed - flows are identical (content and order)"
                 )
                 return 0
             else:
-                log_error("✗ Round-trip verification failed - flows differ")
+                log_error("\u2717 Round-trip verification failed - flows differ")
 
                 # Check if content is same but order differs
                 if original_flows == rebuilt_flows:
@@ -395,4 +412,5 @@ def verify_flows(
         import traceback
 
         traceback.print_exc()
+        return 1
         return 1

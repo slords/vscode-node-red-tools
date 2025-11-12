@@ -42,7 +42,7 @@ from .watcher_server import _download_flows_from_server, deploy_to_nodered
 
 
 def _run_pre_explode_download_stage(
-    config: WatchConfig,
+    watch_config: WatchConfig,
     plugins_dict: dict,
     repo_root: Path,
     progress_task: tuple = None,
@@ -62,7 +62,7 @@ def _run_pre_explode_download_stage(
 
     if pre_explode_plugins:
         # Load flows
-        with open(config.flows_file, "r") as f:
+        with open(watch_config.flows_file, "r") as f:
             flow_data = json.load(f)
 
         # Save original for comparison
@@ -82,7 +82,7 @@ def _run_pre_explode_download_stage(
         flows_modified = original_flow != modified_flow
 
         # Write modified flows
-        config.flows_file.write_text(modified_flow + "\n")
+        watch_config.flows_file.write_text(modified_flow + "\n")
 
         # Upload if any pre-explode plugin modified flows (don't count - automated)
         if flows_modified:
@@ -99,7 +99,7 @@ def _run_pre_explode_download_stage(
 
 
 def _run_explode_download_stage(
-    config: WatchConfig,
+    watch_config: WatchConfig,
     plugins_dict: dict,
     repo_root: Path,
     progress_task: tuple = None,
@@ -117,17 +117,17 @@ def _run_explode_download_stage(
         files_changed is True if any node was unstable (files differ from flows.json)
     """
     # Pause watching during explode
-    config.pause_watching = True
+    watch_config.pause_watching = True
     try:
         # Load flows (modified by pre-explode stage)
-        with open(config.flows_file, "r") as f:
+        with open(watch_config.flows_file, "r") as f:
             flow_data = json.load(f)
 
         # Get explode plugins from dict
         explode_plugins = plugins_dict["explode"]
 
         # Create src directory
-        config.src_dir.mkdir(parents=True, exist_ok=True)
+        watch_config.src_dir.mkdir(parents=True, exist_ok=True)
 
         # Get all tab/subflow IDs for directory organization
         tab_ids = {
@@ -136,13 +136,13 @@ def _run_explode_download_stage(
 
         # Create directories for tabs/subflows
         for tab_id in tab_ids:
-            (config.src_dir / tab_id).mkdir(exist_ok=True)
+            (watch_config.src_dir / tab_id).mkdir(exist_ok=True)
 
         # Run explode stage using shared function (handles logging and progress)
         skeleton_data, any_node_unstable = _explode_nodes_stage(
             flow_data,
             explode_plugins,
-            config.src_dir,
+            watch_config.src_dir,
             tab_ids,
             repo_root,
             quiet_plugins=True,  # Suppress plugin names in watch mode
@@ -151,18 +151,18 @@ def _run_explode_download_stage(
 
         # Detect and handle orphaned files
         orphaned = find_orphaned_files(
-            config.src_dir, flow_data, tab_ids, skeleton_data
+            watch_config.src_dir, flow_data, tab_ids, skeleton_data
         )
         if orphaned:
-            handle_orphaned_files(orphaned, config.src_dir, delete=False)
+            handle_orphaned_files(orphaned, watch_config.src_dir, delete=False)
 
         return (True, any_node_unstable)
     finally:
-        config.pause_watching = False
+        watch_config.pause_watching = False
 
 
 def _run_post_explode_download_stage(
-    config: WatchConfig,
+    watch_config: WatchConfig,
     plugins_dict: dict,
     repo_root: Path,
     progress_task: tuple = None,
@@ -180,7 +180,7 @@ def _run_post_explode_download_stage(
         changes_made is True if plugins modified files
     """
     # Pause watching during post-explode processing
-    config.pause_watching = True
+    watch_config.pause_watching = True
     try:
         # Get post-explode plugins from dict
         post_explode_plugins = plugins_dict["post-explode"]
@@ -188,8 +188,8 @@ def _run_post_explode_download_stage(
         # Run post-explode stage using shared function (handles logging and progress)
         post_explode_modified = _run_post_explode_stage(
             post_explode_plugins,
-            config.src_dir,
-            config.flows_file,
+            watch_config.src_dir,
+            watch_config.flows_file,
             repo_root,
             quiet_plugins=True,  # Suppress plugin names in watch mode
             progress_task=progress_task,
@@ -198,11 +198,11 @@ def _run_post_explode_download_stage(
         # Just return whether files changed - don't upload here
         return (True, post_explode_modified)
     finally:
-        config.pause_watching = False
+        watch_config.pause_watching = False
 
 
 def download_from_nodered(
-    config: WatchConfig, force: bool = False, count_stats: bool = True
+    watch_config: WatchConfig, force: bool = False, count_stats: bool = True
 ) -> bool:
     """Download flows from Node-RED and explode
 
@@ -223,29 +223,29 @@ def download_from_nodered(
             return True
 
         # Update tracking
-        config.last_etag = new_etag
+        watch_config.last_etag = new_etag
 
         # Only log if rev changed
-        if new_rev and new_rev != config.last_rev:
-            log_info(f"Flows changed (rev: {config.last_rev or 'initial'} → {new_rev})")
-        elif not config.last_rev and new_rev:
+        if new_rev and new_rev != watch_config.last_rev:
+            log_info(f"Flows changed (rev: {watch_config.last_rev or 'initial'} → {new_rev})")
+        elif not watch_config.last_rev and new_rev:
             log_info(f"Initial download (rev: {new_rev})")
 
         # Only update rev if we got one (GET doesn't always include rev)
         if new_rev:
-            config.last_rev = new_rev
+            watch_config.last_rev = new_rev
 
         # Ensure flows directory exists
-        config.flows_file.parent.mkdir(parents=True, exist_ok=True)
+        watch_config.flows_file.parent.mkdir(parents=True, exist_ok=True)
 
         # Write to flows file - compact format
-        config.flows_file.write_text(
+        watch_config.flows_file.write_text(
             json.dumps(flows, separators=(",", ":"), ensure_ascii=False) + "\n"
         )
 
         # Use cached plugins (loaded once at startup)
-        plugins_dict = config.plugins_dict
-        repo_root = config.repo_root
+        plugins_dict = watch_config.plugins_dict
+        repo_root = watch_config.repo_root
 
         # STAGE 1: Run pre-explode plugins (with its own progress context)
         pre_explode_plugins = plugins_dict["pre-explode"]
@@ -296,12 +296,12 @@ def download_from_nodered(
         if upload_needed:
             log_info("Changes detected, rebuilding and uploading...")
             result = rebuild_flows(
-                config.flows_file,
-                config.src_dir,
+                watch_config.flows_file,
+                watch_config.src_dir,
                 continued_from_explode=True,
                 quiet_plugins=True,
-                plugins_dict=config.plugins_dict,
-                repo_root=config.repo_root,
+                plugins_dict=watch_config.plugins_dict,
+                repo_root=watch_config.repo_root,
             )
             if result != 0:
                 log_error("Rebuild failed")
@@ -320,33 +320,33 @@ def download_from_nodered(
 
         # Update statistics (only if this is a counted download, not a stability check)
         if count_stats:
-            if config.dashboard:
-                config.dashboard.log_download()
+            if watch_config.dashboard:
+                watch_config.dashboard.log_download()
             else:
                 # Non-dashboard mode: still track stats
-                config.download_count += 1
-                config.last_download_time = datetime.now()
+                watch_config.download_count += 1
+                watch_config.last_download_time = datetime.now()
 
         return True
 
     except requests.exceptions.RequestException as e:
         log_error(f"Download failed: {e}")
-        if config.dashboard:
-            config.dashboard.log_activity(f"Download failed: {e}", is_error=True)
+        if watch_config.dashboard:
+            watch_config.dashboard.log_activity(f"Download failed: {e}", is_error=True)
         return False
 
 
-def rebuild_and_deploy(config: WatchConfig) -> bool:
+def rebuild_and_deploy(watch_config: WatchConfig) -> bool:
     """Rebuild flows and deploy to Node-RED"""
     # Rebuild (pre-rebuild plugin may format src files)
     log_info("Rebuilding flows...")
 
     result = rebuild_flows(
-        config.flows_file,
-        config.src_dir,
+        watch_config.flows_file,
+        watch_config.src_dir,
         quiet_plugins=True,
-        plugins_dict=config.plugins_dict,
-        repo_root=config.repo_root,
+        plugins_dict=watch_config.plugins_dict,
+        repo_root=watch_config.repo_root,
     )
     if result != 0:
         log_error("Rebuild failed")

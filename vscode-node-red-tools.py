@@ -57,71 +57,8 @@ from helper.commands_plugin import (
     list_plugins_command,
 )
 
-# Import constants
-from helper import DEFAULT_POLL_INTERVAL
+from helper.initialize import initialize_system
 
-# CLI-specific constant (not in helper/constants.py as it's CLI-only)
-DEFAULT_DEBOUNCE = 2.0  # seconds
-
-
-# ============================================================================
-# Helper Functions
-# ============================================================================
-
-
-def parse_plugin_list(value: str) -> List[str]:
-    """Parse comma-separated plugin list from CLI argument
-
-    Args:
-        value: Comma-separated string like "plugin1,plugin2" or "all"
-
-    Returns:
-        List of plugin names, with whitespace stripped
-    """
-    if not value:
-        return []
-    return [name.strip() for name in value.split(",") if name.strip()]
-
-
-def preload_plugins(args, repo_root: Path = None):
-    """Preload plugins once for all commands
-
-    Args:
-        args: Parsed command line arguments
-        repo_root: Repository root (inferred from flows path if not provided)
-
-    Returns:
-        tuple: (plugins_dict, plugin_config, repo_root)
-    """
-    from helper import load_config, load_plugins
-
-    # Infer repo root from flows path if not provided
-    if repo_root is None:
-        flows_path = Path(args.flows)
-        repo_root = (
-            flows_path.parent.parent
-            if flows_path.parent.name == "flows"
-            else Path.cwd()
-        )
-
-    # Load config
-    config_path = Path(args.config).resolve() if hasattr(args, 'config') and args.config else None
-    plugin_config = load_config(repo_root, config_path)
-
-    # Parse enable/disable lists
-    enabled_override = parse_plugin_list(args.enable) if args.enable else None
-    disabled_override = parse_plugin_list(args.disable) if args.disable else None
-
-    # Load plugins
-    plugins_dict = load_plugins(
-        repo_root,
-        plugin_config,
-        enabled_override=enabled_override,
-        disabled_override=disabled_override,
-        quiet=False,  # Show plugins on first load
-    )
-
-    return (plugins_dict, plugin_config, repo_root)
 
 
 # ============================================================================
@@ -301,18 +238,6 @@ def main():
         help="Path to file containing bearer token",
     )
     watch_parser.add_argument(
-        "--poll-interval",
-        type=int,
-        default=DEFAULT_POLL_INTERVAL,
-        help=f"Polling interval in seconds (default: {DEFAULT_POLL_INTERVAL})",
-    )
-    watch_parser.add_argument(
-        "--debounce",
-        type=float,
-        default=DEFAULT_DEBOUNCE,
-        help=f"Debounce time in seconds for local file changes (default: {DEFAULT_DEBOUNCE})",
-    )
-    watch_parser.add_argument(
         "--no-verify-ssl", action="store_true", help="Disable SSL verification"
     )
     watch_parser.add_argument(
@@ -381,38 +306,36 @@ def main():
     args = parser.parse_args()
 
     try:
+        # --- Main command dispatch ---
+        # Setup (config, credentials, plugins, repo_root)
+        init = initialize_system(args)
+        if init is None:
+            return 1
+        config, plugins_dict, credentials, repo_root = init
+        flows_path = Path(args.flows).resolve()
+        src_path = Path(args.src).resolve()
+
+        # Command dispatch
+
         # Commands that don't need plugins
         if args.command == "validate-config":
-            config_path = Path(args.config).resolve() if args.config else None
-            return validate_config(config_path)
-
+            return validate_config(config, credentials)
         elif args.command == "new-plugin":
             priority = args.priority if hasattr(args, "priority") else None
             return new_plugin_command(args.name, args.type, priority)
-
-        # All other commands need plugins - preload them once
-        plugins_dict, plugin_config, repo_root = preload_plugins(args)
-
-        if args.command == "list-plugins":
-            return list_plugins_command(repo_root, plugins_dict, plugin_config)
-
+        elif args.command == "list-plugins":
+            return list_plugins_command(repo_root, plugins_dict, config)
         elif args.command == "watch":
-            # Watch mode uses preloaded plugins
-            flows_path = Path(args.flows).resolve()
-            src_path = Path(args.src).resolve()
             return watch_mode(
                 args,
                 flows_path,
                 src_path,
                 plugins_dict=plugins_dict,
-                plugin_config=plugin_config,
+                config=config,
                 repo_root=repo_root,
+                credentials=credentials,
             )
-
-        if args.command == "explode":
-            flows_path = Path(args.flows).resolve()
-            src_path = Path(args.src).resolve()
-
+        elif args.command == "explode":
             return explode_flows(
                 flows_path,
                 src_path,
@@ -422,11 +345,7 @@ def main():
                 plugins_dict=plugins_dict,
                 repo_root=repo_root,
             )
-
         elif args.command == "rebuild":
-            flows_path = Path(args.flows).resolve()
-            src_path = Path(args.src).resolve()
-
             return rebuild_flows(
                 flows_path,
                 src_path,
@@ -437,61 +356,45 @@ def main():
                 plugins_dict=plugins_dict,
                 repo_root=repo_root,
             )
-
         elif args.command == "verify":
-            flows_path = Path(args.flows).resolve()
-
             return verify_flows(
                 flows_path,
                 plugins_dict=plugins_dict,
-                plugin_config=plugin_config,
+                config=config,
                 repo_root=repo_root,
             )
-
         elif args.command == "diff":
-            flows_path = Path(args.flows).resolve()
-            src_path = Path(args.src).resolve()
-            verify_ssl = not args.no_verify_ssl
-
             return diff_flows(
                 args.source,
                 args.target,
                 flows_path,
                 src_path,
-                args.server,
-                args.username,
-                args.password,
-                verify_ssl,
+                credentials,
                 args.bcomp,
                 plugins_dict=plugins_dict,
                 repo_root=repo_root,
                 context=args.context,
             )
-
         elif args.command == "stats":
-            flows_path = Path(args.flows).resolve()
-            src_path = Path(args.src).resolve()
-
             return stats_command(
                 flows_path,
                 src_path,
                 plugins_dict=plugins_dict,
-                plugin_config=plugin_config,
+                config=config,
                 repo_root=repo_root,
             )
-
         elif args.command == "benchmark":
-            flows_path = Path(args.flows).resolve()
-            src_path = Path(args.src).resolve()
-
             return benchmark_command(
                 flows_path,
                 src_path,
                 plugins_dict=plugins_dict,
-                plugin_config=plugin_config,
+                config=config,
                 repo_root=repo_root,
                 iterations=args.iterations,
             )
+        else:
+            log_error(f"Unknown command: {args.command}")
+            return 1
 
     except KeyboardInterrupt:
         print("\nInterrupted by user")

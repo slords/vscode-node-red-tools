@@ -25,8 +25,7 @@ except ImportError:
     WATCH_AVAILABLE = False
 
 from .logging import log_info, log_success, log_warning, log_error
-from .config import load_config
-from .plugin_loader import load_plugins
+ 
 from .rebuild import rebuild_flows
 from .dashboard import WatchConfig
 from .watcher_server import authenticate, deploy_to_nodered
@@ -38,7 +37,7 @@ from .constants import (
 )
 
 
-def load_plugins_for_watch(config: WatchConfig) -> bool:
+def load_plugins_for_watch(watch_config: WatchConfig) -> bool:
     """Load plugins and cache them in WatchConfig
 
     Also loads watch-specific config options (convergence limits, etc.)
@@ -49,24 +48,11 @@ def load_plugins_for_watch(config: WatchConfig) -> bool:
     try:
         from .constants import DEFAULT_CONVERGENCE_LIMIT, DEFAULT_CONVERGENCE_WINDOW
 
-        config.plugin_config = load_config(config.repo_root, config_path=None)
+        watch_config.convergence_limit = DEFAULT_CONVERGENCE_LIMIT
+        watch_config.convergence_window = DEFAULT_CONVERGENCE_WINDOW
 
-        # Load watch-specific config options
-        watch_config = config.plugin_config.get("watch", {})
-        config.convergence_limit = watch_config.get(
-            "convergenceLimit", DEFAULT_CONVERGENCE_LIMIT
-        )
-        config.convergence_window = watch_config.get(
-            "convergenceWindow", DEFAULT_CONVERGENCE_WINDOW
-        )
-
-        config.plugins_dict = load_plugins(
-            config.repo_root,
-            config.plugin_config,
-            enabled_override=config.enabled_override,
-            disabled_override=config.disabled_override,
-            quiet=False,  # Show plugins on initial load
-        )
+        # Plugins should be loaded by initialize_system and passed in; this is legacy support only.
+        raise RuntimeError("load_plugins_for_watch should not be used; plugins_dict should be preloaded and passed in.")
         return True
     except Exception as e:
         log_error(f"Failed to load plugins: {e}")
@@ -79,14 +65,14 @@ if WATCH_AVAILABLE:
     class SrcFileHandler(FileSystemEventHandler):
         """Handles file system events in src/ directory"""
 
-        def __init__(self, config: WatchConfig) -> None:
-            self.config = config
+        def __init__(self, watch_config: WatchConfig) -> None:
+            self.watch_config = watch_config
 
         def on_modified(self, event) -> None:
             if event.is_directory:
                 return
 
-            if self.config.pause_watching:
+            if self.watch_config.pause_watching:
                 return
 
             path = Path(event.src_path)
@@ -96,24 +82,24 @@ if WATCH_AVAILABLE:
                 return
 
             # Record change
-            self.config.last_file_change_time = time.time()
-            self.config.rebuild_pending = True
+            self.watch_config.last_file_change_time = time.time()
+            self.watch_config.rebuild_pending = True
 
             # Log activity
-            if self.config.dashboard:
-                self.config.dashboard.log_activity(f"File changed: {path.name}")
+            if self.watch_config.dashboard:
+                self.watch_config.dashboard.log_activity(f"File changed: {path.name}")
 
-    def poll_nodered(config: WatchConfig) -> None:
+    def poll_nodered(watch_config: WatchConfig) -> None:
         """Periodic polling of Node-RED with exponential backoff retry"""
         consecutive_failures = 0
         max_retries = MAX_NETWORK_RETRIES
         base_delay = RETRY_BASE_DELAY
 
-        while not config.shutdown_requested:
-            time.sleep(config.poll_interval)
+        while not watch_config.shutdown_requested:
+            time.sleep(watch_config.poll_interval)
 
             # Check again after sleep (shutdown may have been requested)
-            if config.shutdown_requested:
+            if watch_config.shutdown_requested:
                 log_info("Polling thread exiting gracefully...")
                 break
 
@@ -135,7 +121,7 @@ if WATCH_AVAILABLE:
                     )
                     consecutive_failures = 0
 
-    def handle_command(config: WatchConfig, command: str) -> None:
+    def handle_command(watch_config: WatchConfig, command: str) -> None:
         """Handle interactive commands
 
         Supports both full command names and single-character shortcuts:
@@ -169,9 +155,9 @@ if WATCH_AVAILABLE:
         elif command in ["q", "quit", "exit"]:
             log_info("Initiating graceful shutdown...")
             config.request_shutdown()
-            if config.dashboard:
+            if watch_config.dashboard:
                 # Dashboard mode: exit the Textual app
-                config.dashboard.stop()
+                watch_config.dashboard.stop()
             # Note: Threads will exit gracefully via shutdown flag check
 
         elif command in ["s", "status"]:
@@ -179,41 +165,41 @@ if WATCH_AVAILABLE:
             log_info("=== Watch Mode Status ===")
 
             # Server info
-            log_info(f"Server: {config.server_url}")
-            status_text = "Connected" if config.session else "Disconnected"
+            log_info(f"Server: {watch_config.server_url}")
+            status_text = "Connected" if watch_config.session else "Disconnected"
             log_info(f"Status: {status_text}")
             log_info(f"Username: {config.username}")
             log_info("")
 
             # Sync state
             log_info("Synchronization:")
-            etag = config.last_etag or "(none)"
-            rev = config.last_rev or "(none)"
+            etag = watch_config.last_etag or "(none)"
+            rev = watch_config.last_rev or "(none)"
             log_info(f"  ETag: {etag}")
             log_info(f"  Rev: {rev}")
             log_info("")
 
             # Statistics (always show)
             log_info("Statistics:")
-            log_info(f"  Downloads: {config.download_count}")
-            log_info(f"  Uploads: {config.upload_count}")
+            log_info(f"  Downloads: {watch_config.download_count}")
+            log_info(f"  Uploads: {watch_config.upload_count}")
             log_info(f"  Errors: {config.error_count}")
 
             # Last sync times
-            if config.last_download_time or config.last_upload_time:
+            if watch_config.last_download_time or watch_config.last_upload_time:
                 log_info("")
-                if config.last_download_time:
+                if watch_config.last_download_time:
                     from datetime import datetime
 
                     ago = int(
-                        (datetime.now() - config.last_download_time).total_seconds()
+                        (datetime.now() - watch_config.last_download_time).total_seconds()
                     )
                     log_info(f"  Last download: {ago}s ago")
-                if config.last_upload_time:
+                if watch_config.last_upload_time:
                     from datetime import datetime
 
                     ago = int(
-                        (datetime.now() - config.last_upload_time).total_seconds()
+                        (datetime.now() - watch_config.last_upload_time).total_seconds()
                     )
                     log_info(f"  Last upload: {ago}s ago")
 
@@ -224,11 +210,11 @@ if WATCH_AVAILABLE:
         elif command in ["u", "upload"]:
             log_info("Manual upload triggered (force rebuild)...")
             result = rebuild_flows(
-                config.flows_file,
-                config.src_dir,
+                watch_config.flows_file,
+                watch_config.src_dir,
                 quiet_plugins=True,
-                plugins_dict=config.plugins_dict,
-                repo_root=config.repo_root,
+                plugins_dict=watch_config.plugins_dict,
+                repo_root=watch_config.repo_root,
             )
             if result == 0:
                 deploy_to_nodered(config)
@@ -241,23 +227,23 @@ if WATCH_AVAILABLE:
         elif command in ["c", "check"]:
             log_info("Manual check triggered...")
             # Save original
-            with open(config.flows_file, "r") as f:
+            with open(watch_config.flows_file, "r") as f:
                 original = json.load(f)
 
             # Rebuild
             result = rebuild_flows(
-                config.flows_file,
-                config.src_dir,
+                watch_config.flows_file,
+                watch_config.src_dir,
                 quiet_plugins=True,
-                plugins_dict=config.plugins_dict,
-                repo_root=config.repo_root,
+                plugins_dict=watch_config.plugins_dict,
+                repo_root=watch_config.repo_root,
             )
             if result != 0:
                 log_error("Rebuild failed")
                 return
 
             # Compare
-            with open(config.flows_file, "r") as f:
+            with open(watch_config.flows_file, "r") as f:
                 rebuilt = json.load(f)
 
             if original != rebuilt:
@@ -272,8 +258,8 @@ if WATCH_AVAILABLE:
             # Build list of module names and plugin names from currently loaded plugins
             modules_to_reload = set()
             plugin_names_to_reload = []
-            if config.plugins_dict:
-                for plugin_type, plugins in config.plugins_dict.items():
+            if watch_config.plugins_dict:
+                for plugin_type, plugins in watch_config.plugins_dict.items():
                     for plugin in plugins:
                         # Get the module name from the plugin's class
                         module = plugin.__class__.__module__
@@ -287,38 +273,24 @@ if WATCH_AVAILABLE:
                         del sys.modules[module_name]
 
                 # Reload only the plugins that were loaded (ignore global enable/disable)
-                from .plugin_loader import load_plugins
-
-                config.plugins_dict = load_plugins(
-                    config.repo_root,
-                    config.plugin_config,
-                    enabled_override=plugin_names_to_reload,
-                    disabled_override=None,
-                    quiet=False,
-                )
-
-                # Count plugins
-                total = sum(
-                    len(config.plugins_dict[key]) for key in config.plugins_dict
-                )
-                log_success(f"Reloaded {total} plugins")
+                raise RuntimeError("Plugin reload should be handled by re-initializing system with new config; direct load_plugins is deprecated.")
             else:
                 log_info("No plugins loaded to reload")
 
         else:
             log_error(f"Unknown command: {command}")
 
-    def watch_src_and_rebuild(config: WatchConfig) -> None:
+    def watch_src_and_rebuild(watch_config: WatchConfig) -> None:
         """Watch src/ for changes and rebuild"""
         event_handler = SrcFileHandler(config)
         observer = Observer()
-        observer.schedule(event_handler, str(config.src_dir), recursive=True)
+        observer.schedule(event_handler, str(watch_config.src_dir), recursive=True)
         observer.start()
 
-        log_success(f"Watching {config.src_dir} for changes")
+        log_success(f"Watching {watch_config.src_dir} for changes")
 
         # Only show help message if not using dashboard
-        if not config.dashboard:
+        if not watch_config.dashboard:
             log_info("Type '?' or 'help' for available commands")
 
         consecutive_failures = 0
@@ -328,12 +300,12 @@ if WATCH_AVAILABLE:
             import select
             import sys
 
-            while not config.shutdown_requested:
+            while not watch_config.shutdown_requested:
                 # Check for rebuild pending
-                if config.rebuild_pending:
-                    time_since_last_change = time.time() - config.last_file_change_time
-                    if time_since_last_change >= config.debounce_seconds:
-                        config.rebuild_pending = False
+                if watch_config.rebuild_pending:
+                    time_since_last_change = time.time() - watch_config.last_file_change_time
+                    if time_since_last_change >= watch_config.debounce_seconds:
+                        watch_config.rebuild_pending = False
 
                         # Check failure counter
                         if consecutive_failures >= max_consecutive_failures:
@@ -345,7 +317,7 @@ if WATCH_AVAILABLE:
                             )
                         else:
                             # Pause file watcher during rebuild to prevent infinite loop
-                            config.pause_watching = True
+                            watch_config.pause_watching = True
                             try:
                                 success = rebuild_and_deploy(config)
                                 if success:
@@ -357,7 +329,7 @@ if WATCH_AVAILABLE:
                                     )
                             finally:
                                 # Always resume file watcher
-                                config.pause_watching = False
+                                watch_config.pause_watching = False
 
                 # Check for user input (non-blocking)
                 if select.select([sys.stdin], [], [], 0)[0]:
@@ -365,11 +337,11 @@ if WATCH_AVAILABLE:
                     if command:
                         handle_command(config, command)
                         # If shutdown was requested by the command, break immediately
-                        if config.shutdown_requested:
+                        if watch_config.shutdown_requested:
                             break
 
                 # If shutdown was requested by another thread, break immediately
-                if config.shutdown_requested:
+                if watch_config.shutdown_requested:
                     break
 
                 time.sleep(0.1)
@@ -381,11 +353,11 @@ if WATCH_AVAILABLE:
             log_info("Keyboard interrupt received - initiating graceful shutdown...")
             config.request_shutdown()
             # Wait for any ongoing rebuild to complete
-            if config.pause_watching:
+            if watch_config.pause_watching:
                 log_info("Waiting for ongoing rebuild/deploy to complete...")
                 # Give it up to 30 seconds to finish
                 for _ in range(300):
-                    if not config.pause_watching:
+                    if not watch_config.pause_watching:
                         break
                     time.sleep(0.1)
         # Always stop observer after main loop or exception
@@ -394,32 +366,14 @@ if WATCH_AVAILABLE:
         log_success("Watch mode shutdown complete")
 
 
-def perform_initial_setup(config: WatchConfig) -> bool:
-    """Perform initial authentication and plugin loading
-
-    Note: Initial sync happens automatically on first poll (etag=None triggers download)
-    """
-    # Create src/ if doesn't exist
-    if not config.src_dir.exists():
-        log_info(f"Creating source directory: {config.src_dir}")
-        config.src_dir.mkdir(parents=True, exist_ok=True)
-
-    # Authenticate
-    log_info("Connecting to Node-RED...")
-    if not authenticate(config):
-        return False
-
-    log_info("Watch mode ready - initial sync will happen on first poll")
-    return True
-
-
 def watch_mode(
     args,
     flows_path: Path,
     src_path: Path,
     plugins_dict: dict = None,
-    plugin_config: dict = None,
+    config: dict = None,
     repo_root: Path = None,
+    credentials=None,
 ) -> int:
     """Watch mode - bidirectional sync with Node-RED
 
@@ -428,59 +382,62 @@ def watch_mode(
         flows_path: Path to flows.json
         src_path: Path to source directory
         plugins_dict: Pre-loaded plugins dictionary (avoids re-loading)
-        plugin_config: Pre-loaded plugin configuration
+        config: Pre-loaded configuration
         repo_root: Repository root path
+        credentials: Authentication credentials
     """
     if not WATCH_AVAILABLE:
         log_error("Watch mode requires: pip install requests watchdog")
         return 1
 
+    watch_config = None
     try:
-        config = WatchConfig(args, flows_path, src_path)
+        # Use provided config; error if missing
+        if config is None:
+            log_error("No config provided to watch_mode")
+            return 1
+        if credentials is None:
+            log_error("No credentials provided to watch_mode")
+            return 1
+
+        watch_config = WatchConfig(args, flows_path, src_path)
 
         # Use preloaded plugins if provided
         if plugins_dict is not None:
-            config.plugins_dict = plugins_dict
-            config.plugin_config = plugin_config
-            config.repo_root = repo_root
+            watch_config.plugins_dict = plugins_dict
+            watch_config.config = config
+            watch_config.repo_root = repo_root
+            watch_config.credentials = credentials
 
-            # Load watch-specific config options
+            # Always use the constants for convergence settings
             from .constants import DEFAULT_CONVERGENCE_LIMIT, DEFAULT_CONVERGENCE_WINDOW
-
-            watch_config = plugin_config.get("watch", {})
-            config.convergence_limit = watch_config.get(
-                "convergenceLimit", DEFAULT_CONVERGENCE_LIMIT
-            )
-            config.convergence_window = watch_config.get(
-                "convergenceWindow", DEFAULT_CONVERGENCE_WINDOW
-            )
+            watch_config.convergence_limit = DEFAULT_CONVERGENCE_LIMIT
+            watch_config.convergence_window = DEFAULT_CONVERGENCE_WINDOW
 
         # Set command handler for dashboard
-        config.command_handler = handle_command
+        watch_config.command_handler = handle_command
 
-        if config.dashboard:
-            # Dashboard mode: Start dashboard in main thread, run setup in background
-            import threading
-
-            # Flag to track setup completion
+        if watch_config.dashboard:
             setup_complete = threading.Event()
             setup_success = [False]  # Use list for mutability in closure
 
             def startup_worker():
-                """Background thread for initial setup"""
-                success = perform_initial_setup(config)
-                setup_success[0] = success
-                if success:
-                    # Start background threads after setup completes
-                    poll_thread = threading.Thread(
-                        target=poll_nodered, args=(config,), daemon=True
-                    )
-                    poll_thread.start()
+                """Background thread for initial setup."""
+                # Inline: Create src/ if doesn't exist
+                if not watch_config.src_dir.exists():
+                    log_info(f"Creating source directory: {watch_config.src_dir}")
+                    watch_config.src_dir.mkdir(parents=True, exist_ok=True)
+                setup_success[0] = True
+                # Start background threads after setup completes
+                poll_thread = threading.Thread(
+                    target=poll_nodered, args=(watch_config,), daemon=True
+                )
+                poll_thread.start()
 
-                    watch_thread = threading.Thread(
-                        target=watch_src_and_rebuild, args=(config,), daemon=True
-                    )
-                    watch_thread.start()
+                watch_thread = threading.Thread(
+                    target=watch_src_and_rebuild, args=(watch_config,), daemon=True
+                )
+                watch_thread.start()
                 setup_complete.set()
 
             # Start setup in background
@@ -488,8 +445,8 @@ def watch_mode(
             setup_thread.start()
 
             # Start dashboard in main thread (blocks until user exits)
-            config.dashboard.start()
-            config.dashboard.run()
+            watch_config.dashboard.start()
+            watch_config.dashboard.run()
 
             # Check if setup completed successfully
             if not setup_complete.is_set():
@@ -502,31 +459,31 @@ def watch_mode(
             return 0
         else:
             # Non-dashboard mode: Traditional synchronous startup
-            if not perform_initial_setup(config):
-                return 1
+            # Create src/ if doesn't exist
+            if not watch_config.src_dir.exists():
+                log_info(f"Creating source directory: {watch_config.src_dir}")
+                watch_config.src_dir.mkdir(parents=True, exist_ok=True)
 
             try:
                 import threading
 
                 # Start polling thread
                 poll_thread = threading.Thread(
-                    target=poll_nodered, args=(config,), daemon=True
+                    target=poll_nodered, args=(watch_config,), daemon=True
                 )
                 poll_thread.start()
 
                 # Run file watcher in main thread
-                watch_src_and_rebuild(config)
+                watch_src_and_rebuild(watch_config)
                 return 0
 
             except KeyboardInterrupt:
-                log_info("Keyboard interrupt received - initiating graceful shutdown...")
-                config.request_shutdown()
+                watch_config.request_shutdown()
                 # Give threads a moment to see shutdown flag
                 time.sleep(0.5)
                 return 0
-
     finally:
         # Stop dashboard on exit
-        if config.dashboard:
-            config.dashboard.stop()
+        if watch_config.dashboard:
+            watch_config.dashboard.stop()
         log_info("Watch mode cleanup complete")
