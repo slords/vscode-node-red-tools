@@ -11,6 +11,8 @@ Handles high-level download/explode orchestration:
 """
 
 import json
+import os
+import time
 from datetime import datetime
 from pathlib import Path
 
@@ -202,15 +204,19 @@ def _run_post_explode_download_stage(
         watch_config.pause_watching = False
 
 
-def download_from_nodered(
+def sync_from_server(
     watch_config: WatchConfig, force: bool = False, count_stats: bool = True
 ) -> bool:
-    """Download flows from Node-RED and explode
+    """Synchronize from Node-RED server: download, explode, run plugins
+
+    Downloads flows from server, explodes to src/ directory, runs pre/post-explode
+    plugins, and re-uploads if plugins made changes. This is the main sync operation
+    for watch mode polling.
 
     Args:
-        config: Watch configuration
+        watch_config: Watch configuration
         force: If True, skip ETag check and always download (for manual download command)
-        count_stats: If True, count this download in statistics (False for convergence cycles)
+        count_stats: If True, count this download in statistics (False for stability checks)
 
     Returns:
         True if successful, False on error
@@ -229,13 +235,7 @@ def download_from_nodered(
         if sc.last_rev:
             log_info(f"Current server rev: {sc.last_rev}")
 
-        # Ensure flows directory exists
-        watch_config.flows_file.parent.mkdir(parents=True, exist_ok=True)
-
-        # Write to flows file - compact format
-        watch_config.flows_file.write_text(
-            json.dumps(flows, separators=(",", ":"), ensure_ascii=False) + "\n"
-        )
+        # flows file already written by get_and_store_flows()
 
         # Use cached plugins (loaded once at startup)
         plugins_dict = watch_config.plugins_dict
@@ -308,6 +308,11 @@ def download_from_nodered(
 
         log_success("Download and explode complete")
 
+        # Flush filesystem buffers and wait briefly for pending writes to complete
+        # This ensures the file watcher sees all writes before we clear its state
+        os.sync()
+        time.sleep(0.1)  # Brief pause to let file system events settle
+
         # Clear file watcher state to prevent false rebuild triggers
         # (explode/post-explode wrote files from server, not user edits)
         watch_config.clear_file_watcher_state()
@@ -346,6 +351,10 @@ def rebuild_and_deploy(watch_config: WatchConfig) -> bool:
     sc = getattr(watch_config, "server_client", None)
     if not sc or not sc.deploy_flows(json.loads(watch_config.flows_file.read_text())):
         return False
+
+    # Flush filesystem buffers and wait briefly for pending writes to complete
+    os.sync()
+    time.sleep(0.1)  # Brief pause to let file system events settle
 
     # Clear file watcher state to prevent false rebuild triggers
     # (deploy completed successfully, already synced with server)
