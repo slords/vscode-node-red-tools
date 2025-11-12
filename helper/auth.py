@@ -1,334 +1,233 @@
-"""
-Authentication and credential resolution for Node-RED server connections
+"""Slim authentication config and resolution.
 
-Handles secure credential resolution from multiple sources with priority ordering.
+Provides minimal AuthConfig dataclass + resolve_auth_config function used by ServerClient.
+No legacy ServerCredentials class anymore - all server interaction is now via ServerClient.
+
+Priority (URL): args.server > config.server.url > default
+Priority (verify_ssl): args.no_verify_ssl overrides (False) > config.server.verifySSL > True
+Priority (auth):
+ 1. args.token_file
+ 2. args.token
+ 3. args.username/password (CLI + resolution chain for password)
+ 4. config.server.tokenFile
+ 5. config.server.token
+ 6. config.server.username/password
+ 7. standard token file locations (./.nodered-token, ~/.nodered-token)
+ 8. NODERED_TOKEN env var
+ 9. anonymous
 """
+
+from __future__ import annotations
 
 import os
 import getpass
-from pathlib import Path
-from typing import Optional, Tuple
 from dataclasses import dataclass
+from pathlib import Path
+from typing import Optional, Any
 
 from .logging import log_info, log_warning, log_error
 
 
-@dataclass
-class ServerCredentials:
-    """Resolved server credentials, with provenance for troubleshooting"""
-
+@dataclass(slots=True)
+class AuthConfig:
     url: str
-    auth_type: str  # 'none', 'basic', 'bearer'
+    auth_type: str  # 'none' | 'basic' | 'bearer'
+    verify_ssl: bool
     username: Optional[str] = None
     password: Optional[str] = None
     token: Optional[str] = None
-    verify_ssl: bool = True
-    sources: dict = None  # e.g. {'url': 'CLI parameter', 'token': 'env', ...}
+    sources: dict | None = None  # provenance for debugging
 
-    def __post_init__(self):
+    def __post_init__(self):  # pragma: no cover - trivial
         if self.sources is None:
             self.sources = {}
 
 
-def read_token_file(token_file_path: Path) -> Optional[str]:
-    """Read token from file, stripping whitespace
-
-    Args:
-        token_file_path: Path to token file
-
-    Returns:
-        Token string or None if file doesn't exist or is empty
-    """
+def _read_token_file(path: Path) -> Optional[str]:
     try:
-        if token_file_path.exists():
-            token = token_file_path.read_text().strip()
+        if path.exists():
+            token = path.read_text().strip()
             if token:
-                log_info(f"Loaded token from: {token_file_path}")
+                log_info(f"Loaded token from: {path}")
                 return token
-    except Exception as e:
-        log_warning(f"Failed to read token file {token_file_path}: {e}")
+    except Exception as e:  # pragma: no cover - filesystem edge
+        log_warning(f"Failed to read token file {path}: {e}")
     return None
 
 
-def find_token_file() -> Optional[str]:
-    """Search standard locations for token file
-
-    Searches in priority order:
-    1. ./.nodered-token (current directory)
-    2. ~/.nodered-token (user home)
-
-    Returns:
-        Token string or None if not found
-    """
-    search_paths = [
-        Path.cwd() / ".nodered-token",
-        Path.home() / ".nodered-token",
-    ]
-
-    for path in search_paths:
-        token = read_token_file(path)
-        if token:
-            return token
-
+def _find_standard_token() -> Optional[str]:
+    for p in [Path.cwd() / ".nodered-token", Path.home() / ".nodered-token"]:
+        t = _read_token_file(p)
+        if t:
+            return t
     return None
 
 
-def resolve_password(
-    password_param: Optional[str],
-    password_config: Optional[str],
-    username: str,
-    show_param_warning: bool = True,
-) -> Optional[str]:
-    """Resolve password from multiple sources
-
-    Priority order:
-    1. CLI parameter (with warning)
-    2. Config file
-    3. NODERED_PASSWORD environment variable
-    4. Secure prompt
-
-    Args:
-        password_param: Password from CLI parameter
-        password_config: Password from config file
-        username: Username (for prompt message)
-        show_param_warning: Whether to show warning for CLI parameter
-
-    Returns:
-        Resolved password or None
-    """
-    # 1. CLI parameter (with warning)
-    if password_param:
-        if show_param_warning:
-            log_warning(
-                "⚠️  WARNING: Passing password via CLI parameter is insecure. "
-                "Use NODERED_PASSWORD environment variable instead."
-            )
-        return password_param
-
-    # 2. Config file
-    if password_config:
+def _resolve_password(param: Optional[str], cfg: Optional[str], username: str) -> Optional[str]:
+    if param:
+        log_warning(
+            "⚠️  WARNING: Passing password via CLI is insecure; prefer NODERED_PASSWORD env variable."
+        )
+        return param
+    if cfg:
         log_info("Using password from config file")
-        return password_config
-
-    # 3. Environment variable
-    env_password = os.environ.get("NODERED_PASSWORD")
-    if env_password:
+        return cfg
+    env_pw = os.environ.get("NODERED_PASSWORD")
+    if env_pw:
         log_info("Using password from NODERED_PASSWORD environment variable")
-        return env_password
-
-    # 4. Secure prompt
+        return env_pw
     try:
-        log_info(f"Password required for user '{username}'")
-        password = getpass.getpass(f"Enter password for '{username}': ")
-        if password:
-            return password
+        log_info(f"Prompting for password for user '{username}'")
+        pw = getpass.getpass(f"Enter password for '{username}': ")
+        if pw:
+            return pw
     except (KeyboardInterrupt, EOFError):
         log_error("Password input cancelled")
         return None
-
     return None
 
 
-def resolve_credentials(
-    args,
-    config: dict,
-) -> Optional[ServerCredentials]:
-    """Resolve server credentials from all sources
+def resolve_auth_config(args: Any, config: dict) -> AuthConfig:
+    server_cfg = config.get("server", {})
 
-    Priority order for authentication:
-    1. --token-file parameter
-    2. --token parameter
-    3. --username/--password parameters
-    4. config.server.tokenFile
-    5. config.server.token
-    6. config.server.username/password
-    7. Token file search (./.nodered-token, ~/.nodered-token)
-    8. NODERED_TOKEN environment variable
-    9. No authentication (local mode)
-
-    Args:
-        args: Namespace of parsed CLI arguments (should have .server, .username, .password, .token, .token_file, .no_verify_ssl)
-        config: Configuration dictionary
-
-    Returns:
-        ServerCredentials or None if resolution fails
-    """
-    # Extract server config group
-    server_config = config.get("server", {})
-
-    # Get server URL (parameter > config > default)
-    server_param = getattr(args, "server", None)
-    if server_param:
-        server_url = server_param
-        url_source = "CLI parameter"
-    elif "url" in server_config:
-        server_url = server_config["url"]
-        url_source = "config file"
+    # URL
+    param_url = getattr(args, "server", None)
+    if param_url:
+        url = param_url
+        url_src = "CLI parameter"
+    elif server_cfg.get("url"):
+        url = server_cfg["url"]
+        url_src = "config file"
     else:
-        server_url = "http://127.0.0.1:1880"
-        url_source = "default"
+        url = "http://127.0.0.1:1880"
+        url_src = "default"
+    log_info(f"Server URL: {url}")
 
-    log_info(f"Server URL: {server_url}")
-
-    # Get SSL verification setting (parameter overrides config)
-    no_verify_ssl = getattr(args, "no_verify_ssl", None)
-    if no_verify_ssl is not None:
-        # If --no-verify-ssl is present and True, set verify_ssl to False
-        verify_ssl = not no_verify_ssl
-        verify_ssl_source = "CLI parameter"
-    elif "verifySSL" in server_config:
-        verify_ssl = server_config.get("verifySSL", True)
-        verify_ssl_source = "config file"
+    # verify_ssl
+    if getattr(args, "no_verify_ssl", False) is True:
+        verify_ssl = False
+        verify_src = "CLI parameter (--no-verify-ssl)"
+    elif "verifySSL" in server_cfg:
+        verify_ssl = bool(server_cfg.get("verifySSL", True))
+        verify_src = "config file"
     else:
         verify_ssl = True
-        verify_ssl_source = "default"
+        verify_src = "default"
 
-    # =========================================================================
-    # Token Resolution Chain
-    # =========================================================================
+    # Token chain
+    token: Optional[str] = None
+    token_src: Optional[str] = None
 
-    token = None
-    token_source = None
-
-    # 1. --token-file parameter
     token_file_param = getattr(args, "token_file", None)
     if token_file_param:
-        token_path = Path(token_file_param)
-        token = read_token_file(token_path)
+        token = _read_token_file(Path(token_file_param))
         if token:
-            token_source = "CLI parameter (--token-file)"
+            token_src = "CLI parameter (--token-file)"
 
-    # 2. --token parameter
-    token_param = getattr(args, "token", None)
-    if not token and token_param:
-        token = token_param
-        token_source = "CLI parameter (--token)"
-        log_warning(
-            "⚠️  WARNING: Passing token via CLI parameter is insecure. "
-            "Use NODERED_TOKEN environment variable or token file instead."
-        )
+    if not token:
+        token_param = getattr(args, "token", None)
+        if token_param:
+            token = token_param
+            token_src = "CLI parameter (--token)"
+            log_warning(
+                "⚠️  WARNING: Passing token via CLI is insecure; prefer NODERED_TOKEN env or token file."
+            )
 
-    # 3. Check if we have username from parameter (skip to username/password auth)
     username_param = getattr(args, "username", None)
-    has_param_username = username_param is not None
+    has_username_param = username_param is not None
 
-    # 4. config.server.tokenFile
-    if not token and not has_param_username:
-        token_file_config = server_config.get("tokenFile")
-        if token_file_config:
-            token_path = Path(token_file_config)
-            token = read_token_file(token_path)
+    if not token and not has_username_param:
+        token_file_cfg = server_cfg.get("tokenFile")
+        if token_file_cfg:
+            token = _read_token_file(Path(token_file_cfg))
             if token:
-                token_source = "config file (tokenFile)"
+                token_src = "config file (tokenFile)"
 
-    # 5. config.server.token
-    if not token and not has_param_username:
-        token_config = server_config.get("token")
-        if token_config:
-            token = token_config
-            token_source = "config file (token)"
+    if not token and not has_username_param:
+        token_cfg = server_cfg.get("token")
+        if token_cfg:
+            token = token_cfg
+            token_src = "config file (token)"
 
-    # 6. Check if we have username from config (skip to username/password auth)
-    has_config_username = server_config.get("username") is not None
+    has_username_cfg = server_cfg.get("username") is not None
 
-    # 7. Token file search
-    if not token and not has_param_username and not has_config_username:
-        token = find_token_file()
+    if not token and not has_username_param and not has_username_cfg:
+        token = _find_standard_token()
         if token:
-            token_source = "standard token file location"
+            token_src = "standard token file"
 
-    # 8. NODERED_TOKEN environment variable
-    if not token and not has_param_username and not has_config_username:
+    if not token and not has_username_param and not has_username_cfg:
         env_token = os.environ.get("NODERED_TOKEN")
         if env_token:
             token = env_token
-            token_source = "NODERED_TOKEN environment variable"
+            token_src = "env var NODERED_TOKEN"
 
-    # If we found a token, use bearer authentication
     if token:
-        log_info(f"Using bearer token authentication (source: {token_source})")
-        return ServerCredentials(
-            url=server_url,
+        log_info(f"Using bearer token authentication (source: {token_src})")
+        return AuthConfig(
+            url=url,
             auth_type="bearer",
-            token=token,
             verify_ssl=verify_ssl,
+            token=token,
             sources={
-                "url": url_source,
+                "url": url_src,
                 "auth_type": "bearer",
-                "token": token_source,
-                "verify_ssl": verify_ssl_source,
+                "token": token_src,
+                "verify_ssl": verify_src,
             },
         )
 
-    # =========================================================================
-    # Username/Password Resolution Chain
-    # =========================================================================
+    # Username/password chain
+    username: Optional[str] = None
+    username_src: Optional[str] = None
+    password: Optional[str] = None
+    password_src: Optional[str] = None
 
-    # Get username (parameter > config)
-    username = None
-    username_source = None
-    password = None
-    password_source = None
     if username_param:
         username = username_param
-        username_source = "CLI parameter"
-    elif server_config.get("username") is not None:
-        username = server_config.get("username")
-        username_source = "config file"
+        username_src = "CLI parameter"
+    elif server_cfg.get("username") is not None:
+        username = server_cfg.get("username")
+        username_src = "config file"
 
     if username:
         log_info(f"Using basic authentication for user: {username}")
-
-        # Resolve password
-        password_config = server_config.get("password")
-        password_param = getattr(args, "password", None)
-        # Track password source
-        if password_param:
-            password_source = "CLI parameter"
-        elif password_config:
-            password_source = "config file"
+        pw_param = getattr(args, "password", None)
+        pw_cfg = server_cfg.get("password")
+        if pw_param:
+            password_src = "CLI parameter"
+        elif pw_cfg:
+            password_src = "config file"
         elif os.environ.get("NODERED_PASSWORD"):
-            password_source = "NODERED_PASSWORD environment variable"
+            password_src = "env var NODERED_PASSWORD"
         else:
-            password_source = "prompt"
-        password = resolve_password(
-            password_param,
-            password_config,
-            username,
-            show_param_warning=True,
-        )
-
+            password_src = "prompt"
+        password = _resolve_password(pw_param, pw_cfg, username)
         if not password:
-            log_error("Failed to resolve password")
-            return None
-
-        return ServerCredentials(
-            url=server_url,
+            raise ValueError("Failed to resolve password")
+        return AuthConfig(
+            url=url,
             auth_type="basic",
+            verify_ssl=verify_ssl,
             username=username,
             password=password,
-            verify_ssl=verify_ssl,
             sources={
-                "url": url_source,
+                "url": url_src,
                 "auth_type": "basic",
-                "username": username_source,
-                "password": password_source,
-                "verify_ssl": verify_ssl_source,
+                "username": username_src,
+                "password": password_src,
+                "verify_ssl": verify_src,
             },
         )
 
-    # =========================================================================
-    # No Authentication (Local Mode)
-    # =========================================================================
-
-    log_info("No authentication credentials found - using anonymous access")
-    return ServerCredentials(
-        url=server_url,
+    log_info("Using anonymous access (no authentication)")
+    return AuthConfig(
+        url=url,
         auth_type="none",
         verify_ssl=verify_ssl,
         sources={
-            "url": url_source,
+            "url": url_src,
             "auth_type": "none",
-            "verify_ssl": verify_ssl_source,
+            "verify_ssl": verify_src,
         },
     )

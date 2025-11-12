@@ -637,7 +637,7 @@ vscode-node-red-tools/
 │   ├── skeleton.py                   # Skeleton management
 │   ├── utils.py                      # Utilities
 │   ├── watcher_core.py               # Watch orchestration
-│   ├── watcher_server.py             # Server communication
+│   ├── server_client.py              # Central server interaction (auth/flows/deploy)
 │   └── watcher_stages.py             # Download/upload logic
 └── plugins/                          # Plugin system
     ├── 100_normalize_ids_plugin.py   # ID normalization

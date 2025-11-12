@@ -1,55 +1,24 @@
-"""
-Watch mode functionality for vscode-node-red-tools
+"""Thin watch module.
 
-This module has been split into focused sub-modules:
-- watcher_server.py: Server communication (authenticate, download, deploy)
-- watcher_stages.py: Stage processing (download/explode orchestration)
-- watcher_core.py: Watch mode orchestration (file watching, polling, commands)
-
-This file re-exports all functions for backwards compatibility.
+Provides:
+ - WATCH_AVAILABLE flag (presence of optional dependencies)
+ - watch_mode entry point
+ - download_from_nodered, rebuild_and_deploy convenience re-exports
 """
 
-# Import WATCH_AVAILABLE flag
-try:
-    import requests
-    from watchdog.observers import Observer
-
+try:  # Optional deps for watch mode
+    import requests  # noqa: F401
+    from watchdog.observers import Observer  # noqa: F401
     WATCH_AVAILABLE = True
-except ImportError:
+except ImportError:  # pragma: no cover
     WATCH_AVAILABLE = False
 
-# Re-export server communication functions
-from .watcher_server import (
-    authenticate,
-    deploy_to_nodered,
-)
+from .watcher_core import watch_mode
+from .watcher_stages import download_from_nodered, rebuild_and_deploy
 
-# Re-export stage processing functions
-from .watcher_stages import (
-    download_from_nodered,
-    rebuild_and_deploy,
-)
-
-# Re-export core watch mode functions
-from .watcher_core import (
-    watch_mode,
-)
-
-# Re-export constants from server module
-from .watcher_server import HTTP_TIMEOUT
-
-# Make all exports available
 __all__ = [
-    # Availability flag
     "WATCH_AVAILABLE",
-    # Server communication
-    "authenticate",
-    "deploy_to_nodered",
-    # Stage processing
+    "watch_mode",
     "download_from_nodered",
     "rebuild_and_deploy",
-    # Core watch mode
-    "watch_mode",
-    # Constants
-    "HTTP_TIMEOUT",
 ]

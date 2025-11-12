@@ -143,7 +143,7 @@ def extract_numeric_prefix(filename: str) -> int:
 
 def load_plugins(
     repo_root: Path,
-    config: dict,
+    config: Optional[dict] = None,
     enabled_override: Optional[List[str]] = None,
     disabled_override: Optional[List[str]] = None,
     quiet: bool = False,
@@ -218,6 +218,13 @@ def load_plugins(
                     ):
                         # Instantiate plugin
                         plugin_instance = obj()
+                        # Attach metadata needed for hot-reload without full rescan
+                        try:
+                            plugin_instance._source_path = str(plugin_file)  # type: ignore[attr-defined]
+                            plugin_instance._class_name = obj.__name__  # type: ignore[attr-defined]
+                        except Exception:
+                            # Non-fatal – reload will fall back to runtime introspection
+                            pass
 
                         # Validate required methods
                         required_methods = ["get_name", "get_plugin_type"]
@@ -259,7 +266,7 @@ def load_plugins(
     # Start with all loaded plugins
     plugin_names = {p["name"] for p in loaded_plugins}
     active_plugins = plugin_names.copy()
-    plugins_section = config.get("plugins", {})
+    plugins_section = (config or {}).get("plugins", {})
 
     # If no CLI overrides, use config
     if enabled_override is None and disabled_override is None:

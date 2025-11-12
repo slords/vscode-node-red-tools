@@ -7,17 +7,18 @@ Handles config loading, credential resolution, authentication, and plugin loadin
 from pathlib import Path
 import json
 from .logging import log_error, log_info, log_warning
-from .auth import resolve_credentials
+# Legacy credential resolution removed; ServerClient now handles all auth/path logic
 from .plugin_loader import load_plugins
+from .server_client import ServerClient
 
 
 def initialize_system(args):
     """
-    Centralized initialization and command dispatch: loads config, resolves credentials,
+    Centralized initialization and command dispatch: loads config, builds ServerClient,
     authenticates (if needed), loads plugins, determines repo_root.
 
     Returns:
-        tuple: (config, plugins_dict, credentials, repo_root) or (None, None, None, None) on failure
+        tuple: (config, plugins_dict, server_client, repo_root) or (None, None, None, None) on failure
     """
 
     def parse_plugin_list(value: str):
@@ -92,11 +93,8 @@ def initialize_system(args):
                 "_config_path": None,
             }
 
-    # Resolve credentials
-    credentials = resolve_credentials(args, config)
-    if credentials is None:
-        log_error("Failed to resolve credentials")
-        return None, None, None, None
+    # Build ServerClient directly from args + config (auth + paths encapsulated)
+    server_client = ServerClient(args, config)
 
     # Check if this command needs server authentication
     needs_server = False
@@ -110,16 +108,10 @@ def initialize_system(args):
 
     # Authenticate if needed
     if needs_server:
-        from .watcher_server import authenticate
-        from .dashboard import WatchConfig
-
-        # Create a minimal WatchConfig for authentication testing
-        test_config = WatchConfig(args, flows_path, Path(args.src).resolve())
-
-        if not authenticate(test_config, credentials):
+        if not server_client.connect():
             log_error("Failed to connect to Node-RED server")
-            log_error(f"Server URL: {credentials.url}")
-            log_error(f"Auth type: {credentials.auth_type}")
+            log_error(f"Server URL: {server_client.url}")
+            log_error(f"Auth type: {server_client.auth_type}")
             return None, None, None, None
 
     # Load plugins
@@ -142,4 +134,5 @@ def initialize_system(args):
         quiet=False,
     )
 
-    return config, plugins_dict, credentials, repo_root
+    # Return server_client in place of legacy credentials (call sites expecting .url/.auth_type still work)
+    return config, plugins_dict, server_client, repo_root
