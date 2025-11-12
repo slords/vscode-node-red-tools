@@ -16,7 +16,7 @@ Usage:
     python vscode-node-red-tools.py watch --server https://server:1880 --username admin --password pass
 """
 
-__version__ = "2.0.0"
+__version__ = "3.0.0"
 
 import argparse
 import difflib
