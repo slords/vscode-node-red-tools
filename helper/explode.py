@@ -23,7 +23,7 @@ from .logging import (
     log_warning,
     show_progress_bar,
 )
- 
+from .exit_codes import SUCCESS, GENERAL_ERROR, FILE_NOT_FOUND, EXPLODE_ERROR, FILE_INVALID
 from .rebuild import rebuild_single_node
 from .skeleton import create_skeleton, get_node_directory, save_skeleton
 from .utils import (
@@ -420,7 +420,7 @@ def explode_flows(
         plugins_dict: Pre-loaded plugins dictionary (required)
 
     Returns:
-        int: Exit code (0 = success, 1 = error) if return_info=False
+        int: Exit code (SUCCESS = success, EXPLODE_ERROR = error) if return_info=False
         dict: {'exit_code': int, 'needs_rebuild': bool} if return_info=True
     """
     # Handle dry-run by using temp directory and comparing
@@ -456,17 +456,17 @@ def explode_flows(
         try:
             flow_data = _load_flows_for_explode(flows_path, backup)
         except FileNotFoundError as e:
-            log_error(str(e))
-            log_error("Run 'download' first to fetch flows from Node-RED, or provide a flows.json file")
+            log_error(str(e), code=FILE_NOT_FOUND)
+            log_error("Provide a valid flows.json file path with --flows, or use watch mode to sync from server")
             if return_info:
-                return {"exit_code": 1, "needs_rebuild": False}
-            return 1
+                return {"exit_code": FILE_NOT_FOUND, "needs_rebuild": False}
+            return FILE_NOT_FOUND
         except ValueError as e:
-            log_error(str(e))
+            log_error(str(e), code=FILE_INVALID)
             log_error("Flows file should contain an array of node objects")
             if return_info:
-                return {"exit_code": 1, "needs_rebuild": False}
-            return 1
+                return {"exit_code": EXPLODE_ERROR, "needs_rebuild": False}
+            return EXPLODE_ERROR
 
         # Require plugins_dict to be provided
         if plugins_dict is None:
@@ -548,20 +548,20 @@ def explode_flows(
 
         if return_info:
             return {
-                "exit_code": 0,
+                "exit_code": SUCCESS,
                 "needs_rebuild": any_node_unstable,
             }
-        return 0
+        return SUCCESS
 
     except Exception as e:
-        log_error(f"Explode failed: {e}")
+        log_error(f"Explode failed: {e}", code=EXPLODE_ERROR)
         import traceback
 
         traceback.print_exc()
 
         if return_info:
             return {
-                "exit_code": 1,
+                "exit_code": EXPLODE_ERROR,
                 "needs_rebuild": False,
             }
-        return 1
+        return EXPLODE_ERROR

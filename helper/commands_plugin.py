@@ -8,6 +8,7 @@ import importlib.util
 from pathlib import Path
 
 from .logging import log_info, log_success, log_warning, log_error
+from .exit_codes import SUCCESS, GENERAL_ERROR, PLUGIN_ERROR, CONFIG_ERROR, PLUGIN_LOAD_ERROR
 from .plugin_loader import extract_numeric_prefix, DEFAULT_PLUGIN_PRIORITY
 
 
@@ -39,8 +40,8 @@ def new_plugin_command(name: str, plugin_type: str, priority: int = None) -> int
         output_path = plugins_dir / filename
 
         if output_path.exists():
-            log_error(f"Plugin file already exists: {output_path}")
-            return 1
+            log_error(f"Plugin file already exists: {output_path}", code=PLUGIN_ERROR)
+            return PLUGIN_ERROR
 
         # Generate plugin code
         plugin_code = _generate_plugin_template(class_name, plugin_type, priority)
@@ -57,14 +58,14 @@ def new_plugin_command(name: str, plugin_type: str, priority: int = None) -> int
         log_info("  2. Implement the plugin logic")
         log_info("  3. Test with: python vscode-node-red-tools.py list-plugins")
 
-        return 0
+        return SUCCESS
 
     except Exception as e:
-        log_error(f"Plugin generation failed: {e}")
+        log_error(f"Plugin generation failed: {e}", code=PLUGIN_ERROR)
         import traceback
 
         traceback.print_exc()
-        return 1
+        return GENERAL_ERROR
 
 
 def _generate_plugin_template(class_name: str, plugin_type: str, priority: int) -> str:
@@ -285,8 +286,8 @@ def list_plugins_command(
     """
 
     if config is None:
-        log_error("list_plugins_command requires pre-loaded config. None was provided.")
-        return 1
+        log_error("list_plugins_command requires pre-loaded config. None was provided.", code=CONFIG_ERROR)
+        return GENERAL_ERROR
     try:
         log_info("Available plugins:")
         plugins_section = config.get("plugins", {})
@@ -306,7 +307,7 @@ def list_plugins_command(
 
         if not plugins_dir.exists():
             log_warning("No plugins directory found")
-            return 0
+            return SUCCESS
 
         # Load all plugin modules (without filtering)
         all_plugins = []
@@ -377,7 +378,7 @@ def list_plugins_command(
                             break
 
             except Exception as e:
-                log_warning(f"Failed to load plugin {plugin_file.name}: {e}")
+                log_warning(f"Failed to load plugin {plugin_file.name}: {e}", code=PLUGIN_LOAD_ERROR)
 
         # Group plugins by type
         plugin_types = [
@@ -436,11 +437,11 @@ def list_plugins_command(
             f"Total: {len(all_plugins)} plugins ({total_enabled} enabled, {total_disabled} disabled)"
         )
 
-        return 0
+        return SUCCESS
 
     except Exception as e:
-        log_error(f"List plugins failed: {e}")
+        log_error(f"List plugins failed: {e}", code=PLUGIN_ERROR)
         import traceback
 
         traceback.print_exc()
-        return 1
+        return GENERAL_ERROR

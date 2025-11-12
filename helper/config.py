@@ -9,6 +9,7 @@ import traceback
 from pathlib import Path
 
 from .logging import log_info, log_success, log_warning, log_error
+from .exit_codes import SUCCESS, CONFIG_ERROR, CONFIG_INVALID
 
 
 
@@ -21,7 +22,7 @@ def validate_config(config: dict, server_client=None) -> int:
         server_client: Optional ServerClient instance (for testing auth resolution)
 
     Returns:
-        Exit code (0 = valid, 1 = invalid)
+        Exit code (SUCCESS = valid, CONFIG_ERROR = invalid)
     """
     # Helper: recursively display config values and their sources
     def display_config_with_sources(config, defaults, prefix=""):
@@ -48,7 +49,7 @@ def validate_config(config: dict, server_client=None) -> int:
     # Validate structure
     if not isinstance(config, dict):
         errors.append("Config must be a JSON object")
-        log_error("✗ Config must be a JSON object")
+        log_error("✗ Config must be a JSON object", code=CONFIG_INVALID)
     else:
         log_info("✓ Valid config structure")
 
@@ -62,7 +63,7 @@ def validate_config(config: dict, server_client=None) -> int:
                     log_info(f"✓ Flows path exists: {config['flows']}")
                 else:
                     warnings.append(f"Flows path does not exist: {config['flows']}")
-                    log_warning(f"⚠ Flows path does not exist: {config['flows']}")
+                    log_warning(f"⚠ Flows path does not exist: {config['flows']}", code=CONFIG_INVALID)
 
         # Validate src path
         if "src" in config:
@@ -74,7 +75,7 @@ def validate_config(config: dict, server_client=None) -> int:
                     log_info(f"✓ Source path exists: {config['src']}")
                 else:
                     warnings.append(f"Source path does not exist: {config['src']}")
-                    log_warning(f"⚠ Source path does not exist: {config['src']}")
+                    log_warning(f"⚠ Source path does not exist: {config['src']}", code=CONFIG_INVALID)
 
         # Validate plugins section
         if "plugins" in config:
@@ -134,7 +135,8 @@ def validate_config(config: dict, server_client=None) -> int:
                     )
                     log_warning(
                         f"⚠ watch.{', watch.'.join(found_deprecated)} settings ignored "
-                        "(now constants - see helper/constants.py)"
+                        "(now constants - see helper/constants.py)",
+                        code=CONFIG_INVALID
                     )
 
         # Validate server section
@@ -192,7 +194,8 @@ def validate_config(config: dict, server_client=None) -> int:
                                     f"Token file does not exist: {server['tokenFile']}"
                                 )
                                 log_warning(
-                                    f"⚠ Token file does not exist: {server['tokenFile']}"
+                                    f"⚠ Token file does not exist: {server['tokenFile']}",
+                                    code=CONFIG_INVALID
                                 )
 
                 # Check verifySSL
@@ -211,19 +214,19 @@ def validate_config(config: dict, server_client=None) -> int:
             warnings.append(
                 f"Unknown config keys (will be ignored): {', '.join(unknown_keys)}"
             )
-            log_warning(f"⚠ Unknown config keys: {', '.join(unknown_keys)}")
+            log_warning(f"⚠ Unknown config keys: {', '.join(unknown_keys)}", code=CONFIG_INVALID)
 
         # Summary
         if errors:
-            log_error(f"\n✗ Configuration is invalid ({len(errors)} error(s))")
+            log_error(f"\n✗ Configuration is invalid ({len(errors)} error(s))", code=CONFIG_INVALID)
             for error in errors:
-                log_error(f"  - {error}")
-            return 1
+                log_error(f"  - {error}", code=CONFIG_INVALID)
+            return CONFIG_ERROR
 
         if warnings:
             log_success(f"\n✓ Configuration is valid (with {len(warnings)} warning(s))")
         else:
             log_success("\n✓ Configuration is valid")
 
-        return 0
+        return SUCCESS
 

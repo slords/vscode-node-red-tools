@@ -25,6 +25,7 @@ except ImportError:
     REQUESTS_AVAILABLE = False
 
 from .logging import log_info, log_error, log_warning
+from .exit_codes import SUCCESS, GENERAL_ERROR, DIFF_ERROR, SERVER_CONNECTION_ERROR, CONFIG_ERROR
 from .utils import validate_path_for_subprocess
 from .constants import HTTP_TIMEOUT, SUBPROCESS_TIMEOUT
 
@@ -84,7 +85,7 @@ def download_server_flows(server) -> dict:
         return data
 
     except requests.exceptions.RequestException as e:
-        log_error(f"Failed to download from server: {e}")
+        log_error(f"Failed to download from server: {e}", code=SERVER_CONNECTION_ERROR)
         raise
 
 
@@ -364,7 +365,7 @@ def _print_flows_diff(original_path: Path, rebuilt_path: Path) -> None:
             log_info("No changes would be made - files are identical")
 
     except Exception as e:
-        log_warning(f"Could not generate diff: {e}")
+        log_warning(f"Could not generate diff: {e}", code=DIFF_ERROR)
         log_info(f"Dry run complete - would write to {original_path}")
 
 
@@ -391,19 +392,20 @@ def diff_flows(
         context: Number of context lines for unified diff
 
     Returns:
-        Exit code (0 = success, 1 = error)
+        Exit code (SUCCESS = success, DIFF_ERROR = error)
     """
     try:
         valid_sources = ["src", "flow", "server"]
         if source not in valid_sources or target not in valid_sources:
             log_error(
-                f"Invalid source/target. Must be one of: {', '.join(valid_sources)}"
+                f"Invalid source/target. Must be one of: {', '.join(valid_sources)}",
+                code=CONFIG_ERROR
             )
-            return 1
+            return DIFF_ERROR
 
         if source == target:
-            log_error("Source and target must be different")
-            return 1
+            log_error("Source and target must be different", code=CONFIG_ERROR)
+            return DIFF_ERROR
 
         log_info(f"Comparing {source} → {target}")
 
@@ -441,9 +443,9 @@ def diff_flows(
                     source_dir, target_dir, source, target, context
                 )
 
-        return 0
+        return SUCCESS
 
     except Exception as e:
-        log_error(f"Diff failed: {e}")
+        log_error(f"Diff failed: {e}", code=DIFF_ERROR)
         traceback.print_exc()
-        return 1
+        return DIFF_ERROR

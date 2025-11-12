@@ -140,28 +140,40 @@ def log_success(msg: str):
         print(f"✓ {msg}")
 
 
-def log_warning(msg: str):
+def log_warning(msg: str, code: Optional[int] = None):
     """Print warning message (only if log level is WARNING or lower)
 
     Args:
         msg: Message to print (icon will be added automatically)
+        code: Optional warning/error code to display (e.g., 20 for FILE_NOT_FOUND)
     """
     global _ACTIVE_DASHBOARD, _LOG_LEVEL
     if _LOG_LEVEL > LogLevel.WARNING:
         return
+
+    # Add error code prefix if provided
+    if code is not None:
+        msg = f"[W{code:02d}] {msg}"
+
     if _ACTIVE_DASHBOARD:
         _ACTIVE_DASHBOARD.log_activity(f"⚠ {msg}")
     else:
         print(f"⚠ {msg}")
 
 
-def log_error(msg: str):
+def log_error(msg: str, code: Optional[int] = None):
     """Print error message (always shown)
 
     Args:
         msg: Message to print (icon will be added automatically)
+        code: Optional error code to display (e.g., 20 for FILE_NOT_FOUND)
     """
     global _ACTIVE_DASHBOARD
+
+    # Add error code prefix if provided
+    if code is not None:
+        msg = f"[E{code:02d}] {msg}"
+
     if _ACTIVE_DASHBOARD:
         _ACTIVE_DASHBOARD.log_activity(f"✗ {msg}", is_error=True)
     else:
