@@ -191,7 +191,6 @@ def resolve_auth_config(args: Any, config: dict) -> AuthConfig:
         username_src = "config file"
 
     if username:
-        log_info(f"Using basic authentication for user: {username}")
         pw_param = getattr(args, "password", None)
         pw_cfg = server_cfg.get("password")
         if pw_param:
