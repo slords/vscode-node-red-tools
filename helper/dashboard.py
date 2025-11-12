@@ -5,6 +5,7 @@ Provides Textual TUI dashboard for watch mode with real-time updates,
 activity logging, and command interface.
 """
 
+import os
 import threading
 from datetime import datetime
 from typing import Optional
@@ -116,8 +117,17 @@ class WatchConfig:
 
     @pause_watching.setter
     def pause_watching(self, value):
-        """Thread-safe setter for pause_watching flag"""
+        """Thread-safe setter for pause_watching flag
+
+        When transitioning from paused (True) to active (False), automatically
+        flushes filesystem buffers to ensure all pending file events are delivered
+        before file watching resumes. This prevents buffered events from being
+        processed after the pause ends.
+        """
         with self._thread_lock:
+            # If transitioning from paused to active, flush filesystem first
+            if self._pause_watching and not value:
+                os.sync()
             self._pause_watching = value
 
     @property
@@ -297,6 +307,7 @@ if TEXTUAL_AVAILABLE:
             grid-size: 2;
             grid-rows: auto 1fr auto;
             grid-gutter: 0;
+            border: solid $primary;
         }
 
         #status_container {
@@ -305,49 +316,57 @@ if TEXTUAL_AVAILABLE:
             height: auto;
             padding: 0;
             margin: 0;
+            border-bottom: solid $primary;
         }
 
         #connection_panel {
-            width: 50%;
-            border: solid $primary;
+            width: 1fr;
+            border-right: solid $primary;
             content-align: left top;
-            height: auto;
+            height: 8;
             padding: 0 1;
             margin: 0;
+            overflow-y: hidden;
         }
 
         #stats_panel {
-            width: 50%;
-            border: solid $accent;
+            width: 35;
             content-align: left top;
-            height: auto;
+            height: 8;
             padding: 0 1;
             margin: 0;
+            overflow-y: hidden;
         }
 
         #activity_log {
             column-span: 2;
-            border: solid $success;
             margin: 0;
-            padding: 1;
+            padding: 0 1;
+            border-bottom: solid $primary;
         }
 
         #command_input {
             column-span: 2;
             dock: bottom;
-            background: #000000;
+            background: transparent;
             color: #00ff00;
-            border: round #00ffff;
-            height: 3;
+            height: 1;
             padding: 0 1;
+            margin: 0;
+            border: none;
+            outline: none;
         }
         #command_input:focus {
-            background: #000000;
-            border: double #00ff00;
+            background: transparent;
             color: #00ff00;
+            border: none;
+            outline: none;
+        }
+        #command_input > .input--placeholder {
+            color: #888888;
         }
         #command_input > * {
-            background: #000000;
+            background: transparent;
             color: #00ff00;
         }
         """
@@ -384,10 +403,11 @@ if TEXTUAL_AVAILABLE:
             log_widget = self.query_one("#activity_log", RichLog)
             log_widget.write("[dim]Dashboard started and ready[/dim]")
 
-            # Focus input widget and force color styling
+            # Focus input widget and force styling (no borders, transparent background)
             input_widget = self.query_one("#command_input", Input)
-            input_widget.styles.background = "#000000"
+            input_widget.styles.background = "transparent"
             input_widget.styles.color = "#00ff00"
+            input_widget.styles.border = ("none", "transparent")
             input_widget.focus()
 
         def _build_connection_text(self) -> str:
@@ -397,13 +417,17 @@ if TEXTUAL_AVAILABLE:
             status_icon = "✓" if is_connected else "✗"
             status_color = "green" if is_connected else "red"
 
-            # FIXME: Too long and things break.  Blank lines between boxes.
-            rev = sc.last_rev[:20] if sc and sc.last_rev else "(none)"
+            # With fixed-width stats panel, connection panel is flexible
+            # Display full rev and etag, let them wrap if needed (overflow hidden prevents layout issues)
+            rev = sc.last_rev if sc and sc.last_rev else "(none)"
             etag = sc.last_etag if sc and sc.last_etag else "(none)"
+
+            # Keep full server URL - panel is now flexible width
+            server_url = self.watch_config.server_url
 
             return (
                 f"[bold]Node-RED Watch Mode[/bold] - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
-                f"[cyan]Server:[/cyan] {self.watch_config.server_url}\n"
+                f"[cyan]Server:[/cyan] {server_url}\n"
                 f"[cyan]Status:[/cyan] [{status_color}]{status_icon} "
                 f"{'Connected' if is_connected else 'Disconnected'}[/{status_color}]\n"
                 f"[cyan]User:[/cyan] {self.watch_config.username}\n"

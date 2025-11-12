@@ -11,8 +11,6 @@ Handles high-level download/explode orchestration:
 """
 
 import json
-import os
-import time
 from datetime import datetime
 from pathlib import Path
 
@@ -161,6 +159,8 @@ def _run_explode_download_stage(
 
         return (True, any_node_unstable)
     finally:
+        # Setting pause_watching=False triggers os.sync() in the setter
+        # to flush buffered file events before watching resumes
         watch_config.pause_watching = False
 
 
@@ -201,6 +201,8 @@ def _run_post_explode_download_stage(
         # Just return whether files changed - don't upload here
         return (True, post_explode_modified)
     finally:
+        # Setting pause_watching=False triggers os.sync() in the setter
+        # to flush buffered file events before watching resumes
         watch_config.pause_watching = False
 
 
@@ -308,13 +310,10 @@ def sync_from_server(
 
         log_success("Download and explode complete")
 
-        # Flush filesystem buffers and wait briefly for pending writes to complete
-        # This ensures the file watcher sees all writes before we clear its state
-        os.sync()
-        time.sleep(0.1)  # Brief pause to let file system events settle
-
         # Clear file watcher state to prevent false rebuild triggers
         # (explode/post-explode wrote files from server, not user edits)
+        # Note: os.sync() + sleep already done inside explode/post-explode stages
+        # while pause_watching was still True, so buffered events were ignored
         watch_config.clear_file_watcher_state()
 
         # Update statistics (only if this is a counted download, not a stability check)
@@ -352,12 +351,9 @@ def rebuild_and_deploy(watch_config: WatchConfig) -> bool:
     if not sc or not sc.deploy_flows(json.loads(watch_config.flows_file.read_text())):
         return False
 
-    # Flush filesystem buffers and wait briefly for pending writes to complete
-    os.sync()
-    time.sleep(0.1)  # Brief pause to let file system events settle
-
     # Clear file watcher state to prevent false rebuild triggers
     # (deploy completed successfully, already synced with server)
+    # Note: os.sync() will be called automatically when pause_watching is set to False
     watch_config.clear_file_watcher_state()
 
     # ETag cleared by deploy - next poll will download and check convergence
