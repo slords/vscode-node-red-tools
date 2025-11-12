@@ -60,7 +60,6 @@ from helper.commands_plugin import (
 from helper.initialize import initialize_system
 
 
-
 # ============================================================================
 # Main CLI
 # ============================================================================
@@ -167,8 +166,6 @@ def main():
     diff_parser = subparsers.add_parser(
         "diff",
         help="Compare src, flow, or server",
-        epilog="Security: Use NODERED_PASSWORD or NODERED_TOKEN environment variables instead of CLI parameters. "
-        "Token files: ./.nodered-token or ~/.nodered-token",
     )
     diff_parser.add_argument(
         "source", choices=["src", "flow", "server"], help="Source to compare from"
@@ -214,8 +211,6 @@ def main():
     watch_parser = subparsers.add_parser(
         "watch",
         help="Watch mode - bidirectional sync",
-        epilog="Security: Use NODERED_PASSWORD or NODERED_TOKEN environment variables instead of CLI parameters. "
-        "Token files: ./.nodered-token or ~/.nodered-token",
     )
     watch_parser.add_argument(
         "--server",
@@ -307,11 +302,11 @@ def main():
 
     try:
         # --- Main command dispatch ---
-        # Setup (config, credentials, plugins, repo_root)
+        # Setup (config, server_client, plugins, repo_root)
         init = initialize_system(args)
         if init is None:
             return 1
-        config, plugins_dict, credentials, repo_root = init
+        config, plugins_dict, server_client, repo_root = init
         flows_path = Path(args.flows).resolve()
         src_path = Path(args.src).resolve()
 
@@ -319,7 +314,7 @@ def main():
 
         # Commands that don't need plugins
         if args.command == "validate-config":
-            return validate_config(config, credentials)
+            return validate_config(config, server_client)
         elif args.command == "new-plugin":
             priority = args.priority if hasattr(args, "priority") else None
             return new_plugin_command(args.name, args.type, priority)
@@ -333,7 +328,7 @@ def main():
                 plugins_dict=plugins_dict,
                 config=config,
                 repo_root=repo_root,
-                credentials=credentials,
+                server_client=server_client,
             )
         elif args.command == "explode":
             return explode_flows(
@@ -369,7 +364,7 @@ def main():
                 args.target,
                 flows_path,
                 src_path,
-                credentials,
+                server_client,
                 args.bcomp,
                 plugins_dict=plugins_dict,
                 repo_root=repo_root,

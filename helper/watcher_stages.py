@@ -38,7 +38,7 @@ from .explode import (
 )
 from .file_ops import find_orphaned_files, handle_orphaned_files
 from .dashboard import WatchConfig
-from .watcher_server import _download_flows_from_server, deploy_to_nodered
+# Legacy watcher_server functions replaced by ServerClient usage
 
 
 def _run_pre_explode_download_stage(
@@ -87,8 +87,9 @@ def _run_pre_explode_download_stage(
         # Upload if any pre-explode plugin modified flows (don't count - automated)
         if flows_modified:
             log_info("Flows modified by pre-explode plugins, uploading...")
-            if not deploy_to_nodered(config, count_stats=False):
-                clear_watch_state_after_failure(config, "upload modified flows")
+            sc = getattr(watch_config, "server_client", None)
+            if not sc or not sc.deploy_flows(flow_data, count_stats=False):
+                clear_watch_state_after_failure(watch_config, "upload modified flows")
                 return False
             log_success("Modified flows uploaded to Node-RED")
 
@@ -215,25 +216,18 @@ def download_from_nodered(
         True if successful, False on error
     """
     try:
-        # Download flows from server
-        no_change, flows, new_etag, new_rev = _download_flows_from_server(config, force)
+        sc = getattr(watch_config, "server_client", None)
+        if not sc:
+            log_error("No ServerClient attached to watch_config")
+            return False
 
-        # If no changes (304 response), return early (don't count)
-        if no_change:
-            return True
+        changed, flows = sc.get_and_store_flows(force=force)
+        if not changed:
+            return True  # No change (304 or failure already logged inside)
 
-        # Update tracking
-        watch_config.last_etag = new_etag
-
-        # Only log if rev changed
-        if new_rev and new_rev != watch_config.last_rev:
-            log_info(f"Flows changed (rev: {watch_config.last_rev or 'initial'} → {new_rev})")
-        elif not watch_config.last_rev and new_rev:
-            log_info(f"Initial download (rev: {new_rev})")
-
-        # Only update rev if we got one (GET doesn't always include rev)
-        if new_rev:
-            watch_config.last_rev = new_rev
+        # Log revision change
+        if sc.last_rev:
+            log_info(f"Current server rev: {sc.last_rev}")
 
         # Ensure flows directory exists
         watch_config.flows_file.parent.mkdir(parents=True, exist_ok=True)
@@ -255,7 +249,7 @@ def download_from_nodered(
                     "Pre-explode plugins", total=len(pre_explode_plugins)
                 )
                 if not _run_pre_explode_download_stage(
-                    config, plugins_dict, repo_root, progress_task=(progress, pre_task)
+                    watch_config, plugins_dict, repo_root, progress_task=(progress, pre_task)
                 ):
                     return False
 
@@ -265,7 +259,7 @@ def download_from_nodered(
         with create_progress_context(True) as progress:
             nodes_task = progress.add_task("Exploding nodes", total=nodes_count)
             success, explode_changed = _run_explode_download_stage(
-                config, plugins_dict, repo_root, progress_task=(progress, nodes_task)
+                watch_config, plugins_dict, repo_root, progress_task=(progress, nodes_task)
             )
             if not success:
                 return False
@@ -283,7 +277,7 @@ def download_from_nodered(
                     "Post-explode plugins", total=len(post_explode_plugins)
                 )
                 success, post_explode_changed = _run_post_explode_download_stage(
-                    config, plugins_dict, repo_root, progress_task=(progress, post_task)
+                    watch_config, plugins_dict, repo_root, progress_task=(progress, post_task)
                 )
             # Log "No changes" after progress bar completes
             if not post_explode_changed:
@@ -307,8 +301,8 @@ def download_from_nodered(
                 log_error("Rebuild failed")
                 return False
 
-            if not deploy_to_nodered(config, count_stats=False):
-                clear_watch_state_after_failure(config, "upload after changes")
+            if not deploy_to_nodered(watch_config, count_stats=False):
+                clear_watch_state_after_failure(watch_config, "upload after changes")
                 return False
             log_success("Changes uploaded to Node-RED")
 
@@ -316,16 +310,12 @@ def download_from_nodered(
 
         # Clear file watcher state to prevent false rebuild triggers
         # (explode/post-explode wrote files from server, not user edits)
-        config.clear_file_watcher_state()
+        watch_config.clear_file_watcher_state()
 
         # Update statistics (only if this is a counted download, not a stability check)
-        if count_stats:
-            if watch_config.dashboard:
-                watch_config.dashboard.log_download()
-            else:
-                # Non-dashboard mode: still track stats
-                watch_config.download_count += 1
-                watch_config.last_download_time = datetime.now()
+        # Stats already tracked in ServerClient; dashboard may still log
+        if count_stats and watch_config.dashboard:
+            watch_config.dashboard.log_download()
 
         return True
 
@@ -353,12 +343,13 @@ def rebuild_and_deploy(watch_config: WatchConfig) -> bool:
         return False
 
     # Deploy
-    if not deploy_to_nodered(config):
+    sc = getattr(watch_config, "server_client", None)
+    if not sc or not sc.deploy_flows(json.loads(watch_config.flows_file.read_text())):
         return False
 
     # Clear file watcher state to prevent false rebuild triggers
     # (deploy completed successfully, already synced with server)
-    config.clear_file_watcher_state()
+    watch_config.clear_file_watcher_state()
 
     # ETag cleared by deploy - next poll will download and check convergence
     log_success("Rebuild and deploy complete")

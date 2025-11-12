@@ -79,13 +79,8 @@ from .config import (
 )
 
 # Re-export auth functions
-from .auth import (
-    ServerCredentials,
-    resolve_credentials,
-    read_token_file,
-    find_token_file,
-    resolve_password,
-)
+from .server_client import ServerClient
+from .auth import AuthConfig, resolve_auth_config
 
 # Re-export dashboard classes
 from .dashboard import (
@@ -140,15 +135,7 @@ from .explode import (
     explode_flows,
 )
 
-# Re-export watcher operations
-from .watcher import (
-    WATCH_AVAILABLE,
-    authenticate,
-    download_from_nodered,
-    deploy_to_nodered,
-    rebuild_and_deploy,
-    watch_mode,
-)
+from .watcher import WATCH_AVAILABLE, watch_mode
 
 # Re-export command operations (general)
 from .commands import (
@@ -200,11 +187,9 @@ __all__ = [
     "set_active_dashboard",
     "get_active_dashboard",
     # Auth
-    "ServerCredentials",
-    "resolve_credentials",
-    "read_token_file",
-    "find_token_file",
-    "resolve_password",
+    "ServerClient",
+    "AuthConfig",
+    "resolve_auth_config",
     # Utils
     "validate_server_url",
     "validate_path_for_subprocess",
@@ -255,10 +240,6 @@ __all__ = [
     "explode_flows",
     # Watcher
     "WATCH_AVAILABLE",
-    "authenticate",
-    "download_from_nodered",
-    "deploy_to_nodered",
-    "rebuild_and_deploy",
     "watch_mode",
     # Commands (general)
     "stats_command",

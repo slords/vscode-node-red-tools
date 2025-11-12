@@ -13,12 +13,12 @@ from .logging import log_info, log_success, log_warning, log_error
 
 
 
-def validate_config(config: dict, credentials=None, repo_root: Path = None) -> int:
+def validate_config(config: dict, server_client=None, repo_root: Path = None) -> int:
     """Validate configuration structure and values
 
     Args:
         config: Configuration dictionary to validate
-        credentials: Optional credentials object (for testing auth resolution)
+        server_client: Optional ServerClient instance (for testing auth resolution)
         repo_root: Repository root path (defaults to current directory)
 
     Returns:

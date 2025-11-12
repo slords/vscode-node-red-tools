@@ -7,12 +7,12 @@ activity logging, and command interface.
 
 import threading
 from datetime import datetime
-from pathlib import Path
 from typing import Optional
 
 # Optional textual import
 try:
     from textual.app import App, ComposeResult
+    from textual.containers import Horizontal
     from textual.widgets import Static, Input, RichLog
 
     TEXTUAL_AVAILABLE = True
@@ -20,95 +20,81 @@ except ImportError:
     TEXTUAL_AVAILABLE = False
 
 from .logging import log_warning, log_info
-from .utils import validate_server_url, RateLimiter
 from .constants import (
-    DEFAULT_CONVERGENCE_LIMIT,
-    DEFAULT_CONVERGENCE_WINDOW,
+    DEFAULT_POLL_INTERVAL,
+    DEFAULT_DEBOUNCE,
 )
 
 
 class WatchConfig:
     """Configuration for watch mode
 
-    Stores all watch mode configuration, runtime state, statistics,
-    and dashboard integration.
+    Holds file paths, plugin cache, dashboard, and links to a `ServerClient`.
+    Legacy fields (etag, rev, stats, session) have been removed; code should
+    query `server_client` directly for network state and statistics.
     """
 
-    def __init__(self, args, flows_path: Path, src_path: Path):
-        """Initialize watch configuration from command line args
+    def __init__(
+        self,
+        server_client,
+        flows_path,
+        src_path,
+        repo_root,
+        use_dashboard: bool = False,
+    ):
+        """Initialize WatchConfig with server client and file paths.
 
         Args:
-            args: Argparse namespace with watch mode arguments
+            server_client: ServerClient instance for server communication
             flows_path: Path to flows.json
             src_path: Path to src directory
+            repo_root: Repository root directory
+            use_dashboard: Whether to enable the interactive dashboard
         """
-        self.repo_root = flows_path.parent.parent
+        self.server_client = server_client
+        self.use_dashboard = use_dashboard
+
+        # File paths (passed from watch_mode)
+        self.repo_root = repo_root
         self.src_dir = src_path
         self.flows_file = flows_path
-        # Server URL will be set later from credentials if not provided via args
-        self.server_url = validate_server_url(args.server) if getattr(args, 'server', None) else None
-        self.username = getattr(args, 'username', None)
-        self.password = getattr(args, 'password', None)
-        self.poll_interval = DEFAULT_POLL_INTERVAL  # Runtime constant
-        self.verify_ssl = not getattr(args, 'no_verify_ssl', False)
 
-        # Plugin control (from global args)
-        self.enabled_override = None
-        self.disabled_override = None
-        if hasattr(args, "enable") and args.enable:
-            self.enabled_override = [
-                name.strip() for name in args.enable.split(",") if name.strip()
-            ]
-        if hasattr(args, "disable") and args.disable:
-            self.disabled_override = [
-                name.strip() for name in args.disable.split(",") if name.strip()
-            ]
-
-        self.debounce_seconds = DEFAULT_DEBOUNCE  # Runtime constant
-        self.use_dashboard = getattr(args, 'dashboard', False)
-
-        # Runtime state
-        self.last_etag: Optional[str] = None
-        self.last_rev: Optional[str] = None
-        self.session: Optional[object] = None  # requests.Session
-
-        # Convergence tracking (oscillation protection)
-        self.convergence_cycles: list = (
-            []
-        )  # Timestamps of recent upload/download cycles
-        self.convergence_limit = DEFAULT_CONVERGENCE_LIMIT  # Max cycles in time window
-        self.convergence_window = DEFAULT_CONVERGENCE_WINDOW  # Time window in seconds
-        self.convergence_paused = False  # True if oscillation detected
-
-        # Statistics (tracked regardless of dashboard)
-        self.download_count = 0
-        self.upload_count = 0
-        self.error_count = 0
-        self.last_download_time: Optional[datetime] = None
-        self.last_upload_time: Optional[datetime] = None
+        # Watch mode settings
+        self.poll_interval = DEFAULT_POLL_INTERVAL
+        self.debounce_seconds = DEFAULT_DEBOUNCE
 
         # Dashboard
         self.dashboard = WatchDashboard(self) if self.use_dashboard else None
 
-        # Plugin cache (loaded once, reloaded on demand)
-        self.config = None
+        # Plugin cache (set by watch_mode)
         self.plugins_dict = None
 
-        # Server credentials (set by watch_mode from initialize_system)
-        self.credentials = None
-
-        # Command handler callback for dashboard (will be set by watch_mode)
+        # Command handler callback (set externally by watch_mode)
         self.command_handler = None
 
-        # Rate limiter for API calls (prevents runaway requests)
-        self.rate_limiter = RateLimiter()
-
-        # Thread-safe state (single lock for all concurrency-sensitive flags)
+        # Thread-safe state flags
         self._thread_lock = threading.Lock()
         self._rebuild_pending = False
         self._pause_watching = False
         self._shutdown_requested = False
         self._last_file_change_time = 0.0
+
+    # Convenience properties for backwards compatibility
+    @property
+    def server_url(self):
+        return self.server_client.url
+
+    @property
+    def username(self):
+        return self.server_client.username
+
+    @property
+    def password(self):
+        return self.server_client.password
+
+    @property
+    def verify_ssl(self):
+        return self.server_client.verify_ssl
 
     @property
     def rebuild_pending(self):
@@ -227,7 +213,9 @@ class WatchDashboard:
             is_error: Whether this is an error message
         """
         if is_error:
-            self.config.error_count += 1
+            sc = getattr(self.watch_config, "server_client", None)
+            if sc:
+                sc.error_count += 1
 
         if self.app and self.app.is_running:
             # Check if we're in the app thread
@@ -239,9 +227,11 @@ class WatchDashboard:
                 self.app.call_from_thread(self.app.add_log_message, message, is_error)
 
     def log_download(self):
-        """Record download event and update stats"""
-        self.watch_config.last_download_time = datetime.now()
-        self.watch_config.download_count += 1
+        """Log download activity (ServerClient handles all counting).
+
+        ServerClient.get_and_store_flows() increments download_count and sets timestamp.
+        Dashboard just logs the activity and updates display.
+        """
         self.log_activity("Downloaded from server")
 
         if self.app and self.app.is_running:
@@ -251,9 +241,11 @@ class WatchDashboard:
                 self.app.call_from_thread(self.app.update_stats)
 
     def log_upload(self):
-        """Record upload event and update stats"""
-        self.watch_config.last_upload_time = datetime.now()
-        self.watch_config.upload_count += 1
+        """Log upload activity (ServerClient handles all counting).
+
+        ServerClient.deploy_flows() increments upload_count and sets timestamp.
+        Dashboard just logs the activity and updates display.
+        """
         self.log_activity("Uploaded to server")
 
         if self.app and self.app.is_running:
@@ -269,7 +261,7 @@ class WatchDashboard:
             return
 
         # Create app instance (will be run by watch_mode in main thread)
-        self.app = NodeRedDashboardApp(self.config)
+        self.app = NodeRedDashboardApp(self.watch_config)
 
     def run(self):
         """Run the dashboard (blocks until app exits)"""
@@ -302,14 +294,25 @@ if TEXTUAL_AVAILABLE:
         CSS = """
         Screen {
             layout: grid;
-            grid-size: 2 3;
+            grid-size: 2;
             grid-rows: auto 1fr auto;
         }
 
-        #status_panel {
+        #status_container {
             column-span: 2;
-            height: auto;
+            layout: horizontal;
+        }
+
+        #connection_panel {
+            width: 50%;
             border: solid $primary;
+            content-align: left top;
+        }
+
+        #stats_panel {
+            width: 50%;
+            border: solid $accent;
+            content-align: left top;
         }
 
         #activity_log {
@@ -320,6 +323,20 @@ if TEXTUAL_AVAILABLE:
         #command_input {
             column-span: 2;
             dock: bottom;
+            background: #000000;
+            color: #00ff00;
+            border: round #00ffff;
+            height: 3;
+            padding: 0 1;
+        }
+        #command_input:focus {
+            background: #000000;
+            border: double #00ff00;
+            color: #00ff00;
+        }
+        #command_input > * {
+            background: #000000;
+            color: #00ff00;
         }
 
         Static {
@@ -343,8 +360,10 @@ if TEXTUAL_AVAILABLE:
             self.title = "Node-RED Watch Mode Dashboard"
 
         def compose(self) -> ComposeResult:
-            """Create child widgets"""
-            yield Static(self._build_status_text(), id="status_panel")
+            """Create child widgets with two-column status layout"""
+            with Horizontal(id="status_container"):
+                yield Static(self._build_connection_text(), id="connection_panel")
+                yield Static(self._build_stats_text(), id="stats_panel")
             yield RichLog(id="activity_log", highlight=True, markup=True)
             yield Input(
                 placeholder="Enter command ([d]ownload, [u]pload, [c]heck, [r]eload-plugins, [s]tatus, [q]uit, [h]elp)",
@@ -357,56 +376,88 @@ if TEXTUAL_AVAILABLE:
             log_widget = self.query_one("#activity_log", RichLog)
             log_widget.write("[dim]Dashboard started and ready[/dim]")
 
-            # Focus input widget so it accepts commands
+            # Focus input widget and force color styling
             input_widget = self.query_one("#command_input", Input)
+            input_widget.styles.background = "#000000"
+            input_widget.styles.color = "#00ff00"
             input_widget.focus()
 
-        def _build_status_text(self) -> str:
-            """Build status panel text
+        def _build_connection_text(self) -> str:
+            """Build connection panel (left column) - always 10 lines"""
+            sc = getattr(self.watch_config, "server_client", None)
+            is_connected = bool(sc and sc.is_authenticated)
+            status_icon = "✓" if is_connected else "✗"
+            status_color = "green" if is_connected else "red"
 
-            Returns:
-                Formatted status text with markup
-            """
-            status_icon = "✓" if self.watch_config.session else "✗"
-            status_color = "green" if self.watch_config.session else "red"
+            etag = sc.last_etag if sc and sc.last_etag else "(none)"
+            rev = sc.last_rev if sc and sc.last_rev else "(none)"
 
-            etag = self.watch_config.last_etag or "(none)"
-            rev = self.watch_config.last_rev or "(none)"
+            # Exactly 11 lines of content (to match right panel)
+            return (
+                f"[bold]Node-RED Watch Mode[/bold]\n"           # 1
+                f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"  # 2
+                f"\n"                                            # 3 blank
+                f"[cyan]Server:[/cyan] {self.watch_config.server_url}\n"  # 4
+                f"[cyan]Status:[/cyan] [{status_color}]{status_icon} "
+                f"{'Connected' if is_connected else 'Disconnected'}[/{status_color}]\n"  # 5
+                f"[cyan]User:[/cyan] {self.watch_config.username}\n"  # 6
+                f"\n"                                            # 7 blank
+                f"[bold]Synchronization:[/bold]\n"              # 8
+                f"  ETag: {etag}\n"                            # 9
+                f"  Rev: {rev}\n"                              # 10
+                f"\n"                                            # 11 blank (trailing)
+            )
 
-            # Time since last sync
+        def _build_stats_text(self) -> str:
+            """Build statistics panel (right column) - always 11 lines to match left"""
+            sc = getattr(self.watch_config, "server_client", None)
+
+            # Statistics + timestamps from ServerClient
+            downloads = sc.download_count if sc else 0
+            uploads = sc.upload_count if sc else 0
+            errors = sc.error_count if sc else 0
+
             download_ago = ""
-            if self.watch_config.last_download_time:
-                ago = int(
-                    (datetime.now() - self.watch_config.last_download_time).total_seconds()
-                )
+            if sc and sc.last_download_time:
+                ago = int((datetime.now() - sc.last_download_time).total_seconds())
                 download_ago = f" ({ago}s ago)"
 
             upload_ago = ""
-            if self.watch_config.last_upload_time:
-                ago = int(
-                    (datetime.now() - self.watch_config.last_upload_time).total_seconds()
-                )
+            if sc and sc.last_upload_time:
+                ago = int((datetime.now() - sc.last_upload_time).total_seconds())
                 upload_ago = f" ({ago}s ago)"
 
-            return f"""[bold]Node-RED Watch Mode[/bold] - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+            # Get rate limiting stats
+            rate_1m = rate_10m = limit_1m = limit_10m = 0
+            if sc and sc.rate_limiter:
+                rl_stats = sc.rate_limiter.get_stats()
+                rate_1m = rl_stats['requests_last_minute']
+                limit_1m = rl_stats['limit_per_minute']
+                rate_10m = rl_stats['requests_last_10min']
+                limit_10m = rl_stats['limit_per_10min']
 
-[cyan]Server:[/cyan] {self.watch_config.server_url}
-[cyan]Status:[/cyan] [{status_color}]{status_icon} {"Connected" if self.watch_config.session else "Disconnected"}[/{status_color}]
-[cyan]User:[/cyan] {self.config.username}
-
-[bold]Synchronization:[/bold]
-  ETag: {etag}
-  Rev: {rev}
-
-[bold]Statistics:[/bold]
-  Downloads: {self.watch_config.download_count}{download_ago}
-  Uploads: {self.watch_config.upload_count}{upload_ago}
-  Errors: [red]{self.config.error_count}[/red]"""
+            # Exactly 11 lines of content (extra blank between sections)
+            return (
+                f"\n"                                           # 1 blank (aligns with title)
+                f"[bold]Statistics:[/bold]\n"                   # 2
+                f"  Downloads: {downloads}{download_ago}\n"    # 3
+                f"  Uploads: {uploads}{upload_ago}\n"          # 4
+                f"  Errors: [red]{errors}[/red]\n"            # 5
+                f"\n"                                          # 6 blank
+                f"[bold]Rate Limiting:[/bold]\n"               # 7
+                f"  1-min: {rate_1m}/{limit_1m}\n"            # 8
+                f"  10-min: {rate_10m}/{limit_10m}\n"         # 9
+                f"\n"                                          # 10 blank
+                f"\n"                                          # 11 blank (matches left trailing)
+            )
 
         def update_stats(self) -> None:
-            """Update status panel with current stats"""
-            status_widget = self.query_one("#status_panel", Static)
-            status_widget.update(self._build_status_text())
+            """Update both status panels with current info"""
+            conn_widget = self.query_one("#connection_panel", Static)
+            conn_widget.update(self._build_connection_text())
+
+            stats_widget = self.query_one("#stats_panel", Static)
+            stats_widget.update(self._build_stats_text())
 
         def add_log_message(self, message: str, is_error: bool = False) -> None:
             """Add message to activity log
@@ -439,10 +490,10 @@ if TEXTUAL_AVAILABLE:
             self.add_log_message(f"Command: {command}", is_error=False)
 
             # Handle command in background thread to avoid blocking UI
-            if hasattr(self.config, "handle_dashboard_command"):
+            if hasattr(self.watch_config, "handle_dashboard_command"):
 
                 def run_command():
-                    self.config.handle_dashboard_command(command)
+                    self.watch_config.handle_dashboard_command(command)
 
                 thread = threading.Thread(target=run_command, daemon=True)
                 thread.start()
@@ -450,3 +501,4 @@ if TEXTUAL_AVAILABLE:
                 self.add_log_message(
                     "Command handling not yet configured", is_error=True
                 )
+

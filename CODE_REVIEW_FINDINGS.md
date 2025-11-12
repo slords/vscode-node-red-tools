@@ -176,7 +176,7 @@ vscode-node-red-tools/
 │   ├── utils.py                # Utility functions
 │   ├── watcher.py              # Watch mode exports
 │   ├── watcher_core.py         # Watch orchestration
-│   ├── watcher_server.py       # Server communication
+│   ├── server_client.py        # Central server communication (replaces watcher_server.py)
 │   └── watcher_stages.py       # Download/upload stages
 └── plugins/                    # Plugin system
     └── [11 plugin files]

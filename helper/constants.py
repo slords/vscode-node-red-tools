@@ -11,8 +11,10 @@ All configurable constants and limits in one place for easy maintenance.
 HTTP_TIMEOUT = 30  # Timeout for HTTP requests to Node-RED (seconds)
 
 # Rate limiting for API calls (prevents runaway loops)
-RATE_LIMIT_REQUESTS_PER_MINUTE = 60  # Allow 1/second normal operation
-RATE_LIMIT_REQUESTS_PER_10MIN = 600  # Allow bursts but prevent runaway
+# Raised per user request to accommodate higher interactive usage without premature throttling.
+# 180/min (~3/sec sustained) and 1200/10min balance responsiveness vs. protection.
+RATE_LIMIT_REQUESTS_PER_MINUTE = 180  # ~3/sec sustained
+RATE_LIMIT_REQUESTS_PER_10MIN = 1200  # Allows larger bursts over 10 minutes
 
 # Network retry configuration for watch mode
 MAX_NETWORK_RETRIES = 4  # Max consecutive network failures before backoff

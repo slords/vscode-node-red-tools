@@ -29,44 +29,59 @@ from .utils import validate_path_for_subprocess
 from .constants import HTTP_TIMEOUT, SUBPROCESS_TIMEOUT
 
 
-def download_server_flows(credentials) -> dict:
-    """Download flows from Node-RED server using credentials
+def download_server_flows(server) -> dict:
+    """Download flows from Node-RED server using a ServerClient (AuthConfig inside).
 
     Args:
-        credentials: ServerCredentials object with auth info
+        server: Object with url/auth_type/token/username/password/verify_ssl attributes (ServerClient).
 
     Returns:
-        Flow data as dictionary
+        Flow data as dictionary (list of flows nodes).
 
     Raises:
-        requests.exceptions.RequestException: If download fails
+        requests.exceptions.RequestException: If download fails.
     """
     if not REQUESTS_AVAILABLE:
         raise ImportError("requests module required for server downloads")
 
+    # Determine interface style
+    url = getattr(server, "url", None)
+    auth_type = getattr(server, "auth_type", "none")
+    verify_ssl = getattr(server, "verify_ssl", True)
+    token = getattr(server, "token", None)
+    username = getattr(server, "username", None)
+    password = getattr(server, "password", None)
+
+    if not url:
+        raise ValueError("Server object missing 'url'")
+
     try:
-        from .auth import ServerCredentials
-
         session = requests.Session()
-        session.verify = credentials.verify_ssl
+        session.verify = verify_ssl
 
-        # Configure authentication based on type
-        if credentials.auth_type == "bearer":
-            session.headers.update({"Authorization": f"Bearer {credentials.token}"})
-        elif credentials.auth_type == "basic":
-            session.auth = HTTPBasicAuth(credentials.username, credentials.password)
-        elif credentials.auth_type == "none":
-            pass  # No authentication needed
+        if auth_type == "bearer" and token:
+            session.headers.update({"Authorization": f"Bearer {token}"})
+        elif auth_type == "basic" and username and password:
+            session.auth = HTTPBasicAuth(username, password)
+        elif auth_type == "none":
+            pass
         else:
-            raise ValueError(f"Unknown auth type: {credentials.auth_type}")
+            raise ValueError(f"Unknown or invalid auth type: {auth_type}")
 
-        if not credentials.verify_ssl:
-            import urllib3
-            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+        if not verify_ssl:
+            try:
+                import urllib3
+                urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+            except Exception:
+                pass
 
-        response = session.get(f"{credentials.url.rstrip('/')}/flows", timeout=HTTP_TIMEOUT)
+        response = session.get(f"{url.rstrip('/')}/flows", timeout=HTTP_TIMEOUT)
         response.raise_for_status()
-        return response.json()
+        data = response.json()
+        # Normalize v2 format if present
+        if isinstance(data, dict) and "flows" in data:
+            return data.get("flows", [])
+        return data
 
     except requests.exceptions.RequestException as e:
         log_error(f"Failed to download from server: {e}")
@@ -77,7 +92,7 @@ def prepare_source_for_diff(
     source_type: str,
     flows_path: Path,
     src_path: Path,
-    credentials=None,
+    server_client=None,
     temp_dir: Path = None,
     plugins_dict: dict = None,
     repo_root: Path = None,
@@ -88,10 +103,7 @@ def prepare_source_for_diff(
         source_type: Type of source (src, flow, server)
         flows_path: Path to flows.json
         src_path: Path to src directory
-        server_url: Server URL (required for server type)
-        username: Server username (required for server type)
-        password: Server password (required for server type)
-        verify_ssl: Whether to verify SSL
+        server_client: ServerClient instance (required for server type)
         temp_dir: Temporary directory for exploded files
         plugins_dict: Pre-loaded plugins dictionary
         repo_root: Repository root path
@@ -100,7 +112,7 @@ def prepare_source_for_diff(
         Path to exploded directory
 
     Raises:
-        ValueError: If source type is invalid or required credentials missing
+        ValueError: If source type is invalid or required server_client missing
     """
     source_dir = temp_dir / f"{source_type}_exploded"
     source_dir.mkdir(parents=True, exist_ok=True)
@@ -132,28 +144,25 @@ def prepare_source_for_diff(
 
     elif source_type == "server":
         # Download from server, write to temp file, explode
-        if credentials is None:
-            raise ValueError("Server comparison requires credentials object")
-        if credentials.auth_type == "basic":
-            if (
-                not credentials.url
-                or not credentials.username
-                or not credentials.password
-            ):
-                raise ValueError(
-                    "Server comparison requires server URL, username, and password in credentials"
-                )
-        elif credentials.auth_type == "bearer":
-            if not credentials.url or not credentials.token:
-                raise ValueError(
-                    "Server comparison requires server URL and token in credentials"
-                )
-        elif credentials.auth_type == "none":
-            if not credentials.url:
-                raise ValueError("Server comparison requires server URL in credentials")
+        if server_client is None:
+            raise ValueError("Server comparison requires server_client")
+        auth_type = getattr(server_client, "auth_type", "none")
+        url = getattr(server_client, "url", None)
+        username = getattr(server_client, "username", None)
+        password = getattr(server_client, "password", None)
+        token = getattr(server_client, "token", None)
+        if auth_type == "basic":
+            if not (url and username and password):
+                raise ValueError("Server comparison requires server URL, username, and password")
+        elif auth_type == "bearer":
+            if not (url and token):
+                raise ValueError("Server comparison requires server URL and token")
+        elif auth_type == "none":
+            if not url:
+                raise ValueError("Server comparison requires server URL")
 
-        log_info(f"Downloading flows from {credentials.url}")
-        flow_data = download_server_flows(credentials)
+        log_info(f"Downloading flows from {url}")
+        flow_data = download_server_flows(server_client)
 
         # Write to temp flows file - compact format
         temp_flows = temp_dir / "server_flows.json"
@@ -368,7 +377,7 @@ def diff_flows(
     target: str,
     flows_path: Path,
     src_path: Path,
-    credentials=None,
+    server_client=None,
     use_bcompare: bool = False,
     plugins_dict: dict = None,
     repo_root: Path = None,
@@ -381,10 +390,7 @@ def diff_flows(
         target: Source to compare to (src, flow, server)
         flows_path: Path to flows.json
         src_path: Path to src directory
-        server_url: Node-RED server URL (required for server comparisons)
-        username: Server username (required for server comparisons)
-        password: Server password (required for server comparisons)
-        verify_ssl: Whether to verify SSL certificates
+        server_client: ServerClient instance (required for server comparisons)
         use_bcompare: Use Beyond Compare for visual diff
         plugins_dict: Pre-loaded plugins dictionary
         repo_root: Repository root path
@@ -416,7 +422,7 @@ def diff_flows(
                 source,
                 flows_path,
                 src_path,
-                credentials if source == "server" else None,
+                server_client if source == "server" else None,
                 temp_path,
                 plugins_dict,
                 repo_root,
@@ -427,7 +433,7 @@ def diff_flows(
                 target,
                 flows_path,
                 src_path,
-                credentials if target == "server" else None,
+                server_client if target == "server" else None,
                 temp_path,
                 plugins_dict,
                 repo_root,
