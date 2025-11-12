@@ -42,6 +42,9 @@ def find_orphaned_files(
     """
     # If skeleton data is provided, use metadata for perfect detection
     if skeleton_data:
+        # Ensure src_dir is resolved for consistent path comparison
+        src_dir = src_dir.resolve()
+
         # Build map of expected files from metadata
         expected_files = set()
         node_dirs = {}
@@ -51,7 +54,7 @@ def find_orphaned_files(
             if not node_id:
                 continue
 
-            # Get expected directory for this node
+            # Get expected directory for this node (returns resolved path)
             node_dir = get_node_directory(node, src_dir, tab_ids)
             node_dirs[node_id] = node_dir
 
@@ -63,7 +66,8 @@ def find_orphaned_files(
                 # value is the list of files for this plugin
                 if isinstance(value, list):
                     for filename in value:
-                        expected_files.add(node_dir / filename)
+                        # Add resolved path for consistent comparison
+                        expected_files.add((node_dir / filename).resolve())
 
         # Find all actual files
         orphaned = []
@@ -79,8 +83,8 @@ def find_orphaned_files(
             if item.name == ".flow-skeleton.json":
                 continue
 
-            # Check if this file is expected
-            if item not in expected_files:
+            # Check if this file is expected (resolve for consistent comparison)
+            if item.resolve() not in expected_files:
                 orphaned.append(item)
 
         return orphaned
