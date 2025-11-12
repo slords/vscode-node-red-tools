@@ -42,7 +42,6 @@ def rebuild_single_node(
     skeleton: dict,
     base_json_exists: bool,
     explode_plugins: list,
-    repo_root: Path,
     src_dir: Path = None,
 ) -> dict:
     """Rebuild a single node from its files (used by explode for verification)
@@ -53,7 +52,6 @@ def rebuild_single_node(
         skeleton: Skeleton node data
         base_json_exists: Whether the .json file exists
         explode_plugins: List of explode plugins
-        repo_root: Repository root path
         src_dir: Source directory root (for path validation)
 
     Returns:
@@ -91,7 +89,7 @@ def rebuild_single_node(
 
     # Rebuild from plugins (pass node_data which has skeleton + .json merged)
     for plugin in explode_plugins:
-        plugin_data = plugin.rebuild_node(node_id, node_dir, node_data, repo_root)
+        plugin_data = plugin.rebuild_node(node_id, node_dir, node_data)
 
         if plugin_data:
             plugin_fields = set(plugin.get_claimed_fields(node_data))
@@ -112,7 +110,6 @@ def rebuild_single_node(
 def _run_pre_rebuild_stage(
     pre_rebuild_plugins: list,
     src_dir: Path,
-    repo_root: Path,
     quiet_plugins: bool,
     continued_from_explode: bool = False,
     progress_task: tuple = None,
@@ -122,7 +119,6 @@ def _run_pre_rebuild_stage(
     Args:
         pre_rebuild_plugins: List of pre-rebuild plugins
         src_dir: Source directory
-        repo_root: Repository root directory
         quiet_plugins: Whether to suppress plugin messages
         continued_from_explode: True if rebuilding immediately after explode
         progress_task: Optional (progress, task_id) tuple for rich progress tracking
@@ -137,11 +133,11 @@ def _run_pre_rebuild_stage(
             sig = inspect.signature(plugin.process_directory_pre_rebuild)
             if "continued_from_explode" in sig.parameters:
                 plugin.process_directory_pre_rebuild(
-                    src_dir, repo_root, continued_from_explode=continued_from_explode
+                    src_dir, continued_from_explode=continued_from_explode
                 )
             else:
                 # Plugin doesn't support flag, call without it
-                plugin.process_directory_pre_rebuild(src_dir, repo_root)
+                plugin.process_directory_pre_rebuild(src_dir)
 
             # Update progress
             if progress_task:
@@ -157,7 +153,6 @@ def _rebuild_single_node(
     explode_plugins: list,
     src_dir: Path,
     tab_ids: set,
-    repo_root: Path,
 ) -> tuple[int, dict]:
     """Rebuild a single node from skeleton and source files (thread-safe worker function)
 
@@ -167,7 +162,6 @@ def _rebuild_single_node(
         explode_plugins: List of explode plugins (used for rebuild)
         src_dir: Source directory
         tab_ids: Set of tab/subflow IDs
-        repo_root: Repository root directory
 
     Returns:
         tuple of (idx, rebuilt_node)
@@ -202,7 +196,7 @@ def _rebuild_single_node(
     # Merge plugin data (multiple plugins can process same node)
     for plugin in explode_plugins:
         # Try to rebuild node data (pass node_data which has skeleton + .json merged)
-        plugin_data = plugin.rebuild_node(node_id, node_dir, node_data, repo_root)
+        plugin_data = plugin.rebuild_node(node_id, node_dir, node_data)
 
         # If plugin returned data, claim fields and merge
         if plugin_data:
@@ -228,7 +222,6 @@ def _rebuild_nodes_stage(
     skeleton_data: list,
     explode_plugins: list,
     src_dir: Path,
-    repo_root: Path,
     quiet_plugins: bool,
     max_workers: int = DEFAULT_MAX_WORKERS,
     progress_task: tuple = None,
@@ -239,7 +232,6 @@ def _rebuild_nodes_stage(
         skeleton_data: Skeleton data array
         explode_plugins: List of explode plugins (used for rebuild)
         src_dir: Source directory
-        repo_root: Repository root directory
         quiet_plugins: Whether to suppress plugin messages
         max_workers: Max worker threads (None = cpu_count, 1 = sequential)
         progress_task: Optional (progress, task_id) tuple for rich progress tracking
@@ -293,7 +285,6 @@ def _rebuild_nodes_stage(
                     explode_plugins,
                     src_dir,
                     tab_ids,
-                    repo_root,
                 ): idx
                 for idx, skeleton_node in enumerate(skeleton_data)
             }
@@ -315,7 +306,6 @@ def _rebuild_nodes_stage(
                 explode_plugins,
                 src_dir,
                 tab_ids,
-                repo_root,
             )
             rebuilt_nodes.append(node_data)
             update_progress()
@@ -326,7 +316,6 @@ def _rebuild_nodes_stage(
 def _run_post_rebuild_stage(
     post_rebuild_plugins: list,
     flows_path: Path,
-    repo_root: Path,
     quiet_plugins: bool,
     progress_task: tuple = None,
 ) -> None:
@@ -335,7 +324,6 @@ def _run_post_rebuild_stage(
     Args:
         post_rebuild_plugins: List of post-rebuild plugins
         flows_path: Flows file path
-        repo_root: Repository root directory
         quiet_plugins: Whether to suppress plugin messages
         progress_task: Optional (progress, task_id) tuple for rich progress tracking
     """
@@ -344,7 +332,7 @@ def _run_post_rebuild_stage(
         for plugin in post_rebuild_plugins:
             if not quiet_plugins:
                 log_info(f"  {plugin.get_name()}")
-            plugin.process_flows_post_rebuild(flows_path, repo_root)
+            plugin.process_flows_post_rebuild(flows_path)
 
             # Update progress
             if progress_task:
@@ -364,7 +352,6 @@ def rebuild_flows(
     continued_from_explode: bool = False,
     dry_run: bool = False,
     plugins_dict: dict = None,
-    repo_root: Path = None,
 ) -> int:
     """Rebuild flows.json from source files
 
@@ -378,7 +365,6 @@ def rebuild_flows(
         continued_from_explode: Skip redundant pre-rebuild work
         dry_run: Show what would change without writing files
         plugins_dict: Pre-loaded plugins dictionary (required)
-        repo_root: Repository root path (required for consistency)
 
     Returns:
         Exit code (0 = success, 1 = error)
@@ -402,7 +388,6 @@ def rebuild_flows(
                 continued_from_explode=continued_from_explode,
                 dry_run=False,
                 plugins_dict=plugins_dict,
-                repo_root=repo_root,
             )
 
             # Compare flows.json files
@@ -422,10 +407,6 @@ def rebuild_flows(
         # Create backup if requested
         if backup and flows_path.exists():
             create_backup(flows_path)
-
-        # Get repo root for plugins (if not provided)
-        if repo_root is None:
-            repo_root = flows_path.parent.parent
 
         # Require plugins_dict to be provided
         if plugins_dict is None:
@@ -464,7 +445,6 @@ def rebuild_flows(
                 _run_pre_rebuild_stage(
                     pre_rebuild_plugins,
                     src_dir,
-                    repo_root,
                     quiet_plugins,
                     continued_from_explode,
                     progress_task=(progress, task1),
@@ -473,7 +453,6 @@ def rebuild_flows(
             _run_pre_rebuild_stage(
                 pre_rebuild_plugins,
                 src_dir,
-                repo_root,
                 quiet_plugins,
                 continued_from_explode,
                 progress_task=None,
@@ -486,7 +465,6 @@ def rebuild_flows(
                 skeleton_data,
                 explode_plugins,
                 src_dir,
-                repo_root,
                 quiet_plugins,
                 progress_task=(progress, task2),
             )
@@ -507,7 +485,6 @@ def rebuild_flows(
                 _run_post_rebuild_stage(
                     post_rebuild_plugins,
                     flows_path,
-                    repo_root,
                     quiet_plugins,
                     progress_task=(progress, task3),
                 )

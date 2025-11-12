@@ -51,7 +51,7 @@ class WrapFuncPlugin:
             return "function"
         return None
 
-    def explode_node(self, node: dict, node_dir: Path, repo_root: Path) -> list:
+    def explode_node(self, node: dict, node_dir: Path) -> list:
         """Wrap func, initialize, and finalize in testable function declarations
 
         Returns:
@@ -111,7 +111,7 @@ class WrapFuncPlugin:
             return []
 
     def rebuild_node(
-        self, node_id: str, node_dir: Path, skeleton: dict, repo_root: Path
+        self, node_id: str, node_dir: Path, skeleton: dict
     ) -> dict:
         """Rebuild func, initialize, and finalize from wrapped files"""
         data = {}

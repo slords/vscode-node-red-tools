@@ -95,7 +95,6 @@ def prepare_source_for_diff(
     server_client=None,
     temp_dir: Path = None,
     plugins_dict: dict = None,
-    repo_root: Path = None,
 ) -> Path:
     """Prepare a source for comparison by creating an exploded directory
 
@@ -106,7 +105,6 @@ def prepare_source_for_diff(
         server_client: ServerClient instance (required for server type)
         temp_dir: Temporary directory for exploded files
         plugins_dict: Pre-loaded plugins dictionary
-        repo_root: Repository root path
 
     Returns:
         Path to exploded directory
@@ -138,7 +136,6 @@ def prepare_source_for_diff(
             source_dir,
             quiet_plugins=True,
             plugins_dict=plugins_dict,
-            repo_root=repo_root,
         )
         return source_dir
 
@@ -178,7 +175,6 @@ def prepare_source_for_diff(
             source_dir,
             quiet_plugins=True,
             plugins_dict=plugins_dict,
-            repo_root=repo_root,
         )
         return source_dir
 
@@ -380,7 +376,6 @@ def diff_flows(
     server_client=None,
     use_bcompare: bool = False,
     plugins_dict: dict = None,
-    repo_root: Path = None,
     context: int = 3,
 ) -> int:
     """Compare two sources (src, flow, or server)
@@ -393,7 +388,6 @@ def diff_flows(
         server_client: ServerClient instance (required for server comparisons)
         use_bcompare: Use Beyond Compare for visual diff
         plugins_dict: Pre-loaded plugins dictionary
-        repo_root: Repository root path
         context: Number of context lines for unified diff
 
     Returns:
@@ -425,7 +419,6 @@ def diff_flows(
                 server_client if source == "server" else None,
                 temp_path,
                 plugins_dict,
-                repo_root,
             )
 
             log_info(f"Preparing {target} for comparison...")
@@ -436,7 +429,6 @@ def diff_flows(
                 server_client if target == "server" else None,
                 temp_path,
                 plugins_dict,
-                repo_root,
             )
 
             # Compare

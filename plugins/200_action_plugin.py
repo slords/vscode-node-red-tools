@@ -163,7 +163,7 @@ class ActionPlugin:
             return "function"
         return None
 
-    def explode_node(self, node: dict, node_dir: Path, repo_root: Path) -> list:
+    def explode_node(self, node: dict, node_dir: Path) -> list:
         """Explode action to .def.js and .execute.js files
 
         Returns:
@@ -212,7 +212,7 @@ class ActionPlugin:
             return []
 
     def rebuild_node(
-        self, node_id: str, node_dir: Path, skeleton: dict, repo_root: Path
+        self, node_id: str, node_dir: Path, skeleton: dict
     ) -> dict:
         """Rebuild action from .def.js and .execute.js files"""
         def_file = node_dir / f"{node_id}.def.js"

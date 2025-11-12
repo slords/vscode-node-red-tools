@@ -30,7 +30,7 @@ class PrettierExplodePlugin:
         return "post-explode"
 
     def process_directory_post_explode(
-        self, src_dir: Path, flows_path: Path, repo_root: Path
+        self, src_dir: Path, flows_path: Path
     ) -> bool:
         """Format src directory and flows.json after explode
 
@@ -40,7 +40,7 @@ class PrettierExplodePlugin:
         # Format src directory + flows.json in parallel
         # Root files + flows.json in one thread, each subdirectory in its own thread
         result = run_prettier_parallel(
-            src_dir, repo_root, additional_files=[flows_path]
+            src_dir, additional_files=[flows_path]
         )
 
         if result:

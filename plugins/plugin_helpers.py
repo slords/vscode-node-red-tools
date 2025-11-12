@@ -93,23 +93,22 @@ def extract_function_body(code: str, start_pattern: str) -> Optional[tuple[str, 
     return (params, body)
 
 
-def run_prettier(filepath: Path, repo_root: Path) -> bool:
+def run_prettier(filepath: Path) -> bool:
     """Run prettier on a file.
 
     Args:
         filepath: Path to file to format
-        repo_root: Repository root directory (cwd for prettier)
 
     Returns:
         True if formatting succeeded, False otherwise
     """
     try:
         # Validate path exists and length before passing to subprocess
-        validated_filepath = validate_path_for_subprocess(filepath, repo_root)
+        validated_filepath = validate_path_for_subprocess(filepath, filepath.parent)
 
         result = subprocess.run(
             ["npx", "prettier", "--trailing-comma", "es5", "--write", str(validated_filepath)],
-            cwd=repo_root,
+            cwd=Path.cwd(),
             capture_output=True,
             text=True,
             check=True,
@@ -136,9 +135,7 @@ def run_prettier(filepath: Path, repo_root: Path) -> bool:
         return False
 
 
-def run_prettier_parallel(
-    directory: Path, repo_root: Path, additional_files: list = None
-) -> bool:
+def run_prettier_parallel(directory: Path, additional_files: list = None) -> bool:
     """Run prettier on a directory in parallel.
 
     For root files in directory: formats them as a list in one thread.
@@ -146,7 +143,6 @@ def run_prettier_parallel(
 
     Args:
         directory: Directory to format (typically src_dir)
-        repo_root: Repository root directory (cwd for prettier)
         additional_files: Optional list of additional files to include (e.g., flows.json)
                          These files are validated against their own parent directories
 
@@ -211,7 +207,7 @@ def run_prettier_parallel(
             # Pass all root files to prettier at once
             subprocess.run(
                 ["npx", "prettier", "--trailing-comma", "es5", "--write"] + validated_files,
-                cwd=repo_root,
+                cwd=Path.cwd(),
                 capture_output=True,
                 text=True,
                 check=True,
@@ -233,7 +229,7 @@ def run_prettier_parallel(
             # Pass directory to prettier (it handles recursion)
             subprocess.run(
                 ["npx", "prettier", "--trailing-comma", "es5", "--write", str(validated_subdir)],
-                cwd=repo_root,
+                cwd=Path.cwd(),
                 capture_output=True,
                 text=True,
                 check=True,

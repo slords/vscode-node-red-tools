@@ -58,9 +58,8 @@ class SrcFileHandler(FileSystemEventHandler):
         self.watch_config = watch_config
 
     def on_modified(self, event) -> None:  # type: ignore[override]
+        # No need to check pause_watching - observer is stopped/joined when paused
         if getattr(event, "is_directory", False):
-            return
-        if self.watch_config.pause_watching:
             return
         path = Path(getattr(event, "src_path", ""))
         if not path.exists():
@@ -261,7 +260,6 @@ def handle_command(watch_config: WatchConfig, command: str) -> None:
             watch_config.src_dir,
             quiet_plugins=True,
             plugins_dict=watch_config.plugins_dict,
-            repo_root=watch_config.repo_root,
         )
         if result == 0:
             if sc:
@@ -288,7 +286,6 @@ def handle_command(watch_config: WatchConfig, command: str) -> None:
             watch_config.src_dir,
             quiet_plugins=True,
             plugins_dict=watch_config.plugins_dict,
-            repo_root=watch_config.repo_root,
         )
         if result != 0:
             log_error("Rebuild failed")
@@ -327,6 +324,11 @@ def watch_src_and_rebuild(watch_config: WatchConfig) -> None:
     observer = Observer()
     observer.schedule(event_handler, str(watch_config.src_dir), recursive=True)
     observer.start()
+
+    # Store observer and handler in config so pause_watching setter can recreate it
+    watch_config.observer = observer
+    watch_config.observer_event_handler = event_handler
+
     log_success(f"Watching {watch_config.src_dir} for changes")
 
     if not watch_config.dashboard:
@@ -401,7 +403,6 @@ def watch_mode(
     src_path: Path,
     plugins_dict: dict = None,
     config: dict = None,
-    repo_root: Path = None,
     server_client=None,
 ) -> int:
     """Entry point for watch mode (bidirectional sync with Node-RED)."""
@@ -422,7 +423,6 @@ def watch_mode(
             server_client=server_client,
             flows_path=flows_path,
             src_path=src_path,
-            repo_root=repo_root,
             use_dashboard=getattr(args, "dashboard", False),
         )
 

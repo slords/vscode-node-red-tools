@@ -73,7 +73,7 @@ class GlobalFunctionPlugin:
         """Claim all fields this plugin generates during rebuild"""
         return ["func", "initialize", "finalize"]
 
-    def explode_node(self, node: dict, node_dir: Path, repo_root: Path) -> list:
+    def explode_node(self, node: dict, node_dir: Path) -> list:
         """Explode global function to .function.js file
 
         Returns:
@@ -111,7 +111,7 @@ class GlobalFunctionPlugin:
             return []
 
     def rebuild_node(
-        self, node_id: str, node_dir: Path, skeleton: dict, repo_root: Path
+        self, node_id: str, node_dir: Path, skeleton: dict
     ) -> dict:
         """Rebuild global function from .function.js file"""
         func_file = node_dir / f"{node_id}.function.js"

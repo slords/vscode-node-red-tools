@@ -68,7 +68,7 @@ class Plugin:
         """
         return []
 
-    def explode_node(self, node: dict, node_dir: Path, repo_root: Path) -> List[str]:
+    def explode_node(self, node: dict, node_dir: Path) -> List[str]:
         """
         Explode node-specific files.
         Only used by 'explode' type plugins.
@@ -79,9 +79,7 @@ class Plugin:
         """
         return []
 
-    def rebuild_node(
-        self, node_id: str, node_dir: Path, skeleton: dict, repo_root: Path
-    ) -> dict:
+    def rebuild_node(self, node_id: str, node_dir: Path, skeleton: dict) -> dict:
         """
         Rebuild node-specific data. Returns dict to merge into node.
         Only used by 'explode' type plugins.
@@ -89,7 +87,7 @@ class Plugin:
         return {}
 
     # Pre-explode plugin methods
-    def process_flows_pre_explode(self, flow_data: list, repo_root: Path) -> list:
+    def process_flows_pre_explode(self, flow_data: list) -> list:
         """
         Modify flow data before explode.
         Only used by 'pre-explode' type plugins.
@@ -98,9 +96,7 @@ class Plugin:
         return flow_data
 
     # Post-explode plugin methods
-    def process_directory_post_explode(
-        self, src_dir: Path, flows_path: Path, repo_root: Path
-    ) -> bool:
+    def process_directory_post_explode(self, src_dir: Path, flows_path: Path) -> bool:
         """
         Process files after explode (e.g., formatting).
         Only used by 'post-explode' type plugins.
@@ -110,7 +106,7 @@ class Plugin:
         return False
 
     # Pre-rebuild plugin methods
-    def process_directory_pre_rebuild(self, src_dir: Path, repo_root: Path) -> bool:
+    def process_directory_pre_rebuild(self, src_dir: Path) -> bool:
         """
         Process files before rebuild (e.g., validation).
         Only used by 'pre-rebuild' type plugins.
@@ -119,7 +115,7 @@ class Plugin:
         return False
 
     # Post-rebuild plugin methods
-    def process_flows_post_rebuild(self, flows_path: Path, repo_root: Path) -> bool:
+    def process_flows_post_rebuild(self, flows_path: Path) -> bool:
         """
         Process flows.json after rebuild (e.g., formatting).
         Only used by 'post-rebuild' type plugins.
@@ -142,7 +138,6 @@ def extract_numeric_prefix(filename: str) -> int:
 
 
 def load_plugins(
-    repo_root: Path,
     config: Optional[dict] = None,
     enabled_override: Optional[List[str]] = None,
     disabled_override: Optional[List[str]] = None,
@@ -159,7 +154,6 @@ def load_plugins(
     4. Default (999)
 
     Args:
-        repo_root: Repository root path (for reference, not used currently)
         config: Configuration dictionary
         enabled_override: Optional list of plugin names to enable, or ["all"] for all plugins
         disabled_override: Optional list of plugin names to disable, or ["all"] to disable all

@@ -29,7 +29,7 @@ class PrettierPreRebuildPlugin:
         return "pre-rebuild"
 
     def process_directory_pre_rebuild(
-        self, src_dir: Path, repo_root: Path, continued_from_explode: bool = False
+        self, src_dir: Path, continued_from_explode: bool = False
     ) -> None:
         """Format src directory before rebuild
 
@@ -38,7 +38,6 @@ class PrettierPreRebuildPlugin:
 
         Args:
             src_dir: Source directory to format
-            repo_root: Repository root directory
             continued_from_explode: If True, skip formatting (post-explode just ran)
         """
         # Skip if we just ran post-explode prettier
@@ -46,7 +45,7 @@ class PrettierPreRebuildPlugin:
             return
 
         # Format src directory in parallel (groups by subdirectory)
-        run_prettier_parallel(src_dir, repo_root)
+        run_prettier_parallel(src_dir)
 
 
 # Export plugin

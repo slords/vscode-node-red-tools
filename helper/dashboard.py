@@ -40,7 +40,6 @@ class WatchConfig:
         server_client,
         flows_path,
         src_path,
-        repo_root,
         use_dashboard: bool = False,
     ):
         """Initialize WatchConfig with server client and file paths.
@@ -49,14 +48,12 @@ class WatchConfig:
             server_client: ServerClient instance for server communication
             flows_path: Path to flows.json
             src_path: Path to src directory
-            repo_root: Repository root directory
             use_dashboard: Whether to enable the interactive dashboard
         """
         self.server_client = server_client
         self.use_dashboard = use_dashboard
 
         # File paths (passed from watch_mode)
-        self.repo_root = repo_root
         self.src_dir = src_path
         self.flows_file = flows_path
 
@@ -79,6 +76,10 @@ class WatchConfig:
         self._pause_watching = False
         self._shutdown_requested = False
         self._last_file_change_time = 0.0
+
+        # Watchdog observer (set by watch_src_and_rebuild)
+        self.observer = None
+        self.observer_event_handler = None  # Handler to recreate observer
 
     # Convenience properties for backwards compatibility
     @property
@@ -119,16 +120,53 @@ class WatchConfig:
     def pause_watching(self, value):
         """Thread-safe setter for pause_watching flag
 
-        When transitioning from paused (True) to active (False), automatically
-        flushes filesystem buffers to ensure all pending file events are delivered
-        before file watching resumes. This prevents buffered events from being
-        processed after the pause ends.
+        When pausing: Stops and joins the observer thread completely
+        When unpausing: Recreates the observer fresh and starts it
+
+        This completely stops file watching during tool operations, avoiding
+        any event processing. When resuming, we start with a fresh observer.
         """
         with self._thread_lock:
-            # If transitioning from paused to active, flush filesystem first
-            if self._pause_watching and not value:
+            # Transitioning TO paused: Stop and join observer
+            if not self._pause_watching and value:
+                if self.observer:
+                    self.observer.stop()
+                    self.observer.join()  # Wait for thread to fully terminate
+                    self.observer = None
+
+            # Transitioning FROM paused to active: Recreate observer
+            elif self._pause_watching and not value:
+                # Step 1: Flush filesystem buffers to ensure all writes complete
                 os.sync()
+
+                # Step 2: Unconditionally clear file watcher state
+                # We paused because we're doing operations that overwrite files
+                # Any pending rebuilds are now stale
+                self._rebuild_pending = False
+                self._last_file_change_time = 0.0
+
+                # Step 3: Recreate observer if we have the handler
+                if self.observer_event_handler:
+                    self._recreate_observer()
+
+            # Set the flag
             self._pause_watching = value
+
+    def _recreate_observer(self):
+        """Recreate the observer with the stored event handler (must be called with lock held)"""
+        # Import here to avoid issues if watchdog not available
+        try:
+            from watchdog.observers import Observer
+
+            self.observer = Observer()
+            self.observer.schedule(
+                self.observer_event_handler,
+                str(self.src_dir),
+                recursive=True
+            )
+            self.observer.start()
+        except ImportError:
+            pass
 
     @property
     def shutdown_requested(self) -> bool:
@@ -153,21 +191,6 @@ class WatchConfig:
         """Thread-safe setter for last_file_change_time"""
         with self._thread_lock:
             self._last_file_change_time = value
-
-    def clear_file_watcher_state(self) -> None:
-        """Clear file watcher state to prevent false rebuild triggers (thread-safe)
-
-        Clears both rebuild_pending flag and last_file_change_time together.
-        Use this when tool-initiated operations write files that shouldn't trigger
-        a rebuild cycle (e.g., download/explode/deploy operations).
-
-        Common use cases:
-        - After download and explode complete (files came from server)
-        - After rebuild and deploy complete (already synced with server)
-        - After any tool operation that modifies files but shouldn't trigger rebuild
-        """
-        self.rebuild_pending = False
-        self.last_file_change_time = 0.0
 
     def request_shutdown(self) -> None:
         """Request graceful shutdown of watch mode
