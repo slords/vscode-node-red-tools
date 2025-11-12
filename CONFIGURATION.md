@@ -670,6 +670,96 @@ Check:
 4. SSL verification is appropriate for your setup (`verifySSL` setting)
 5. For basic auth, password is provided via `NODERED_PASSWORD` or prompt
 
+## Logging Configuration
+
+Control output verbosity using logging levels. Logging configuration is not stored in the config file; it's controlled via CLI flags or environment variables.
+
+### Environment Variable
+
+Set the logging level globally for all commands:
+
+```bash
+export NODERED_TOOLS_LOG_LEVEL=WARNING
+```
+
+**Valid Values:**
+- `DEBUG` - Show all messages including debug info
+- `INFO` - Normal operation (default)
+- `WARNING` - Only warnings and errors
+- `ERROR` - Only errors
+
+### CLI Flags
+
+Override logging level for specific command:
+
+```bash
+# Quiet mode (warnings and errors only)
+python3 vscode-node-red-tools.py --quiet explode
+
+# Verbose mode (debug messages)
+python3 vscode-node-red-tools.py --verbose rebuild
+
+# Explicit level
+python3 vscode-node-red-tools.py --log-level DEBUG watch
+```
+
+### Precedence
+
+CLI flags take precedence over environment variable:
+
+1. `--log-level` flag (highest priority)
+2. `--quiet` or `--verbose` flags
+3. `NODERED_TOOLS_LOG_LEVEL` environment variable
+4. Default (`INFO`)
+
+### Use Cases
+
+**Development:**
+```bash
+# See everything that's happening
+python3 vscode-node-red-tools.py --verbose watch
+```
+
+**Production/CI:**
+```bash
+# Only show important issues
+python3 vscode-node-red-tools.py --quiet explode flows/flows.json
+```
+
+**Debugging:**
+```bash
+# Maximum detail
+export NODERED_TOOLS_LOG_LEVEL=DEBUG
+python3 vscode-node-red-tools.py explode flows/flows.json
+```
+
+## Error Codes
+
+All errors and warnings include error codes for easier troubleshooting:
+
+**Format:**
+- Errors: `[E##]`
+- Warnings: `[W##]`
+
+**Code Ranges:**
+- 0: Success
+- 1-9: General errors
+- 10-19: Configuration errors
+- 20-29: File system errors
+- 30-39: Server/network errors
+- 40-49: Validation errors
+- 50-59: Plugin errors
+- 60-69: Operation errors
+
+**Example Output:**
+```
+✗ [E20] File not found: flows/flows.json
+⚠ [W10] Config file not found, using defaults
+✓ Deployed to Node-RED
+```
+
+See [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for complete error code reference.
+
 ## Next Steps
 
 - Review [USAGE.md](USAGE.md) for command examples

@@ -65,8 +65,12 @@ python3 vscode-node-red-tools.py [GLOBAL_OPTIONS] explode [OPTIONS] FLOWS_FILE [
 
 - `--flows PATH` - Set flows.json path (default: "flows/flows.json")
 - `--src PATH` - Set source directory (default: "src")
+- `--config PATH` - Set config file path (default: auto-search)
 - `--enable PLUGINS` - Enable specific plugins (comma-separated or "all")
 - `--disable PLUGINS` - Disable specific plugins (comma-separated or "all")
+- `--quiet` - Suppress info messages (warnings and errors only)
+- `--verbose` - Show debug messages
+- `--log-level LEVEL` - Set log level explicitly (DEBUG, INFO, WARNING, ERROR)
 
 **What it does:**
 
@@ -789,6 +793,125 @@ git commit -m "Initial explode of flows"
 ```
 
 **Note:** Many flows require a full explode/rebuild cycle to stabilize. This ensures plugins converge to a consistent state before committing source files.
+
+## Logging and Error Codes
+
+### Logging Levels
+
+Control output verbosity with logging levels. This is useful for debugging, CI/CD pipelines, and monitoring.
+
+**Available Levels:**
+- `DEBUG` - Show all messages including debug information
+- `INFO` - Normal operation messages (default)
+- `WARNING` - Only warnings and errors
+- `ERROR` - Only errors
+
+**Usage:**
+
+```bash
+# Quiet mode (warnings and errors only)
+python3 vscode-node-red-tools.py --quiet explode flows/flows.json
+
+# Verbose mode (includes debug messages)
+python3 vscode-node-red-tools.py --verbose rebuild flows/flows.json
+
+# Explicit level
+python3 vscode-node-red-tools.py --log-level DEBUG watch
+
+# Environment variable (applies to all commands)
+export NODERED_TOOLS_LOG_LEVEL=WARNING
+python3 vscode-node-red-tools.py explode flows/flows.json
+```
+
+**When to Use:**
+
+- `--quiet` - CI/CD pipelines, cron jobs, automated scripts
+- `--verbose` - Debugging issues, development work
+- `--log-level ERROR` - Monitoring scripts (only show failures)
+- `--log-level WARNING` - Production use (show important issues only)
+
+**Precedence:**
+
+CLI flags > environment variable > default (INFO)
+
+### Error Codes
+
+All errors and warnings include error codes for easier troubleshooting and automation.
+
+**Format:**
+- Errors: `[E##]`
+- Warnings: `[W##]`
+
+**Code Ranges:**
+- 0: Success
+- 1-9: General errors
+- 10-19: Configuration errors
+- 20-29: File system errors
+- 30-39: Server/network errors
+- 40-49: Validation errors
+- 50-59: Plugin errors
+- 60-69: Operation errors
+
+**Examples:**
+
+```
+✗ [E20] File not found: flows/flows.json
+✗ [E30] Failed to connect to Node-RED server
+✗ [E30] Next steps:
+✗ [E30]   1. Verify Node-RED is running at http://localhost:1880
+✗ [E30]   2. Check network connectivity
+⚠ [W10] Config file not found, using defaults
+✓ Deployed to Node-RED
+```
+
+**Benefits:**
+
+- Easy to search documentation for specific errors
+- Automation can check for specific error codes
+- Consistent error identification across different runs
+- Helpful for reporting issues
+
+**Exit Codes:**
+
+The tool returns specific exit codes that match the error code ranges:
+
+```bash
+# Success
+python3 vscode-node-red-tools.py explode flows/flows.json
+echo $?  # 0
+
+# File not found
+python3 vscode-node-red-tools.py explode nonexistent.json
+echo $?  # 20
+
+# Server connection error
+python3 vscode-node-red-tools.py watch --server http://invalid:9999
+echo $?  # 30
+```
+
+Use exit codes in scripts:
+
+```bash
+#!/bin/bash
+python3 vscode-node-red-tools.py explode flows/flows.json
+EXIT_CODE=$?
+
+case $EXIT_CODE in
+  0)
+    echo "Success!"
+    ;;
+  20)
+    echo "File not found - downloading from server..."
+    ;;
+  30)
+    echo "Server connection error - retrying..."
+    ;;
+  *)
+    echo "Other error: $EXIT_CODE"
+    exit $EXIT_CODE
+    ;;
+esac
+```
 
 ## Next Steps
 
