@@ -89,41 +89,31 @@ def resolve_auth_config(args: Any, config: dict) -> AuthConfig:
     param_url = getattr(args, "server", None)
     if param_url:
         url = param_url
-        url_src = "CLI parameter"
     elif server_cfg.get("url"):
         url = server_cfg["url"]
-        url_src = "config file"
     else:
         url = "http://127.0.0.1:1880"
-        url_src = "default"
     log_info(f"Server URL: {url}")
 
     # verify_ssl
     if getattr(args, "no_verify_ssl", False) is True:
         verify_ssl = False
-        verify_src = "CLI parameter (--no-verify-ssl)"
     elif "verifySSL" in server_cfg:
         verify_ssl = bool(server_cfg.get("verifySSL", True))
-        verify_src = "config file"
     else:
         verify_ssl = True
-        verify_src = "default"
 
     # Token chain
     token: Optional[str] = None
-    token_src: Optional[str] = None
 
     token_file_param = getattr(args, "token_file", None)
     if token_file_param:
         token = _read_token_file(Path(token_file_param))
-        if token:
-            token_src = "CLI parameter (--token-file)"
 
     if not token:
         token_param = getattr(args, "token", None)
         if token_param:
             token = token_param
-            token_src = "CLI parameter (--token)"
             log_warning(
                 "⚠️  WARNING: Passing token via CLI is insecure; prefer NODERED_TOKEN env or token file."
             )
@@ -135,30 +125,24 @@ def resolve_auth_config(args: Any, config: dict) -> AuthConfig:
         token_file_cfg = server_cfg.get("tokenFile")
         if token_file_cfg:
             token = _read_token_file(Path(token_file_cfg))
-            if token:
-                token_src = "config file (tokenFile)"
 
     if not token and not has_username_param:
         token_cfg = server_cfg.get("token")
         if token_cfg:
             token = token_cfg
-            token_src = "config file (token)"
 
     has_username_cfg = server_cfg.get("username") is not None
 
     if not token and not has_username_param and not has_username_cfg:
         token = _find_standard_token()
-        if token:
-            token_src = "standard token file"
 
     if not token and not has_username_param and not has_username_cfg:
         env_token = os.environ.get("NODERED_TOKEN")
         if env_token:
             token = env_token
-            token_src = "env var NODERED_TOKEN"
 
     if token:
-        log_info(f"Using bearer token authentication (source: {token_src})")
+        log_info("Using bearer token authentication")
         return AuthConfig(
             url=url,
             auth_type="bearer",
@@ -168,28 +152,16 @@ def resolve_auth_config(args: Any, config: dict) -> AuthConfig:
 
     # Username/password chain
     username: Optional[str] = None
-    username_src: Optional[str] = None
     password: Optional[str] = None
-    password_src: Optional[str] = None
 
     if username_param:
         username = username_param
-        username_src = "CLI parameter"
     elif server_cfg.get("username") is not None:
         username = server_cfg.get("username")
-        username_src = "config file"
 
     if username:
         pw_param = getattr(args, "password", None)
         pw_cfg = server_cfg.get("password")
-        if pw_param:
-            password_src = "CLI parameter"
-        elif pw_cfg:
-            password_src = "config file"
-        elif os.environ.get("NODERED_PASSWORD"):
-            password_src = "env var NODERED_PASSWORD"
-        else:
-            password_src = "prompt"
         password = _resolve_password(pw_param, pw_cfg, username)
         if not password:
             raise ValueError("Failed to resolve password")
