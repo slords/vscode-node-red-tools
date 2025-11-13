@@ -2,6 +2,7 @@
   "_comment1": "vscode-node-red-tools Configuration Example",
   "_comment2": "Copy this to .vscode-node-red-tools.json and customize as needed",
   "_comment3": "Remove all _comment fields from your actual config",
+  "_comment4": "NOTE: Ensure .vscode-node-red-tools.json is in .gitignore if storing credentials",
 
   "flows": "flows/flows.json",
   "_flows_help": "Path to flows file (relative to repo root or absolute)",
@@ -25,13 +26,13 @@
     "_url_help": "Node-RED server URL (http:// or https://)",
 
     "username": null,
-    "_username_help": "Username for basic auth (optional - can use environment variable NODERED_USERNAME)",
+    "_username_help": "Username for basic auth (optional)",
 
     "password": null,
-    "_password_help": "⚠️  NOT RECOMMENDED - use NODERED_PASSWORD env var instead for security",
+    "_password_help": "Password for basic auth (secure in config file if .gitignored)",
 
     "token": null,
-    "_token_help": "⚠️  NOT RECOMMENDED - use tokenFile or NODERED_TOKEN env var instead",
+    "_token_help": "Bearer token for authentication (secure in config file if .gitignored)",
 
     "tokenFile": null,
     "_tokenFile_help": "Path to file containing bearer token (recommended: ~/.nodered-token)",

@@ -63,9 +63,16 @@ def validate_config(config: dict, server_client=None, args=None) -> int:
     flows_cli = getattr(args, "flows", None) if args else None
     flows_config = config.get("flows")
     flows_default = "flows/flows.json"
-    flows_value, flows_source = get_value_source(flows_cli, None, flows_config, flows_default)
-    log_info(f"flows: {flows_value}")
-    log_info(f"  Source: {flows_source}")
+
+    # Determine actual source (CLI only if different from config and default)
+    if flows_cli and flows_config and flows_cli != flows_config:
+        flows_value, flows_source = flows_cli, "CLI arg"
+    elif flows_config:
+        flows_value, flows_source = flows_config, "config file"
+    else:
+        flows_value, flows_source = flows_default, "default"
+
+    log_info(f"flows: {flows_value} (source: {flows_source})")
     flows_path = repo_root / flows_value
     log_info(f"  Resolved: {flows_path}")
     log_info(f"  Exists: {'Yes' if flows_path.exists() else 'No'}")
@@ -74,9 +81,16 @@ def validate_config(config: dict, server_client=None, args=None) -> int:
     src_cli = getattr(args, "src", None) if args else None
     src_config = config.get("src")
     src_default = "src"
-    src_value, src_source = get_value_source(src_cli, None, src_config, src_default)
-    log_info(f"\nsrc: {src_value}")
-    log_info(f"  Source: {src_source}")
+
+    # Determine actual source (CLI only if different from config and default)
+    if src_cli and src_config and src_cli != src_config:
+        src_value, src_source = src_cli, "CLI arg"
+    elif src_config:
+        src_value, src_source = src_config, "config file"
+    else:
+        src_value, src_source = src_default, "default"
+
+    log_info(f"\nsrc: {src_value} (source: {src_source})")
     src_path = repo_root / src_value
     log_info(f"  Resolved: {src_path}")
     log_info(f"  Exists: {'Yes' if src_path.exists() else 'No'}")
@@ -88,7 +102,6 @@ def validate_config(config: dict, server_client=None, args=None) -> int:
 
     current_level = get_log_level()
     level_names = {LogLevel.DEBUG: "DEBUG", LogLevel.INFO: "INFO", LogLevel.WARNING: "WARNING", LogLevel.ERROR: "ERROR"}
-    log_info(f"Current level: {level_names.get(current_level, 'UNKNOWN')}")
 
     # Determine logging source
     log_level_cli = getattr(args, "log_level", None) if args else None
@@ -97,15 +110,17 @@ def validate_config(config: dict, server_client=None, args=None) -> int:
     env_log_level = os.environ.get("NODERED_TOOLS_LOG_LEVEL")
 
     if log_level_cli:
-        log_info(f"  Source: CLI arg (--log-level={log_level_cli})")
+        source = f"CLI arg (--log-level={log_level_cli})"
     elif quiet_cli:
-        log_info("  Source: CLI arg (--quiet)")
+        source = "CLI arg (--quiet)"
     elif verbose_cli:
-        log_info("  Source: CLI arg (--verbose)")
+        source = "CLI arg (--verbose)"
     elif env_log_level:
-        log_info(f"  Source: env var (NODERED_TOOLS_LOG_LEVEL={env_log_level})")
+        source = f"env var (NODERED_TOOLS_LOG_LEVEL={env_log_level})"
     else:
-        log_info("  Source: default")
+        source = "default"
+
+    log_info(f"level: {level_names.get(current_level, 'UNKNOWN')} (source: {source})")
 
     # --- Plugins Section ---
     log_info("\n" + "-" * 70)
@@ -119,41 +134,33 @@ def validate_config(config: dict, server_client=None, args=None) -> int:
     enabled_config = plugins_config.get("enabled", [])
     if enabled_cli:
         enabled_list = [p.strip() for p in enabled_cli.split(",") if p.strip()]
-        log_info(f"enabled: {enabled_list}")
-        log_info(f"  Source: CLI arg (--enable)")
+        log_info(f"enabled: {enabled_list} (source: CLI arg --enable)")
     elif enabled_config:
-        log_info(f"enabled: {enabled_config}")
-        log_info(f"  Source: config file")
+        log_info(f"enabled: {enabled_config} (source: config file)")
     else:
-        log_info("enabled: []")
-        log_info("  Source: default")
+        log_info("enabled: [] (source: default)")
 
     # Disabled plugins
     disabled_cli = getattr(args, "disable", None) if args else None
     disabled_config = plugins_config.get("disabled", [])
     if disabled_cli:
         disabled_list = [p.strip() for p in disabled_cli.split(",") if p.strip()]
-        log_info(f"\ndisabled: {disabled_list}")
-        log_info(f"  Source: CLI arg (--disable)")
+        log_info(f"disabled: {disabled_list} (source: CLI arg --disable)")
     elif disabled_config:
-        log_info(f"\ndisabled: {disabled_config}")
-        log_info(f"  Source: config file")
+        log_info(f"disabled: {disabled_config} (source: config file)")
     else:
-        log_info("\ndisabled: []")
-        log_info("  Source: default")
+        log_info("disabled: [] (source: default)")
 
     # Order plugins
     order_config = plugins_config.get("order", [])
     if order_config:
-        log_info(f"\norder: {order_config}")
-        log_info(f"  Source: config file")
+        log_info(f"order: {order_config} (source: config file)")
     else:
-        log_info("\norder: []")
-        log_info("  Source: default")
+        log_info("order: [] (source: default)")
 
     # --- Server Configuration Section ---
     log_info("\n" + "-" * 70)
-    log_info("SERVER CONFIGURATION")
+    log_info("SERVER")
     log_info("-" * 70)
 
     server_config = config.get("server", {})
@@ -163,110 +170,88 @@ def validate_config(config: dict, server_client=None, args=None) -> int:
     url_config = server_config.get("url")
     url_default = "http://127.0.0.1:1880"
     url_value, url_source = get_value_source(url_cli, None, url_config, url_default)
-    log_info(f"url: {url_value}")
-    log_info(f"  Source: {url_source}")
-
-    # Username
-    username_cli = getattr(args, "username", None) if args else None
-    username_config = server_config.get("username")
-    username_value, username_source = get_value_source(username_cli, "NODERED_USERNAME", username_config, None)
-    if username_value:
-        log_info(f"\nusername: {username_value}")
-        log_info(f"  Source: {username_source}")
-    else:
-        log_info(f"\nusername: None")
-        log_info(f"  Source: not configured")
-
-    # Password
-    password_cli = getattr(args, "password", None) if args else None
-    password_config = server_config.get("password")
-    password_env = os.environ.get("NODERED_PASSWORD")
-
-    if password_cli:
-        log_info(f"\npassword: [REDACTED]")
-        log_info(f"  Source: CLI arg")
-        log_warning(f"  WARNING: Password via CLI is visible in shell history!", code=CONFIG_INVALID)
-    elif password_env:
-        log_info(f"\npassword: [REDACTED]")
-        log_info(f"  Source: env var (NODERED_PASSWORD)")
-    elif password_config:
-        log_info(f"\npassword: [REDACTED]")
-        log_info(f"  Source: config file")
-    else:
-        log_info(f"\npassword: None")
-        log_info(f"  Source: not configured (will prompt if username is set)")
-
-    # Token
-    token_cli = getattr(args, "token", None) if args else None
-    token_config = server_config.get("token")
-    token_env = os.environ.get("NODERED_TOKEN")
-
-    if token_cli:
-        log_info(f"\ntoken: [REDACTED]")
-        log_info(f"  Source: CLI arg")
-        log_warning(f"  WARNING: Token via CLI is visible in shell history!", code=CONFIG_INVALID)
-    elif token_env:
-        log_info(f"\ntoken: [REDACTED]")
-        log_info(f"  Source: env var (NODERED_TOKEN)")
-    elif token_config:
-        log_info(f"\ntoken: [REDACTED]")
-        log_info(f"  Source: config file")
-    else:
-        log_info(f"\ntoken: None")
-        log_info(f"  Source: not configured")
-
-    # Token File
-    token_file_cli = getattr(args, "token_file", None) if args else None
-    token_file_config = server_config.get("tokenFile")
-
-    if token_file_cli:
-        log_info(f"\ntokenFile: {token_file_cli}")
-        log_info(f"  Source: CLI arg")
-        token_file_path = Path(token_file_cli).expanduser()
-        log_info(f"  Resolved: {token_file_path}")
-        log_info(f"  Exists: {'Yes' if token_file_path.exists() else 'No'}")
-    elif token_file_config:
-        log_info(f"\ntokenFile: {token_file_config}")
-        log_info(f"  Source: config file")
-        token_file_path = Path(token_file_config).expanduser()
-        log_info(f"  Resolved: {token_file_path}")
-        log_info(f"  Exists: {'Yes' if token_file_path.exists() else 'No'}")
-    else:
-        log_info(f"\ntokenFile: None")
-        log_info(f"  Source: not configured")
+    log_info(f"url: {url_value} (source: {url_source})")
 
     # Verify SSL
     no_verify_ssl_cli = getattr(args, "no_verify_ssl", False) if args else False
     verify_ssl_config = server_config.get("verifySSL", True)
 
     if no_verify_ssl_cli:
-        log_info(f"\nverifySSL: False")
-        log_info(f"  Source: CLI arg (--no-verify-ssl)")
+        log_info(f"verifySSL: False (source: CLI arg --no-verify-ssl)")
         log_warning(f"  WARNING: SSL verification disabled!", code=CONFIG_INVALID)
     elif not verify_ssl_config:
-        log_info(f"\nverifySSL: False")
-        log_info(f"  Source: config file")
+        log_info(f"verifySSL: False (source: config file)")
         log_warning(f"  WARNING: SSL verification disabled!", code=CONFIG_INVALID)
     else:
-        log_info(f"\nverifySSL: True")
-        log_info(f"  Source: {'config file' if 'verifySSL' in server_config else 'default'}")
+        log_info(f"verifySSL: True (source: {'config file' if 'verifySSL' in server_config else 'default'})")
 
-    # --- Resolved Authentication Section ---
+    # Authentication Summary (showing resolved auth from ServerClient if available)
     if server_client:
-        log_info("\n" + "-" * 70)
-        log_info("RESOLVED AUTHENTICATION")
-        log_info("-" * 70)
-        log_info(f"Server URL: {server_client.url}")
-        log_info(f"Auth Type: {server_client.auth_type}")
-        log_info(f"Verify SSL: {server_client.verify_ssl}")
+        log_info(f"authType: {server_client.auth_type}")
 
         if server_client.auth_type == "bearer":
-            log_info(f"Token: [REDACTED]")
+            # Check sources
+            token_cli = getattr(args, "token", None) if args else None
+            token_env = os.environ.get("NODERED_TOKEN")
+            token_config = server_config.get("token")
+            token_file_config = server_config.get("tokenFile")
+
+            if token_cli:
+                log_info(f"  token: [REDACTED] (source: CLI arg)")
+                log_warning(f"  WARNING: Token via CLI is visible in shell history!", code=CONFIG_INVALID)
+            elif token_env:
+                log_info(f"  token: [REDACTED] (source: env var NODERED_TOKEN)")
+            elif token_file_config:
+                token_file_path = Path(token_file_config).expanduser()
+                log_info(f"  tokenFile: {token_file_config} (source: config file)")
+                log_info(f"    Resolved: {token_file_path}, Exists: {'Yes' if token_file_path.exists() else 'No'}")
+            elif token_config:
+                log_info(f"  token: [REDACTED] (source: config file)")
+            else:
+                log_info(f"  token: [REDACTED] (source: default ~/.nodered-token)")
+
         elif server_client.auth_type == "basic":
-            log_info(f"Username: {server_client.username}")
-            log_info(f"Password: [REDACTED]")
+            # Username
+            username_cli = getattr(args, "username", None) if args else None
+            username_env = os.environ.get("NODERED_USERNAME")
+            username_config = server_config.get("username")
+
+            if username_cli:
+                log_info(f"  username: {username_cli} (source: CLI arg)")
+            elif username_env:
+                log_info(f"  username: {username_env} (source: env var NODERED_USERNAME)")
+            elif username_config:
+                log_info(f"  username: {username_config} (source: config file)")
+
+            # Password
+            password_cli = getattr(args, "password", None) if args else None
+            password_env = os.environ.get("NODERED_PASSWORD")
+            password_config = server_config.get("password")
+
+            if password_cli:
+                log_info(f"  password: [REDACTED] (source: CLI arg)")
+                log_warning(f"  WARNING: Password via CLI is visible in shell history!", code=CONFIG_INVALID)
+            elif password_env:
+                log_info(f"  password: [REDACTED] (source: env var NODERED_PASSWORD)")
+            elif password_config:
+                log_info(f"  password: [REDACTED] (source: config file)")
+            else:
+                log_info(f"  password: (will prompt)")
         else:
-            log_info("Authentication: None (anonymous access)")
+            log_info(f"  authentication: None (anonymous access)")
+    else:
+        # No server_client, just show config
+        username_config = server_config.get("username")
+        password_config = server_config.get("password")
+        token_config = server_config.get("token")
+        token_file_config = server_config.get("tokenFile")
+
+        if token_config or token_file_config or os.environ.get("NODERED_TOKEN"):
+            log_info(f"authType: bearer (configured)")
+        elif username_config or password_config or os.environ.get("NODERED_USERNAME") or os.environ.get("NODERED_PASSWORD"):
+            log_info(f"authType: basic (configured)")
+        else:
+            log_info(f"authType: none")
 
 
     # ========================================================================
