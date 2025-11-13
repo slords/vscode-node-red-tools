@@ -327,6 +327,7 @@ def main() -> int:
 
     # Set logging level from CLI args (before any logging occurs)
     from helper import LogLevel, set_log_level
+
     if hasattr(args, "log_level") and args.log_level:
         level_map: Dict[str, Any] = {
             "DEBUG": LogLevel.DEBUG,
@@ -344,7 +345,9 @@ def main() -> int:
     try:
         # --- Main command dispatch ---
         # Setup (config, server_client, plugins)
-        init: Optional[Tuple[Dict[str, Any], Dict[str, List[Any]], Any]] = initialize_system(args)
+        init: Optional[Tuple[Dict[str, Any], Dict[str, List[Any]], Any]] = (
+            initialize_system(args)
+        )
         if init is None:
             return GENERAL_ERROR
         config: Dict[str, Any]
@@ -360,7 +363,9 @@ def main() -> int:
         if args.command == "validate-config":
             return validate_config(config, server_client, args)
         elif args.command == "new-plugin":
-            priority: Optional[int] = args.priority if hasattr(args, "priority") else None
+            priority: Optional[int] = (
+                args.priority if hasattr(args, "priority") else None
+            )
             return new_plugin_command(args.name, args.type, priority)
         elif args.command == "list-plugins":
             return list_plugins_command(plugins_dict, config)

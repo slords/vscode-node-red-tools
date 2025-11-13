@@ -81,7 +81,9 @@ def parse_action_definition(code: str) -> Optional[Dict[str, Any]]:
     if not arrow_match:
         return None
 
-    func_body_start: int = execute_start + arrow_match.end() - 1  # Position of opening {
+    func_body_start: int = (
+        execute_start + arrow_match.end() - 1
+    )  # Position of opening {
 
     # Balance braces to find execute function body
     brace_count: int = 1
@@ -181,7 +183,9 @@ class ActionPlugin:
             if not action_data:
                 return []
 
-            action_name: str = to_snake_case(node_name)  # Actions use snake_case everywhere
+            action_name: str = to_snake_case(
+                node_name
+            )  # Actions use snake_case everywhere
 
             # Write definition file with export default
             def_code: str = action_data["def_code"]
@@ -194,7 +198,9 @@ class ActionPlugin:
             execute_code: Optional[str] = action_data["execute"]
             if execute_code:
                 # Convert arrow function to function declaration
-                result: Optional[Tuple[str, str]] = extract_function_body(execute_code, r"\((.*?)\)\s*=>\s*{")
+                result: Optional[Tuple[str, str]] = extract_function_body(
+                    execute_code, r"\((.*?)\)\s*=>\s*{"
+                )
                 if result:
                     params: str
                     body: str
@@ -235,7 +241,9 @@ class ActionPlugin:
         action_name: str = to_snake_case(node_name)  # Actions use snake_case everywhere
 
         # Extract definition object (between { and })
-        def_match: Optional[re.Match] = re.search(r"const\s+actionDef\s*=\s*(\{.*\});", def_code, re.DOTALL)
+        def_match: Optional[re.Match] = re.search(
+            r"const\s+actionDef\s*=\s*(\{.*\});", def_code, re.DOTALL
+        )
         if not def_match:
             return {}
 

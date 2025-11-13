@@ -27,6 +27,7 @@ except ImportError:
 
 class LogLevel(IntEnum):
     """Logging levels for controlling output verbosity"""
+
     DEBUG = 10
     INFO = 20
     WARNING = 30

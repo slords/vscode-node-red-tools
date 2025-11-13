@@ -25,7 +25,13 @@ except ImportError:
     REQUESTS_AVAILABLE = False
 
 from .logging import log_info, log_error, log_warning
-from .exit_codes import SUCCESS, GENERAL_ERROR, DIFF_ERROR, SERVER_CONNECTION_ERROR, CONFIG_ERROR
+from .exit_codes import (
+    SUCCESS,
+    GENERAL_ERROR,
+    DIFF_ERROR,
+    SERVER_CONNECTION_ERROR,
+    CONFIG_ERROR,
+)
 from .utils import validate_path_for_subprocess
 from .constants import HTTP_TIMEOUT, SUBPROCESS_TIMEOUT
 
@@ -72,6 +78,7 @@ def download_server_flows(server: Any) -> List[dict]:
         if not verify_ssl:
             try:
                 import urllib3
+
                 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
             except Exception:
                 pass
@@ -151,7 +158,9 @@ def prepare_source_for_diff(
         token = getattr(server_client, "token", None)
         if auth_type == "basic":
             if not (url and username and password):
-                raise ValueError("Server comparison requires server URL, username, and password")
+                raise ValueError(
+                    "Server comparison requires server URL, username, and password"
+                )
         elif auth_type == "bearer":
             if not (url and token):
                 raise ValueError("Server comparison requires server URL and token")
@@ -399,7 +408,7 @@ def diff_flows(
         if source not in valid_sources or target not in valid_sources:
             log_error(
                 f"Invalid source/target. Must be one of: {', '.join(valid_sources)}",
-                code=CONFIG_ERROR
+                code=CONFIG_ERROR,
             )
             return DIFF_ERROR
 

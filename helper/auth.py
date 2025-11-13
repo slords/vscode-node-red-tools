@@ -58,7 +58,9 @@ def _find_standard_token() -> Optional[str]:
     return None
 
 
-def _resolve_password(param: Optional[str], cfg: Optional[str], username: str) -> Optional[str]:
+def _resolve_password(
+    param: Optional[str], cfg: Optional[str], username: str
+) -> Optional[str]:
     if param:
         log_warning(
             "⚠️  WARNING: Passing password via CLI is insecure; prefer NODERED_PASSWORD env variable."

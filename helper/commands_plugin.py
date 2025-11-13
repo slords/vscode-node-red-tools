@@ -9,11 +9,19 @@ from pathlib import Path
 from typing import Optional, Dict, Any, List
 
 from .logging import log_info, log_success, log_warning, log_error
-from .exit_codes import SUCCESS, GENERAL_ERROR, PLUGIN_ERROR, CONFIG_ERROR, PLUGIN_LOAD_ERROR
+from .exit_codes import (
+    SUCCESS,
+    GENERAL_ERROR,
+    PLUGIN_ERROR,
+    CONFIG_ERROR,
+    PLUGIN_LOAD_ERROR,
+)
 from .plugin_loader import extract_numeric_prefix, DEFAULT_PLUGIN_PRIORITY
 
 
-def new_plugin_command(name: str, plugin_type: str, priority: Optional[int] = None) -> int:
+def new_plugin_command(
+    name: str, plugin_type: str, priority: Optional[int] = None
+) -> int:
     """Generate a new plugin scaffold"""
     try:
         # Determine priority if not specified
@@ -287,7 +295,10 @@ def list_plugins_command(
     """
 
     if config is None:
-        log_error("list_plugins_command requires pre-loaded config. None was provided.", code=CONFIG_ERROR)
+        log_error(
+            "list_plugins_command requires pre-loaded config. None was provided.",
+            code=CONFIG_ERROR,
+        )
         return GENERAL_ERROR
     try:
         log_info("Available plugins:")
@@ -379,7 +390,10 @@ def list_plugins_command(
                             break
 
             except Exception as e:
-                log_warning(f"Failed to load plugin {plugin_file.name}: {e}", code=PLUGIN_LOAD_ERROR)
+                log_warning(
+                    f"Failed to load plugin {plugin_file.name}: {e}",
+                    code=PLUGIN_LOAD_ERROR,
+                )
 
         # Group plugins by type
         plugin_types = [

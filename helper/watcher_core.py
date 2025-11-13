@@ -20,6 +20,7 @@ try:  # Conditional imports for watch mode availability
     import requests  # noqa: F401
     from watchdog.observers import Observer
     from watchdog.events import FileSystemEventHandler
+
     WATCH_MODULES_AVAILABLE = True
 except ImportError:  # pragma: no cover - handled at runtime
     WATCH_MODULES_AVAILABLE = False
@@ -34,7 +35,15 @@ from .logging import (
     log_warning,
     log_error,
 )
-from .exit_codes import SUCCESS, GENERAL_ERROR, REBUILD_ERROR, SERVER_CONNECTION_ERROR, WATCH_ERROR, FILE_INVALID, PLUGIN_LOAD_ERROR
+from .exit_codes import (
+    SUCCESS,
+    GENERAL_ERROR,
+    REBUILD_ERROR,
+    SERVER_CONNECTION_ERROR,
+    WATCH_ERROR,
+    FILE_INVALID,
+    PLUGIN_LOAD_ERROR,
+)
 from .plugin_loader import load_plugins
 from .rebuild import rebuild_flows
 from .watcher_stages import sync_from_server, rebuild_and_deploy
@@ -95,13 +104,13 @@ def poll_nodered(watch_config: WatchConfig) -> None:
                 delay = base_delay * (2 ** (consecutive_failures - 1))
                 log_warning(
                     f"Download failed (attempt {consecutive_failures}/{max_retries}), retrying in {delay}s...",
-                    code=SERVER_CONNECTION_ERROR
+                    code=SERVER_CONNECTION_ERROR,
                 )
                 time.sleep(delay)
             else:
                 log_error(
                     f"Download failed after {max_retries} retries, will retry on next poll interval",
-                    code=SERVER_CONNECTION_ERROR
+                    code=SERVER_CONNECTION_ERROR,
                 )
                 consecutive_failures = 0
 
@@ -125,21 +134,28 @@ def _reload_plugins_cached_set(watch_config: WatchConfig) -> None:
             # Prefer stored metadata added during initial load
             source_path = getattr(plugin, "_source_path", None)
             cls_name = getattr(plugin, "_class_name", plugin.__class__.__name__)
-            mod_name = plugin.__class__.__module__  # fallback name (may be auto-generated)
+            mod_name = (
+                plugin.__class__.__module__
+            )  # fallback name (may be auto-generated)
 
             if source_path and Path(source_path).exists():
                 try:
                     # Remove any existing module to force re-load
                     if mod_name in sys.modules:
                         del sys.modules[mod_name]
-                    spec = importlib.util.spec_from_file_location(Path(source_path).stem, source_path)
+                    spec = importlib.util.spec_from_file_location(
+                        Path(source_path).stem, source_path
+                    )
                     if not spec or not spec.loader:
                         raise RuntimeError("spec_from_file_location returned None")
                     module = importlib.util.module_from_spec(spec)
                     spec.loader.exec_module(module)
                     cls = getattr(module, cls_name, None)
                     if cls is None:
-                        log_warning(f"Reload skipped: class {cls_name} not found in reloaded module {source_path}", code=PLUGIN_LOAD_ERROR)
+                        log_warning(
+                            f"Reload skipped: class {cls_name} not found in reloaded module {source_path}",
+                            code=PLUGIN_LOAD_ERROR,
+                        )
                         continue
                     new_instance = cls()
                     # Re-attach metadata for future reloads
@@ -152,7 +168,10 @@ def _reload_plugins_cached_set(watch_config: WatchConfig) -> None:
                     log_info(f"  Reloaded: {new_instance.get_name()} ({p_type})")
                     continue
                 except Exception as e:
-                    log_warning(f"Path-based reload failed for {source_path}: {e}; attempting module fallback", code=PLUGIN_LOAD_ERROR)
+                    log_warning(
+                        f"Path-based reload failed for {source_path}: {e}; attempting module fallback",
+                        code=PLUGIN_LOAD_ERROR,
+                    )
 
             # Fallback: attempt module import by name (may fail if not on sys.path)
             try:
@@ -166,13 +185,21 @@ def _reload_plugins_cached_set(watch_config: WatchConfig) -> None:
                 module.loader.exec_module(reloaded)  # type: ignore[attr-defined]
                 cls = getattr(reloaded, cls_name, None)
                 if cls is None:
-                    log_warning(f"Reload skipped: class {cls_name} not found in module {mod_name}", code=PLUGIN_LOAD_ERROR)
+                    log_warning(
+                        f"Reload skipped: class {cls_name} not found in module {mod_name}",
+                        code=PLUGIN_LOAD_ERROR,
+                    )
                     continue
                 new_instance = cls()
                 new_mapping[p_type].append(new_instance)
-                log_info(f"  Reloaded via fallback: {new_instance.get_name()} ({p_type})")
+                log_info(
+                    f"  Reloaded via fallback: {new_instance.get_name()} ({p_type})"
+                )
             except Exception as e:
-                log_warning(f"Failed to reload plugin {cls_name} ({mod_name}): {e}", code=PLUGIN_LOAD_ERROR)
+                log_warning(
+                    f"Failed to reload plugin {cls_name} ({mod_name}): {e}",
+                    code=PLUGIN_LOAD_ERROR,
+                )
 
     watch_config.plugins_dict = new_mapping
     log_success("Plugins reloaded successfully (cached set)")
@@ -296,7 +323,9 @@ def handle_command(watch_config: WatchConfig, command: str) -> None:
         try:
             rebuilt = json.loads(watch_config.flows_file.read_text())
         except Exception:
-            log_error("Failed to read rebuilt flows file for comparison", code=FILE_INVALID)
+            log_error(
+                "Failed to read rebuilt flows file for comparison", code=FILE_INVALID
+            )
             return
         if original != rebuilt:
             log_info("Changes detected, uploading...")
@@ -352,7 +381,7 @@ def watch_src_and_rebuild(watch_config: WatchConfig) -> None:
                     if consecutive_failures >= max_consecutive_failures:
                         log_error(
                             f"Skipping rebuild after {max_consecutive_failures} consecutive failures",
-                            code=REBUILD_ERROR
+                            code=REBUILD_ERROR,
                         )
                         log_error(
                             "Fix the errors and save a file again to retry, or use 'upload' command"
@@ -367,7 +396,7 @@ def watch_src_and_rebuild(watch_config: WatchConfig) -> None:
                                 consecutive_failures += 1
                                 log_warning(
                                     f"Rebuild/deploy failed (failure {consecutive_failures}/{max_consecutive_failures})",
-                                    code=REBUILD_ERROR
+                                    code=REBUILD_ERROR,
                                 )
                         finally:
                             watch_config.pause_watching = False
@@ -420,7 +449,9 @@ def watch_mode(
         if config is None:
             config = {}
         if server_client is None:
-            log_error("No server_client provided to watch_mode", code=SERVER_CONNECTION_ERROR)
+            log_error(
+                "No server_client provided to watch_mode", code=SERVER_CONNECTION_ERROR
+            )
             return SERVER_CONNECTION_ERROR
 
         # Create WatchConfig with ServerClient and file paths
@@ -434,7 +465,9 @@ def watch_mode(
         # Verify connection (ServerClient may already be authenticated from initialize_system)
         if not server_client.is_authenticated:
             if not server_client.connect():
-                log_error("Connection failed for watch mode", code=SERVER_CONNECTION_ERROR)
+                log_error(
+                    "Connection failed for watch mode", code=SERVER_CONNECTION_ERROR
+                )
                 return SERVER_CONNECTION_ERROR
 
         # Attach plugins and command handler
@@ -452,9 +485,13 @@ def watch_mode(
                     log_info(f"Creating source directory: {watch_config.src_dir}")
                     watch_config.src_dir.mkdir(parents=True, exist_ok=True)
                 setup_success[0] = True
-                poll_thread = threading.Thread(target=poll_nodered, args=(watch_config,), daemon=True)
+                poll_thread = threading.Thread(
+                    target=poll_nodered, args=(watch_config,), daemon=True
+                )
                 poll_thread.start()
-                watch_thread = threading.Thread(target=watch_src_and_rebuild, args=(watch_config,), daemon=True)
+                watch_thread = threading.Thread(
+                    target=watch_src_and_rebuild, args=(watch_config,), daemon=True
+                )
                 watch_thread.start()
                 setup_complete.set()
 
@@ -463,7 +500,9 @@ def watch_mode(
             watch_config.dashboard.start()
             watch_config.dashboard.run()
             if not setup_complete.is_set():
-                log_error("Dashboard exited before initial setup completed", code=WATCH_ERROR)
+                log_error(
+                    "Dashboard exited before initial setup completed", code=WATCH_ERROR
+                )
             elif not setup_success[0]:
                 log_error("Setup thread reported failure", code=WATCH_ERROR)
             else:
@@ -477,7 +516,9 @@ def watch_mode(
             log_info(f"Creating source directory: {watch_config.src_dir}")
             watch_config.src_dir.mkdir(parents=True, exist_ok=True)
         try:
-            poll_thread = threading.Thread(target=poll_nodered, args=(watch_config,), daemon=True)
+            poll_thread = threading.Thread(
+                target=poll_nodered, args=(watch_config,), daemon=True
+            )
             poll_thread.start()
             watch_src_and_rebuild(watch_config)
         except KeyboardInterrupt:
@@ -491,6 +532,5 @@ def watch_mode(
             except Exception:
                 pass
         log_info("Watch mode cleanup complete")
-
 
     # Duplicate legacy watch_mode removed (see earlier definition). This stub has been eliminated.

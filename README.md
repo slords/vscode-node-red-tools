@@ -199,10 +199,12 @@ This project was inspired by [functions-templates-manager](https://github.com/da
 This project is licensed under the Business Source License 1.1 (BSL-1.1) — see [LICENSE](LICENSE) for details.
 
 **Use Limitations:**
+
 - You may not embed, bundle, or distribute the Software as part of a product, service, or platform offered to third parties, except for non-production evaluation.
 - Production use is not permitted by entities (including affiliates) with annual revenue over $1,000,000 unless a commercial license is obtained.
 
 **License Conversion:**
+
 - Each released version of the Licensed Work converts to the GNU Affero General Public License v3.0 (AGPL-3.0) five years from the date that version is published.
 
 **SPDX:** Current `BSL-1.1`; future converted versions `AGPL-3.0-only`.

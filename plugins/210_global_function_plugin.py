@@ -41,7 +41,9 @@ def parse_global_function(code: str) -> Optional[Dict[str, str]]:
     func_name: str = gfunc_assign.group(1)
 
     # Extract params and body
-    result: Optional[Tuple[str, str]] = extract_function_body(code, r"const\s+globalDef\s*=\s*\((.*?)\)\s*=>\s*{")
+    result: Optional[Tuple[str, str]] = extract_function_body(
+        code, r"const\s+globalDef\s*=\s*\((.*?)\)\s*=>\s*{"
+    )
     if not result:
         return None
 
@@ -89,7 +91,9 @@ class GlobalFunctionPlugin:
             func_code: str = node.get("func", "")
             created_files: List[str] = []
 
-            global_func_data: Optional[Dict[str, str]] = parse_global_function(func_code)
+            global_func_data: Optional[Dict[str, str]] = parse_global_function(
+                func_code
+            )
             if not global_func_data:
                 return []
 
@@ -131,7 +135,9 @@ class GlobalFunctionPlugin:
         func_name: str = to_camel_case(node_name)
 
         # Extract params and body
-        result: Optional[Tuple[str, str]] = extract_function_body(func_code, r"function\s+\w+\s*\((.*?)\)\s*{")
+        result: Optional[Tuple[str, str]] = extract_function_body(
+            func_code, r"function\s+\w+\s*\((.*?)\)\s*{"
+        )
         if not result:
             return {}
 

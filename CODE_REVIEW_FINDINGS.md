@@ -44,29 +44,29 @@
 
 ### Codebase Size and Organization
 
-| Metric | Value | Status |
-|--------|-------|--------|
-| **Total Python Code** | 9,334 lines | Well-organized |
-| **Python Modules** | 31 files | Modular architecture |
-| **Helper Modules** | 20 modules | Core functionality separated |
-| **Plugin Files** | 11 plugins | Extensible system |
-| **Documentation Files** | 11 MD files | Comprehensive coverage |
-| **Documentation Lines** | 8,361 lines | Detailed guides |
-| **Average File Size** | ~300 lines | Maintainable |
-| **Function Definitions** | 200+ functions | Well-factored |
-| **Class Definitions** | 25+ classes | OOP where appropriate |
+| Metric                   | Value          | Status                       |
+| ------------------------ | -------------- | ---------------------------- |
+| **Total Python Code**    | 9,334 lines    | Well-organized               |
+| **Python Modules**       | 31 files       | Modular architecture         |
+| **Helper Modules**       | 20 modules     | Core functionality separated |
+| **Plugin Files**         | 11 plugins     | Extensible system            |
+| **Documentation Files**  | 11 MD files    | Comprehensive coverage       |
+| **Documentation Lines**  | 8,361 lines    | Detailed guides              |
+| **Average File Size**    | ~300 lines     | Maintainable                 |
+| **Function Definitions** | 200+ functions | Well-factored                |
+| **Class Definitions**    | 25+ classes    | OOP where appropriate        |
 
 ### Growth Comparison with Original Project
 
-| Aspect | functions-templates-manager | vscode-node-red-tools | Growth Factor |
-|--------|----------------------------|----------------------|---------------|
-| **Lines of Code** | ~500 | 9,334 | **15x** |
-| **Files** | 3 scripts | 31 modules | **10x** |
-| **Documentation** | 1 README | 11 guides | **11x** |
-| **Node Types Supported** | 2 types | 7+ types | **3.5x** |
-| **Commands** | 3 commands | 12 commands | **4x** |
-| **Plugin System** | None | 11 plugins, 5 stages | **New** |
-| **Test Commands** | None | 5 commands | **New** |
+| Aspect                   | functions-templates-manager | vscode-node-red-tools | Growth Factor |
+| ------------------------ | --------------------------- | --------------------- | ------------- |
+| **Lines of Code**        | ~500                        | 9,334                 | **15x**       |
+| **Files**                | 3 scripts                   | 31 modules            | **10x**       |
+| **Documentation**        | 1 README                    | 11 guides             | **11x**       |
+| **Node Types Supported** | 2 types                     | 7+ types              | **3.5x**      |
+| **Commands**             | 3 commands                  | 12 commands           | **4x**        |
+| **Plugin System**        | None                        | 11 plugins, 5 stages  | **New**       |
+| **Test Commands**        | None                        | 5 commands            | **New**       |
 
 ### Feature Coverage Matrix
 
@@ -85,6 +85,7 @@
 #### 1. Separation of Concerns ✅
 
 **Core Tool** (`vscode-node-red-tools.py` - 436 lines):
+
 - Pure orchestration layer
 - CLI interface and argument parsing
 - Command dispatch to modules
@@ -92,6 +93,7 @@
 - No business logic or transformations
 
 **Helper Modules** (`helper/` - 20 modules, 7,281 lines):
+
 - Single responsibility per module
 - Clear, well-defined interfaces
 - No circular dependencies
@@ -106,6 +108,7 @@
   - `plugin_loader.py` (365 lines) - Plugin discovery and loading
 
 **Plugin System** (`plugins/` - 11 plugins, 1,617 lines):
+
 - All transformations delegated to plugins
 - Numeric prefix ordering (100-500)
 - Five distinct stages
@@ -155,12 +158,14 @@ vscode-node-red-tools/
 #### 3. Idempotency ✅
 
 **Guaranteed Repeatability:**
+
 - Exploding the same flows.json → identical output
 - Rebuilding from same source files → identical flows
 - Plugin processing is deterministic
 - Watch mode converges to stable state
 
 **Verification Support:**
+
 ```bash
 # Round-trip verification
 flows.json → explode → src/ → rebuild → flows.json'
@@ -184,6 +189,7 @@ flows.json → explode → src/ → rebuild → flows.json'
 ```
 
 **11 Built-in Plugins:**
+
 - Priority-based execution (100-500)
 - Enable/disable via configuration
 - Hot reload support
@@ -222,6 +228,7 @@ flows.json → explode → src/ → rebuild → flows.json'
 ```
 
 **Key Features:**
+
 - **ETag-based polling** - Efficient change detection (304 Not Modified)
 - **Optimistic locking** - Rev parameter prevents conflicts (409 Conflict)
 - **Convergence detection** - Automatic stabilization after plugins
@@ -239,6 +246,7 @@ flows.json → explode → src/ → rebuild → flows.json'
 #### 1. Type Safety ✅
 
 **Comprehensive Type Hints:**
+
 ```python
 # From auth.py - Dataclass with slots
 from __future__ import annotations
@@ -255,6 +263,7 @@ class AuthConfig:
 ```
 
 **Benefits:**
+
 - IDE autocomplete and type checking
 - Self-documenting code
 - Early error detection
@@ -263,6 +272,7 @@ class AuthConfig:
 #### 2. Error Handling ✅
 
 **Comprehensive Patterns:**
+
 ```python
 # Consistent error handling throughout
 try:
@@ -277,6 +287,7 @@ except Exception as e:
 ```
 
 **Features:**
+
 - Try/except blocks throughout
 - Categorized exit codes (exit_codes.py)
 - Graceful plugin failures
@@ -286,6 +297,7 @@ except Exception as e:
 #### 3. Logging System ✅
 
 **Consistent Logging:**
+
 ```python
 from helper.logging import (
     log_info, log_success, log_warning, log_error, log_debug
@@ -299,6 +311,7 @@ log_debug("🔍 Debug information")
 ```
 
 **Logging Levels:**
+
 - DEBUG - Detailed diagnostic information
 - INFO - General informational messages
 - WARNING - Non-critical issues
@@ -308,6 +321,7 @@ log_debug("🔍 Debug information")
 #### 4. Progress Reporting ✅
 
 **Rich Progress Bars:**
+
 ```python
 from rich.progress import Progress
 
@@ -319,6 +333,7 @@ with create_progress_context(suppress_progress) as progress:
 ```
 
 **User Experience:**
+
 ```
 Processing nodes... ━━━━━━━━━━━━━━━━━━━━ 127/127 100% 0:00:01
 ```
@@ -326,6 +341,7 @@ Processing nodes... ━━━━━━━━━━━━━━━━━━━━
 #### 5. Code Organization ✅
 
 **Well-Structured:**
+
 - Average function size: 20-40 lines
 - Single responsibility per function
 - Clear module boundaries
@@ -338,12 +354,14 @@ Processing nodes... ━━━━━━━━━━━━━━━━━━━━
 #### 1. Configuration Management ⭐⭐⭐⭐⭐
 
 **Multiple Configuration Sources:**
+
 1. Configuration file (`.vscode-node-red-tools.json`)
 2. Environment variables
 3. Command-line arguments
 4. Sensible defaults
 
 **Comprehensive Validation:**
+
 ```python
 # config.py performs:
 - JSON schema validation
@@ -356,6 +374,7 @@ Processing nodes... ━━━━━━━━━━━━━━━━━━━━
 #### 2. Plugin System ⭐⭐⭐⭐⭐
 
 **Flexible Architecture:**
+
 - 5 distinct plugin stages
 - Priority-based execution (100-500)
 - Claimed fields system prevents conflicts
@@ -364,6 +383,7 @@ Processing nodes... ━━━━━━━━━━━━━━━━━━━━
 - Configuration-based enable/disable
 
 **Plugin Discovery:**
+
 - Automatic discovery in plugins/ directory
 - Dynamic module loading
 - Interface-based design (duck typing)
@@ -373,6 +393,7 @@ Processing nodes... ━━━━━━━━━━━━━━━━━━━━
 #### 3. Performance Optimization ⭐⭐⭐⭐
 
 **Parallel Processing:**
+
 ```python
 # ThreadPoolExecutor for large flows
 if len(nodes) > 20:  # Configurable threshold
@@ -383,6 +404,7 @@ if len(nodes) > 20:  # Configurable threshold
 ```
 
 **Efficiency Features:**
+
 - Multi-threading for file operations
 - ETag caching in watch mode
 - Debouncing to reduce operations
@@ -394,6 +416,7 @@ if len(nodes) > 20:  # Configurable threshold
 #### Identified Issues (Non-Blocking)
 
 **1. Plugin Template TODOs** - COSMETIC
+
 - Location: `helper/commands_plugin.py`
 - Issue: 8 TODO comments in plugin scaffold template
 - Impact: None (intentional placeholders for generated code)
@@ -401,6 +424,7 @@ if len(nodes) > 20:  # Configurable threshold
 - Action: None required
 
 **2. Type Hint Coverage** - LOW PRIORITY
+
 - Location: Various modules
 - Issue: Not 100% of functions have complete type hints
 - Impact: Minimal (critical functions are annotated)
@@ -408,6 +432,7 @@ if len(nodes) > 20:  # Configurable threshold
 - Action: Gradual improvement over time
 
 **3. No Automated Tests** - MEDIUM PRIORITY
+
 - Location: Repository root
 - Issue: No pytest test suite
 - Impact: Medium (manual testing required)
@@ -424,6 +449,7 @@ if len(nodes) > 20:  # Configurable threshold
 #### 1. Credential Management ✅
 
 **Secure Handling:**
+
 ```python
 # Multiple secure credential sources (auth.py)
 1. Token file (recommended): ~/.nodered-token
@@ -434,6 +460,7 @@ if len(nodes) > 20:  # Configurable threshold
 ```
 
 **Security Features:**
+
 - ✅ No hardcoded credentials
 - ✅ Passwords never logged
 - ✅ Token file support with permission warnings
@@ -442,6 +469,7 @@ if len(nodes) > 20:  # Configurable threshold
 - ✅ Security warnings for insecure methods
 
 **Example:**
+
 ```python
 def _resolve_password(param: Optional[str], cfg: Optional[str], username: str):
     if param:
@@ -458,6 +486,7 @@ def _resolve_password(param: Optional[str], cfg: Optional[str], username: str):
 #### 2. Path Validation ✅
 
 **Comprehensive Checks:**
+
 ```python
 # utils.py - validate_path_for_subprocess()
 - Prevents path traversal attacks
@@ -468,6 +497,7 @@ def _resolve_password(param: Optional[str], cfg: Optional[str], username: str):
 ```
 
 **File Operations:**
+
 - Uses `pathlib.Path` (safer than string ops)
 - Proper error handling for permissions
 - Validates external flows.json paths
@@ -476,6 +506,7 @@ def _resolve_password(param: Optional[str], cfg: Optional[str], username: str):
 #### 3. Network Security ✅
 
 **HTTP Security:**
+
 - ✅ HTTPS support with SSL verification
 - ✅ Certificate validation (configurable)
 - ✅ Timeout protection (30 seconds)
@@ -485,6 +516,7 @@ def _resolve_password(param: Optional[str], cfg: Optional[str], username: str):
 - ✅ Authentication required for watch mode
 
 **Subprocess Security:**
+
 ```python
 # Safe subprocess execution
 subprocess.run(
@@ -498,6 +530,7 @@ subprocess.run(
 #### 4. Input Validation ✅
 
 **Configuration Validation:**
+
 - JSON parsing with error handling
 - Schema validation for config files
 - Plugin name validation
@@ -505,6 +538,7 @@ subprocess.run(
 - Path validation before use
 
 **Dynamic Loading:**
+
 - Plugins only from controlled directory
 - Path validation before module loading
 - No arbitrary code execution
@@ -513,6 +547,7 @@ subprocess.run(
 #### 5. Data Protection ✅
 
 **Sensitive Data:**
+
 - Token/password never in logs
 - Config files excluded from git
 - Backup files with clear naming
@@ -520,6 +555,7 @@ subprocess.run(
 - ETag handling prevents stale data
 
 **Watch Mode Safety:**
+
 - Convergence tracking prevents loops
 - Revision tracking prevents overwrites
 - Pause mechanism for conflicts
@@ -530,17 +566,20 @@ subprocess.run(
 **For Production Deployment:**
 
 1. **Credentials:**
+
    - Use `~/.nodered-token` for tokens
    - Use environment variables for passwords
    - Restrict file permissions: `chmod 600 ~/.nodered-token`
    - Never commit credentials to git
 
 2. **SSL/TLS:**
+
    - Keep `verifySSL: true` in production
    - Use HTTPS for server URLs
    - Provide CA bundle for self-signed certs
 
 3. **Watch Mode:**
+
    - Monitor convergence warnings
    - Implement firewall rate limiting
    - Monitor disk space for backups
@@ -558,21 +597,22 @@ subprocess.run(
 
 **11 Comprehensive Documentation Files (8,361 lines):**
 
-| File | Lines | Purpose | Quality |
-|------|-------|---------|---------|
-| README.md | 240+ | Overview, quick start | ⭐⭐⭐⭐⭐ |
-| INSTALLATION.md | 200+ | Detailed setup guide | ⭐⭐⭐⭐⭐ |
-| USAGE.md | 400+ | Command reference | ⭐⭐⭐⭐⭐ |
-| ARCHITECTURE.md | 568 | Design documentation | ⭐⭐⭐⭐⭐ |
-| CONFIGURATION.md | 400+ | Config file reference | ⭐⭐⭐⭐⭐ |
-| TROUBLESHOOTING.md | 400+ | Issues and solutions | ⭐⭐⭐⭐⭐ |
-| PLUGIN_DEVELOPMENT.md | 400+ | Plugin guide | ⭐⭐⭐⭐⭐ |
-| CONTRIBUTING.md | 126 | Contribution guide | ⭐⭐⭐⭐ |
-| CHANGELOG.md | 300+ | Version history | ⭐⭐⭐⭐⭐ |
-| CODE_REVIEW_FINDINGS.md | 800+ | This document | ⭐⭐⭐⭐⭐ |
-| COMPARISON.md | 1,000+ | vs. original project | ⭐⭐⭐⭐⭐ |
+| File                    | Lines  | Purpose               | Quality    |
+| ----------------------- | ------ | --------------------- | ---------- |
+| README.md               | 240+   | Overview, quick start | ⭐⭐⭐⭐⭐ |
+| INSTALLATION.md         | 200+   | Detailed setup guide  | ⭐⭐⭐⭐⭐ |
+| USAGE.md                | 400+   | Command reference     | ⭐⭐⭐⭐⭐ |
+| ARCHITECTURE.md         | 568    | Design documentation  | ⭐⭐⭐⭐⭐ |
+| CONFIGURATION.md        | 400+   | Config file reference | ⭐⭐⭐⭐⭐ |
+| TROUBLESHOOTING.md      | 400+   | Issues and solutions  | ⭐⭐⭐⭐⭐ |
+| PLUGIN_DEVELOPMENT.md   | 400+   | Plugin guide          | ⭐⭐⭐⭐⭐ |
+| CONTRIBUTING.md         | 126    | Contribution guide    | ⭐⭐⭐⭐   |
+| CHANGELOG.md            | 300+   | Version history       | ⭐⭐⭐⭐⭐ |
+| CODE_REVIEW_FINDINGS.md | 800+   | This document         | ⭐⭐⭐⭐⭐ |
+| COMPARISON.md           | 1,000+ | vs. original project  | ⭐⭐⭐⭐⭐ |
 
 **Documentation Highlights:**
+
 - Platform-specific instructions (Linux, macOS, Windows)
 - Docker container support
 - Security best practices
@@ -584,6 +624,7 @@ subprocess.run(
 ### Documentation Score: 10/10 ⭐⭐⭐⭐⭐
 
 **Strengths:**
+
 - Comprehensive coverage of all features
 - Clear examples for every command
 - Architecture diagrams and explanations
@@ -603,6 +644,7 @@ subprocess.run(
 **Verification Commands:**
 
 1. **`verify` Command** - Round-trip verification:
+
 ```bash
 python3 vscode-node-red-tools.py verify flows/flows.json
 # Tests: flows.json → explode → rebuild → flows.json'
@@ -610,6 +652,7 @@ python3 vscode-node-red-tools.py verify flows/flows.json
 ```
 
 2. **`check` Command** - Sync status:
+
 ```bash
 # In watch mode
 > check
@@ -617,12 +660,14 @@ python3 vscode-node-red-tools.py verify flows/flows.json
 ```
 
 3. **`benchmark` Command** - Performance testing:
+
 ```bash
 python3 vscode-node-red-tools.py benchmark flows/flows.json
 # Measures explode/rebuild timing
 ```
 
 4. **Per-Node Verification** - During explode:
+
 ```python
 # Automatic verification for each node
 rebuilt_node = rebuild_node(node_dir, node_id)
@@ -633,6 +678,7 @@ if rebuilt_node != original_node:
 #### Recommended Testing (v3.1+)
 
 **Unit Tests:**
+
 ```python
 # tests/test_config.py
 def test_config_validation():
@@ -651,6 +697,7 @@ def test_path_validation():
 ```
 
 **Integration Tests:**
+
 ```python
 # tests/test_integration.py
 def test_round_trip():
@@ -680,6 +727,7 @@ def test_round_trip():
 ### Dependencies: ⭐⭐⭐⭐⭐ EXCELLENT
 
 **Python Dependencies (`requirements.txt`):**
+
 ```
 rich>=13.0.0,<14.0.0       # Progress bars and UI
 watchdog>=3.0.0,<4.0.0     # File system monitoring
@@ -688,11 +736,13 @@ textual>=0.60.0,<1.0.0     # TUI dashboard (optional)
 ```
 
 **External Requirements:**
+
 - Python 3.8+ (minimum version)
 - Node.js + npm (for prettier)
 - prettier (npm package)
 
 **Security Status:**
+
 - ✅ No known vulnerabilities
 - ✅ All dependencies from reputable sources
 - ✅ Automated security fixes enabled
@@ -704,21 +754,25 @@ textual>=0.60.0,<1.0.0     # TUI dashboard (optional)
 **Key Files:**
 
 1. **`.vscode-node-red-tools.json`**:
+
    - Comprehensive configuration template
    - Well-commented with examples
    - All options documented
 
 2. **`requirements.txt`**:
+
    - Clear version constraints
    - Semantic versioning
    - Stability-focused
 
 3. **`.gitignore`**:
+
    - Python artifacts
    - Project-specific files
    - System files
 
 4. **`Dockerfile`**:
+
    - Multi-stage build
    - Python 3.11-slim base
    - Node.js + npm included
@@ -739,6 +793,7 @@ textual>=0.60.0,<1.0.0     # TUI dashboard (optional)
 **Supported Deployment Methods:**
 
 1. **Direct Python Installation**:
+
 ```bash
 pip install -r requirements.txt
 npm install -g prettier
@@ -746,12 +801,14 @@ python3 vscode-node-red-tools.py --version
 ```
 
 2. **Docker Container**:
+
 ```bash
 docker build -t vscode-node-red-tools .
 docker run --rm -v "$(pwd)":/data vscode-node-red-tools --help
 ```
 
 3. **Virtual Environment**:
+
 ```bash
 python3 -m venv venv
 source venv/bin/activate  # or venv\Scripts\activate on Windows
@@ -759,6 +816,7 @@ pip install -r requirements.txt
 ```
 
 **Platform Support:**
+
 - ✅ Linux (apt, dnf, yum)
 - ✅ macOS (Homebrew)
 - ✅ Windows (native installers)
@@ -769,12 +827,14 @@ pip install -r requirements.txt
 **Current Version:** 3.0.0
 
 **Version Strategy:**
+
 - Semantic Versioning (MAJOR.MINOR.PATCH)
 - Version in `vscode-node-red-tools.py:19`
 - Changelog maintained
 - Git tags for releases
 
 **Recent History:**
+
 - 3.0.0 (2025-01-12) - Production readiness, logging, exit codes
 - 2.x - Core functionality, plugins
 - 1.x - Initial features
@@ -784,6 +844,7 @@ pip install -r requirements.txt
 **License:** Business Source License 1.1 (BSL-1.1)
 
 **Compliance:**
+
 - ✅ LICENSE file present and complete
 - ✅ Use Limitations documented (no embedding/bundling; production restricted above revenue threshold without commercial license)
 - ✅ Modifications allowed under BSL terms
@@ -797,6 +858,7 @@ pip install -r requirements.txt
 ### Publishing Readiness
 
 **Current State:**
+
 - ✅ Git repository ready
 - ✅ Comprehensive documentation
 - ✅ Docker support
@@ -806,6 +868,7 @@ pip install -r requirements.txt
 - ✅ CODEOWNERS file
 
 **For GitHub Release:**
+
 ```bash
 git tag v3.0.0
 git push origin v3.0.0
@@ -813,6 +876,7 @@ git push origin v3.0.0
 ```
 
 **For PyPI (Optional, v3.1+):**
+
 - Create `pyproject.toml`
 - Build distribution: `python3 -m build`
 - Upload: `python3 -m twine upload dist/*`
@@ -910,6 +974,7 @@ git push origin v3.0.0
 ### High Priority (Before v3.1)
 
 1. **Add Automated Tests** ⚠️
+
    - Status: Not implemented
    - Impact: Medium - improves maintainability
    - Action: Create pytest suite for:
@@ -929,12 +994,14 @@ git push origin v3.0.0
 ### Medium Priority (v3.2+)
 
 1. **CI/CD Pipeline**
+
    - GitHub Actions workflow
    - Automated testing
    - Multi-platform testing
    - Coverage reporting
 
 2. **Type Hints Completion**
+
    - Expand to 100% coverage
    - Add py.typed marker
    - Enable mypy checking
@@ -947,6 +1014,7 @@ git push origin v3.0.0
 ### Low Priority (Future)
 
 1. **Community Features**
+
    - Plugin marketplace
    - Plugin dependency management
    - Community contributions
@@ -965,6 +1033,7 @@ git push origin v3.0.0
 **vscode-node-red-tools v3.0.0 represents a mature, production-ready evolution** of the concept pioneered by functions-templates-manager. The project successfully:
 
 #### ✅ Preserves All Original Functionality
+
 - Function extraction with wrapping
 - Template extraction (expanded to 3 types, 12+ formats)
 - Documentation extraction
@@ -972,6 +1041,7 @@ git push origin v3.0.0
 - File organization by parent
 
 #### ✅ Adds Enterprise-Grade Enhancements
+
 - **15x codebase growth** with maintained quality
 - Plugin architecture (11 plugins, 5 stages)
 - ID normalization (meaningful names)
@@ -981,6 +1051,7 @@ git push origin v3.0.0
 - 11 documentation files vs. 1
 
 #### ✅ Demonstrates High Code Quality
+
 - Well-structured modular architecture
 - Separation of concerns (core/plugins)
 - Comprehensive error handling with exit codes
@@ -989,6 +1060,7 @@ git push origin v3.0.0
 - Production-ready features
 
 #### ✅ Provides Excellent Documentation
+
 - 11 comprehensive documentation files
 - 8,361 lines of documentation
 - 100+ code examples
@@ -997,6 +1069,7 @@ git push origin v3.0.0
 - Security considerations
 
 #### ✅ Ensures Security
+
 - Secure credential management
 - Path validation
 - Network security
@@ -1006,6 +1079,7 @@ git push origin v3.0.0
 ### Deployment Status: ✅ **APPROVED FOR PRODUCTION**
 
 **The project is ready for:**
+
 - GitHub open-source release
 - Production deployment
 - Community distribution

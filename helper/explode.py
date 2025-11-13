@@ -26,7 +26,13 @@ from .logging import (
     log_warning,
     show_progress_bar,
 )
-from .exit_codes import SUCCESS, GENERAL_ERROR, FILE_NOT_FOUND, EXPLODE_ERROR, FILE_INVALID
+from .exit_codes import (
+    SUCCESS,
+    GENERAL_ERROR,
+    FILE_NOT_FOUND,
+    EXPLODE_ERROR,
+    FILE_INVALID,
+)
 from .rebuild import rebuild_single_node
 from .skeleton import create_skeleton, get_node_directory, save_skeleton
 from .utils import (
@@ -176,7 +182,9 @@ def _explode_single_node(
     excluded_fields: Set[str] = structural_fields | claimed_fields
 
     json_file: Path = node_dir / f"{node_id}.json"
-    node_json: Dict[str, Any] = {k: v for k, v in node.items() if k not in excluded_fields}
+    node_json: Dict[str, Any] = {
+        k: v for k, v in node.items() if k not in excluded_fields
+    }
 
     # Only write .json file if there are functional fields to save
     if node_json:
@@ -301,7 +309,9 @@ def _explode_nodes_stage(
     # Process nodes
     if use_parallel:
         # Parallel processing with ThreadPoolExecutor
-        skeleton_data: List[Optional[Dict[str, Any]]] = [None] * total_nodes  # Pre-allocate to maintain order
+        skeleton_data: List[Optional[Dict[str, Any]]] = [
+            None
+        ] * total_nodes  # Pre-allocate to maintain order
 
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             # Submit all tasks
@@ -385,9 +395,7 @@ def _run_post_explode_stage(
         for plugin in post_explode_plugins:
             if not quiet_plugins:
                 log_info(f"  {plugin.get_name()}")
-            changed = plugin.process_directory_post_explode(
-                src_dir, flows_path
-            )
+            changed = plugin.process_directory_post_explode(src_dir, flows_path)
             if changed:
                 any_modified = True
             if progress_task:
@@ -460,7 +468,9 @@ def explode_flows(
             flow_data = _load_flows_for_explode(flows_path, backup)
         except FileNotFoundError as e:
             log_error(str(e), code=FILE_NOT_FOUND)
-            log_error("Provide a valid flows.json file path with --flows, or use watch mode to sync from server")
+            log_error(
+                "Provide a valid flows.json file path with --flows, or use watch mode to sync from server"
+            )
             if return_info:
                 return {"exit_code": FILE_NOT_FOUND, "needs_rebuild": False}
             return FILE_NOT_FOUND

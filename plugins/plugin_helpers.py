@@ -13,6 +13,7 @@ from typing import List, Dict, Any, Optional, Tuple
 
 # Import security utilities
 import sys
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from helper.utils import validate_path_for_subprocess
 from helper.constants import SUBPROCESS_TIMEOUT
@@ -106,10 +107,19 @@ def run_prettier(filepath: Path) -> bool:
     """
     try:
         # Validate path exists and length before passing to subprocess
-        validated_filepath: Path = validate_path_for_subprocess(filepath, filepath.parent)
+        validated_filepath: Path = validate_path_for_subprocess(
+            filepath, filepath.parent
+        )
 
         result: subprocess.CompletedProcess = subprocess.run(
-            ["npx", "prettier", "--trailing-comma", "es5", "--write", str(validated_filepath)],
+            [
+                "npx",
+                "prettier",
+                "--trailing-comma",
+                "es5",
+                "--write",
+                str(validated_filepath),
+            ],
             cwd=Path.cwd(),
             capture_output=True,
             text=True,
@@ -137,7 +147,9 @@ def run_prettier(filepath: Path) -> bool:
         return False
 
 
-def run_prettier_parallel(directory: Path, additional_files: Optional[List[Path]] = None) -> bool:
+def run_prettier_parallel(
+    directory: Path, additional_files: Optional[List[Path]] = None
+) -> bool:
     """Run prettier on a directory in parallel.
 
     For root files in directory: formats them as a list in one thread.
@@ -209,7 +221,8 @@ def run_prettier_parallel(directory: Path, additional_files: Optional[List[Path]
 
             # Pass all root files to prettier at once
             subprocess.run(
-                ["npx", "prettier", "--trailing-comma", "es5", "--write"] + validated_files,
+                ["npx", "prettier", "--trailing-comma", "es5", "--write"]
+                + validated_files,
                 cwd=Path.cwd(),
                 capture_output=True,
                 text=True,
@@ -227,11 +240,20 @@ def run_prettier_parallel(directory: Path, additional_files: Optional[List[Path]
         try:
             # Validate directory path before passing to subprocess
             # Subdirectories are part of directory structure, validate against directory's parent
-            validated_subdir: Path = validate_path_for_subprocess(subdir, directory.parent)
+            validated_subdir: Path = validate_path_for_subprocess(
+                subdir, directory.parent
+            )
 
             # Pass directory to prettier (it handles recursion)
             subprocess.run(
-                ["npx", "prettier", "--trailing-comma", "es5", "--write", str(validated_subdir)],
+                [
+                    "npx",
+                    "prettier",
+                    "--trailing-comma",
+                    "es5",
+                    "--write",
+                    str(validated_subdir),
+                ],
                 cwd=Path.cwd(),
                 capture_output=True,
                 text=True,

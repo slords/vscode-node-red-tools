@@ -175,10 +175,12 @@ python3 vscode-node-red-tools.py [GLOBAL_OPTIONS] watch [OPTIONS]
 **Authentication Options (choose one method):**
 
 Bearer Token (Recommended):
+
 - `--token TOKEN` - Bearer token (not recommended - use env var or file instead)
 - `--token-file PATH` - Path to file containing bearer token
 
 HTTP Basic:
+
 - `--username USER` - Username for HTTP Basic authentication
 - `--password PASS` - Password (not recommended - use env var instead)
 
@@ -253,6 +255,7 @@ python3 vscode-node-red-tools.py watch \
 The tool supports multiple authentication methods with automatic credential resolution:
 
 1. **Token File** (Most Secure):
+
    ```bash
    # Create token file
    echo "your-token-here" > ~/.nodered-token
@@ -263,6 +266,7 @@ The tool supports multiple authentication methods with automatic credential reso
    ```
 
 2. **Environment Variables** (Recommended):
+
    ```bash
    # Bearer token
    export NODERED_TOKEN="your-token-here"
@@ -275,6 +279,7 @@ The tool supports multiple authentication methods with automatic credential reso
 
 3. **Auto-discovery** (Token Files):
    The tool automatically searches for `.nodered-token` in:
+
    - Current directory (`./.nodered-token`)
    - Home directory (`~/.nodered-token`)
 
@@ -801,6 +806,7 @@ git commit -m "Initial explode of flows"
 Control output verbosity with logging levels. This is useful for debugging, CI/CD pipelines, and monitoring.
 
 **Available Levels:**
+
 - `DEBUG` - Show all messages including debug information
 - `INFO` - Normal operation messages (default)
 - `WARNING` - Only warnings and errors
@@ -839,10 +845,12 @@ CLI flags > environment variable > default (INFO)
 All errors and warnings include error codes for easier troubleshooting and automation.
 
 **Format:**
+
 - Errors: `[E##]`
 - Warnings: `[W##]`
 
 **Code Ranges:**
+
 - 0: Success
 - 1-9: General errors
 - 10-19: Configuration errors

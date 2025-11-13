@@ -102,4 +102,6 @@ DEFAULT_CONVERGENCE_WINDOW: int = 60  # Time window for convergence detection (s
 # Plugin System Configuration
 # =============================================================================
 
-DEFAULT_PLUGIN_PRIORITY: int = 999  # Default priority for plugins without explicit priority
+DEFAULT_PLUGIN_PRIORITY: int = (
+    999  # Default priority for plugins without explicit priority
+)

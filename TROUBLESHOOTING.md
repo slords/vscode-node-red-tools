@@ -613,7 +613,7 @@ python3 vscode-node-red-tools.py list-plugins
      --server http://localhost:1880
    ```
 
-4. Check for watch mode looping (see above)
+3. Check for watch mode looping (see above)
 
 ## Getting Help
 
@@ -846,11 +846,13 @@ chmod 600 ~/.nodered-token
 **Performance Impact by Plugin Type:**
 
 1. **Prettier plugins (slowest):**
+
    - `prettier-explode` - Formats all extracted files
    - `prettier-post-rebuild` - Formats rebuilt flows.json
    - Impact: 2-10x slower depending on flow size
 
 2. **Pre-explode plugins (medium):**
+
    - `normalize-ids` - Scans and modifies all nodes
    - Impact: 1.5-3x slower
 
@@ -915,6 +917,7 @@ chmod 600 ~/.nodered-token
    ```
 
 3. **Monitor for oscillation:**
+
    - Dashboard shows convergence cycles
    - Tool automatically pauses after detecting oscillation
    - Resume with manual upload (Ctrl+U in dashboard)
@@ -931,10 +934,12 @@ chmod 600 ~/.nodered-token
 **Best Practices:**
 
 1. **Use reasonable poll intervals:**
+
    - Default 5s is appropriate for most cases
    - Don't poll more frequently unless needed
 
 2. **Rate limiting is built-in:**
+
    - 30-second minimum between deploys
    - Prevents overwhelming server
 
@@ -958,6 +963,7 @@ chmod 600 ~/.nodered-token
 **Solutions:**
 
 1. **Split flows into multiple tabs:**
+
    - Keep individual tabs under 200 nodes
    - Use Link nodes to connect between tabs
 
@@ -995,6 +1001,7 @@ chmod 600 ~/.nodered-token
    ```
 
 2. **Consider breaking up flows:**
+
    - Use subflows for repeated patterns
    - Move config nodes to shared tabs
 
@@ -1009,10 +1016,12 @@ chmod 600 ~/.nodered-token
 **Best Practice:**
 
 1. **Keep function code concise:**
+
    - Move complex logic to external modules
    - Use require() in function nodes
 
 2. **Watch for wrapped vs unwrapped:**
+
    - `.wrapped.js` - Code wrapped in function
    - `.js` - Raw code (advanced use)
 
@@ -1037,10 +1046,12 @@ watch -n 30 'ps aux | grep vscode-node-red-tools'
 **Best Practices:**
 
 1. **Restart watch mode periodically:**
+
    - Daily restarts for long-running instances
    - Monitor for memory growth
 
 2. **Use exit codes to detect issues:**
+
    - All errors now have specific codes
    - Monitor for error patterns
 
@@ -1054,10 +1065,12 @@ watch -n 30 'ps aux | grep vscode-node-red-tools'
 All errors and warnings now include error codes for easier troubleshooting:
 
 **Format:**
+
 - Errors: `[E##]`
 - Warnings: `[W##]`
 
 **Code Ranges:**
+
 - 0: Success
 - 1-9: General errors
 - 10-19: Configuration errors
@@ -1076,6 +1089,7 @@ All errors and warnings now include error codes for easier troubleshooting:
 ```
 
 Use error codes when:
+
 - Searching documentation
 - Reporting issues
 - Automating error handling
@@ -1086,6 +1100,7 @@ Use error codes when:
 Control output verbosity with logging levels:
 
 **Available Levels:**
+
 - `DEBUG` - Show all messages including debug info
 - `INFO` - Normal operation messages (default)
 - `WARNING` - Only warnings and errors

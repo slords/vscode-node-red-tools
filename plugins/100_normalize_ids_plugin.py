@@ -203,7 +203,9 @@ def update_wires(nodes: List[Dict[str, Any]], id_map: Dict[str, str]) -> None:
                             env_var["value"] = id_map[env_var["value"]]
 
 
-def normalize_flow_ids(flow_data: List[Dict[str, Any]]) -> Tuple[List[Dict[str, Any]], Dict[str, str]]:
+def normalize_flow_ids(
+    flow_data: List[Dict[str, Any]],
+) -> Tuple[List[Dict[str, Any]], Dict[str, str]]:
     """Normalize all node IDs in the flow. Returns (flow_data, id_map)"""
     id_map: Dict[str, str] = {}
     used_ids: Set[str] = set()
@@ -232,7 +234,9 @@ class NormalizeIdsPlugin:
     def get_plugin_type(self) -> str:
         return "pre-explode"
 
-    def process_flows_pre_explode(self, flow_data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def process_flows_pre_explode(
+        self, flow_data: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
         """Normalize all node IDs in the flow"""
         # Run normalize
         normalized_flow: List[Dict[str, Any]]

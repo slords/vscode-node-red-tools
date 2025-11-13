@@ -39,6 +39,7 @@ from .explode import (
 )
 from .file_ops import find_orphaned_files, handle_orphaned_files
 from .dashboard import WatchConfig
+
 # Legacy watcher_server functions replaced by ServerClient usage
 
 
@@ -218,7 +219,9 @@ def sync_from_server(
     try:
         sc = getattr(watch_config, "server_client", None)
         if not sc:
-            log_error("No ServerClient attached to watch_config", code=SERVER_CONNECTION_ERROR)
+            log_error(
+                "No ServerClient attached to watch_config", code=SERVER_CONNECTION_ERROR
+            )
             return False
 
         changed, flows = sc.get_and_store_flows(force=force)

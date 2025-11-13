@@ -160,9 +160,7 @@ class WatchConfig:
 
             self.observer = Observer()
             self.observer.schedule(
-                self.observer_event_handler,
-                str(self.src_dir),
-                recursive=True
+                self.observer_event_handler, str(self.src_dir), recursive=True
             )
             self.observer.start()
         except ImportError:

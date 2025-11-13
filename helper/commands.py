@@ -42,7 +42,10 @@ def stats_command(
         config: Pre-loaded configuration dictionary
     """
     if plugins_dict is None or config is None:
-        log_error("stats_command requires pre-loaded plugins_dict and config. None was provided.", code=GENERAL_ERROR)
+        log_error(
+            "stats_command requires pre-loaded plugins_dict and config. None was provided.",
+            code=GENERAL_ERROR,
+        )
         return GENERAL_ERROR
     try:
         log_info("=== Flow Statistics ===")
@@ -88,7 +91,9 @@ def stats_command(
 
             # Most common node types
             log_info("\n  Most common node types:")
-            sorted_types: List[Tuple[str, int]] = sorted(node_types.items(), key=lambda x: x[1], reverse=True)
+            sorted_types: List[Tuple[str, int]] = sorted(
+                node_types.items(), key=lambda x: x[1], reverse=True
+            )
             for node_type, count in sorted_types[:10]:
                 log_info(f"    {node_type}: {count}")
 
@@ -306,7 +311,10 @@ def verify_flows(
         config: Pre-loaded configuration dictionary
     """
     if plugins_dict is None or config is None:
-        log_error("verify_flows requires pre-loaded plugins_dict and config. None was provided.", code=GENERAL_ERROR)
+        log_error(
+            "verify_flows requires pre-loaded plugins_dict and config. None was provided.",
+            code=GENERAL_ERROR,
+        )
         return GENERAL_ERROR
     log_info(f"Verifying round-trip stability for {flows_path}")
 
@@ -314,7 +322,9 @@ def verify_flows(
         # Load original flows
         if not flows_path.exists():
             log_error(f"File not found: {flows_path}", code=FILE_NOT_FOUND)
-            log_error("Provide a valid flows.json file path with --flows, or use watch mode to sync from server")
+            log_error(
+                "Provide a valid flows.json file path with --flows, or use watch mode to sync from server"
+            )
             return FILE_NOT_FOUND
 
         with open(flows_path, "r") as f:
@@ -376,16 +386,22 @@ def verify_flows(
                 )
                 return SUCCESS
             else:
-                log_error("\u2717 Round-trip verification failed - flows differ", code=VERIFICATION_FAILED)
+                log_error(
+                    "\u2717 Round-trip verification failed - flows differ",
+                    code=VERIFICATION_FAILED,
+                )
 
                 # Check if content is same but order differs
                 if original_flows == rebuilt_flows:
                     log_warning(
                         "Content is identical but field ORDER differs (critical for Node-RED!)",
-                        code=VERIFICATION_FAILED
+                        code=VERIFICATION_FAILED,
                     )
                 else:
-                    log_error("Content differs (not just field order)", code=VERIFICATION_FAILED)
+                    log_error(
+                        "Content differs (not just field order)",
+                        code=VERIFICATION_FAILED,
+                    )
 
                 # Show differences (use indented format for readability, but no sort_keys)
                 original_pretty = json.dumps(

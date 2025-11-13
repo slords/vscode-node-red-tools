@@ -14,6 +14,7 @@ This release focuses on production readiness with comprehensive error handling, 
 ### Added
 
 - **Logging Levels System**
+
   - New `LogLevel` enum (DEBUG, INFO, WARNING, ERROR)
   - Global `--quiet` flag (warnings and errors only)
   - Global `--verbose` flag (debug messages)
@@ -23,6 +24,7 @@ This release focuses on production readiness with comprehensive error handling, 
   - Dashboard-aware logging (redirects to TUI when active)
 
 - **Error Codes System**
+
   - All errors and warnings now include error codes ([E##], [W##])
   - Category-based code ranges:
     - 0: Success
@@ -38,12 +40,14 @@ This release focuses on production readiness with comprehensive error handling, 
   - Comprehensive error code documentation functions
 
 - **Actionable Error Messages**
+
   - Deploy failures now include "Next steps" guidance
   - Connection errors provide troubleshooting steps
   - Timeout errors suggest diagnostics
   - HTTP errors reference server logs and credentials
 
 - **ServerClient Refactoring**
+
   - New unified `ServerClient` class encapsulating all server interactions
   - Centralized authentication handling (token, basic auth, token file)
   - Integrated download/deploy/authentication logic
@@ -65,12 +69,14 @@ This release focuses on production readiness with comprehensive error handling, 
 ### Changed
 
 - **Improved Error Handling**
+
   - 87 log_error/log_warning calls updated across 12 files with error codes
   - Deploy operations wrapped in try/except with specific error handling
   - Misleading error messages corrected (e.g., "Run 'download'" → "Use watch mode")
   - Better context in error messages
 
 - **Watch Mode Architecture**
+
   - Legacy credential resolution removed (now handled by ServerClient)
   - Cleaner separation of concerns between watcher and server client
   - Improved file watcher lifecycle management
@@ -78,6 +84,7 @@ This release focuses on production readiness with comprehensive error handling, 
   - Fixed orphan detection path comparison
 
 - **Dashboard Improvements**
+
   - Fixed layout issues (blank lines, spacing)
   - Proper "single pane of glass" design
   - Improved connection and stats display
@@ -92,10 +99,12 @@ This release focuses on production readiness with comprehensive error handling, 
 ### Fixed
 
 - **Security**
+
   - Fixed path validation to allow external flows.json paths
   - Proper security warnings in documentation
 
 - **Reliability**
+
   - Fixed file watcher observer stop/join/recreate pattern
   - Fixed orphan detection path comparison issues
   - Improved error recovery in watch mode
@@ -123,6 +132,7 @@ This release focuses on production readiness with comprehensive error handling, 
 ### Migration Notes
 
 **Logging Levels:**
+
 ```bash
 # New flags available
 python3 vscode-node-red-tools.py --quiet explode    # Warnings/errors only
@@ -132,6 +142,7 @@ export NODERED_TOOLS_LOG_LEVEL=DEBUG               # Set globally
 
 **Error Codes:**
 All errors now display codes. Example output:
+
 ```
 ✗ [E20] File not found: flows/flows.json
 ✗ [E30] Failed to connect to Node-RED server
@@ -139,6 +150,7 @@ All errors now display codes. Example output:
 ```
 
 Use error codes when:
+
 - Searching documentation
 - Reporting issues
 - Automating error handling

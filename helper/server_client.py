@@ -23,6 +23,7 @@ Public Methods (minimal surface):
 
 The WatchConfig will hold a reference to a ServerClient instance instead of credentials & session fields.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -42,7 +43,14 @@ if TYPE_CHECKING:
     import requests as _requests
 
 from .logging import log_info, log_success, log_warning, log_error
-from .exit_codes import SERVER_CONNECTION_ERROR, SERVER_AUTH_ERROR, SERVER_CONFLICT, SERVER_ERROR, FILE_NOT_FOUND, GENERAL_ERROR
+from .exit_codes import (
+    SERVER_CONNECTION_ERROR,
+    SERVER_AUTH_ERROR,
+    SERVER_CONFLICT,
+    SERVER_ERROR,
+    FILE_NOT_FOUND,
+    GENERAL_ERROR,
+)
 from .auth import resolve_auth_config, AuthConfig
 from .constants import (
     HTTP_TIMEOUT,
@@ -55,9 +63,11 @@ from .constants import (
 )
 from .utils import RateLimiter
 
+
 @dataclass(init=False)
 class ServerClient:
     """Encapsulates Node-RED server interaction and state."""
+
     url: str
     auth_type: str  # 'none', 'basic', 'bearer'
     username: Optional[str] = None
@@ -66,7 +76,9 @@ class ServerClient:
     verify_ssl: bool = True
 
     # Runtime / session state (internal)
-    _session: Optional["_requests.Session"] = field(default=None, init=False, repr=False)
+    _session: Optional["_requests.Session"] = field(
+        default=None, init=False, repr=False
+    )
     _authenticated: bool = field(default=False, init=False, repr=False)
 
     # Flow tracking
@@ -77,8 +89,12 @@ class ServerClient:
     # Tracks timestamps of recent deployments; if too many happen in a short window,
     # pauses automatic downloads until user manually uploads (resumes normal operation)
     convergence_cycles: List[datetime] = field(default_factory=list)
-    convergence_limit: int = field(default=DEFAULT_CONVERGENCE_LIMIT)  # Max cycles in window
-    convergence_window: int = field(default=DEFAULT_CONVERGENCE_WINDOW)  # Time window (seconds)
+    convergence_limit: int = field(
+        default=DEFAULT_CONVERGENCE_LIMIT
+    )  # Max cycles in window
+    convergence_window: int = field(
+        default=DEFAULT_CONVERGENCE_WINDOW
+    )  # Time window (seconds)
     convergence_paused: bool = False  # True when oscillation detected
 
     # Statistics
@@ -140,14 +156,18 @@ class ServerClient:
         self.flows_file = flows_path
 
     @classmethod
-    def from_args_and_config(cls, args: Any, config: dict) -> "ServerClient":  # pragma: no cover - legacy wrapper
+    def from_args_and_config(
+        cls, args: Any, config: dict
+    ) -> "ServerClient":  # pragma: no cover - legacy wrapper
         """Deprecated factory retained for backward compatibility."""
         return cls(args, config)
 
     def _build_session(self) -> None:
         """Build requests session with authentication (logging already done by resolve_auth_config)"""
         if requests is None:
-            raise RuntimeError("'requests' library not available. Install it to use ServerClient.")
+            raise RuntimeError(
+                "'requests' library not available. Install it to use ServerClient."
+            )
         self._session = requests.Session()
         self._session.verify = self.verify_ssl
         if self.auth_type == "bearer" and self.token:
@@ -157,12 +177,15 @@ class ServerClient:
         elif self.auth_type == "none":
             pass  # Anonymous access
         else:
-            log_error(f"Unknown authentication type: {self.auth_type}", code=SERVER_AUTH_ERROR)
+            log_error(
+                f"Unknown authentication type: {self.auth_type}", code=SERVER_AUTH_ERROR
+            )
             raise ValueError(f"Unknown authentication type: {self.auth_type}")
 
         if not self.verify_ssl:
             try:
                 import urllib3
+
                 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
                 log_warning("SSL verification disabled", code=SERVER_CONNECTION_ERROR)
             except Exception:
@@ -186,7 +209,7 @@ class ServerClient:
                 stats = self.rate_limiter.get_stats()
                 log_error(
                     f"Rate limit exceeded during authentication: {stats['requests_last_minute']}/{stats['limit_per_minute']} requests/min",
-                    code=SERVER_CONNECTION_ERROR
+                    code=SERVER_CONNECTION_ERROR,
                 )
                 return False
             resp = self.session.get(f"{self.url}/flows", timeout=HTTP_TIMEOUT)
@@ -210,7 +233,7 @@ class ServerClient:
             log_error(
                 f"Rate limit exceeded: {stats['requests_last_minute']}/{stats['limit_per_minute']} requests/min, "
                 f"{stats['requests_last_10min']}/{stats['limit_per_10min']} requests/10min",
-                code=SERVER_CONNECTION_ERROR
+                code=SERVER_CONNECTION_ERROR,
             )
             return False
         return True
@@ -230,7 +253,9 @@ class ServerClient:
         headers = {"Node-RED-API-Version": "v2"}
         if not force and self.last_etag:
             headers["If-None-Match"] = self.last_etag
-        resp = self.session.get(f"{self.url}/flows", headers=headers, timeout=HTTP_TIMEOUT)
+        resp = self.session.get(
+            f"{self.url}/flows", headers=headers, timeout=HTTP_TIMEOUT
+        )
         if resp.status_code == HTTP_NOT_MODIFIED:
             return False, None
         resp.raise_for_status()
@@ -244,7 +269,9 @@ class ServerClient:
             self.last_etag = new_etag
         if new_rev:
             if new_rev != self.last_rev:
-                log_info(f"Flows changed (rev: {self.last_rev or 'initial'} → {new_rev})")
+                log_info(
+                    f"Flows changed (rev: {self.last_rev or 'initial'} → {new_rev})"
+                )
             self.last_rev = new_rev
         self.download_count += 1
         self.last_download_time = datetime.now()
@@ -255,7 +282,10 @@ class ServerClient:
         try:
             self.flows_file.parent.mkdir(parents=True, exist_ok=True)
             import json as _json
-            self.flows_file.write_text(_json.dumps(flows, separators=(",", ":"), ensure_ascii=False) + "\n")
+
+            self.flows_file.write_text(
+                _json.dumps(flows, separators=(",", ":"), ensure_ascii=False) + "\n"
+            )
         except Exception as e:
             self.error_count += 1
             log_error(f"Failed to write flows file: {e}", code=GENERAL_ERROR)
@@ -277,16 +307,26 @@ class ServerClient:
             }
             body = {"flows": flows_array}
             import json as _json
-            formatted_body = _json.dumps(body, separators=(",", ":"), ensure_ascii=False)
+
+            formatted_body = _json.dumps(
+                body, separators=(",", ":"), ensure_ascii=False
+            )
             params = {}
             if self.last_rev:
                 params["rev"] = self.last_rev
             resp = self.session.post(
-                f"{self.url}/flows", data=formatted_body, headers=headers, params=params, timeout=HTTP_TIMEOUT
+                f"{self.url}/flows",
+                data=formatted_body,
+                headers=headers,
+                params=params,
+                timeout=HTTP_TIMEOUT,
             )
             # Re-auth flow
             if resp.status_code in (HTTP_UNAUTHORIZED, HTTP_FORBIDDEN):
-                log_warning("Authentication expired, re-authenticating...", code=SERVER_AUTH_ERROR)
+                log_warning(
+                    "Authentication expired, re-authenticating...",
+                    code=SERVER_AUTH_ERROR,
+                )
                 self._authenticated = False
                 if not self._ensure_auth():
                     log_error("Re-authentication failed", code=SERVER_AUTH_ERROR)
@@ -294,16 +334,25 @@ class ServerClient:
                 if not self._check_rate():
                     return False
                 resp = self.session.post(
-                    f"{self.url}/flows", data=formatted_body, headers=headers, params=params, timeout=HTTP_TIMEOUT
+                    f"{self.url}/flows",
+                    data=formatted_body,
+                    headers=headers,
+                    params=params,
+                    timeout=HTTP_TIMEOUT,
                 )
             if resp.status_code == HTTP_CONFLICT:
-                log_error(f"Conflict detected ({HTTP_CONFLICT}) - server flows changed while you were editing", code=SERVER_CONFLICT)
+                log_error(
+                    f"Conflict detected ({HTTP_CONFLICT}) - server flows changed while you were editing",
+                    code=SERVER_CONFLICT,
+                )
                 # Fetch latest to update rev/etag
                 try:
                     if not self._check_rate():
                         return False
                     verify_resp = self.session.get(
-                        f"{self.url}/flows", headers={"Node-RED-API-Version": "v2"}, timeout=HTTP_TIMEOUT
+                        f"{self.url}/flows",
+                        headers={"Node-RED-API-Version": "v2"},
+                        timeout=HTTP_TIMEOUT,
                     )
                     verify_resp.raise_for_status()
                     verify_etag = verify_resp.headers.get("ETag")
@@ -313,9 +362,14 @@ class ServerClient:
                         log_info(f"Updated to server rev: {self.last_rev}")
                     if verify_etag:
                         self.last_etag = verify_etag
-                    log_warning("Your local changes were not deployed - server was updated by someone else", code=SERVER_CONFLICT)
+                    log_warning(
+                        "Your local changes were not deployed - server was updated by someone else",
+                        code=SERVER_CONFLICT,
+                    )
                 except Exception as e:
-                    log_error(f"Failed to fetch latest server state: {e}", code=SERVER_ERROR)
+                    log_error(
+                        f"Failed to fetch latest server state: {e}", code=SERVER_ERROR
+                    )
                 return False
             resp.raise_for_status()
             result = resp.json()
@@ -324,23 +378,41 @@ class ServerClient:
                 self.last_rev = deploy_rev
             log_success("Deployed to Node-RED")
         except requests.exceptions.ConnectionError as e:
-            log_error(f"Deploy failed: Connection error - {e}", code=SERVER_CONNECTION_ERROR)
+            log_error(
+                f"Deploy failed: Connection error - {e}", code=SERVER_CONNECTION_ERROR
+            )
             log_error("Next steps:", code=SERVER_CONNECTION_ERROR)
-            log_error(f"  1. Verify Node-RED is running at {self.url}", code=SERVER_CONNECTION_ERROR)
+            log_error(
+                f"  1. Verify Node-RED is running at {self.url}",
+                code=SERVER_CONNECTION_ERROR,
+            )
             log_error("  2. Check network connectivity", code=SERVER_CONNECTION_ERROR)
-            log_error("  3. Verify firewall settings allow the connection", code=SERVER_CONNECTION_ERROR)
+            log_error(
+                "  3. Verify firewall settings allow the connection",
+                code=SERVER_CONNECTION_ERROR,
+            )
             self.error_count += 1
             return False
         except requests.exceptions.Timeout as e:
-            log_error(f"Deploy failed: Request timeout - {e}", code=SERVER_CONNECTION_ERROR)
+            log_error(
+                f"Deploy failed: Request timeout - {e}", code=SERVER_CONNECTION_ERROR
+            )
             log_error("Next steps:", code=SERVER_CONNECTION_ERROR)
-            log_error(f"  1. Check if Node-RED server at {self.url} is responding slowly", code=SERVER_CONNECTION_ERROR)
+            log_error(
+                f"  1. Check if Node-RED server at {self.url} is responding slowly",
+                code=SERVER_CONNECTION_ERROR,
+            )
             log_error("  2. Verify network latency", code=SERVER_CONNECTION_ERROR)
-            log_error("  3. Consider increasing timeout if server is slow", code=SERVER_CONNECTION_ERROR)
+            log_error(
+                "  3. Consider increasing timeout if server is slow",
+                code=SERVER_CONNECTION_ERROR,
+            )
             self.error_count += 1
             return False
         except requests.exceptions.HTTPError as e:
-            log_error(f"Deploy failed: HTTP {e.response.status_code} - {e}", code=SERVER_ERROR)
+            log_error(
+                f"Deploy failed: HTTP {e.response.status_code} - {e}", code=SERVER_ERROR
+            )
             log_error("Next steps:", code=SERVER_ERROR)
             log_error(f"  1. Check Node-RED server logs for details", code=SERVER_ERROR)
             log_error("  2. Verify credentials are correct", code=SERVER_ERROR)
@@ -350,7 +422,9 @@ class ServerClient:
         except Exception as e:
             log_error(f"Deploy failed: Unexpected error - {e}", code=SERVER_ERROR)
             log_error("Next steps:", code=SERVER_ERROR)
-            log_error(f"  1. Check Node-RED server status at {self.url}", code=SERVER_ERROR)
+            log_error(
+                f"  1. Check Node-RED server status at {self.url}", code=SERVER_ERROR
+            )
             log_error("  2. Verify credentials are correct", code=SERVER_ERROR)
             log_error("  3. Check network connection", code=SERVER_ERROR)
             log_error("  4. Review server logs for more details", code=SERVER_ERROR)
@@ -360,13 +434,21 @@ class ServerClient:
         now = datetime.now()
         self.convergence_cycles.append(now)
         cutoff = now.timestamp() - self.convergence_window
-        self.convergence_cycles = [ts for ts in self.convergence_cycles if ts.timestamp() > cutoff]
-        if len(self.convergence_cycles) > self.convergence_limit and not self.convergence_paused:
+        self.convergence_cycles = [
+            ts for ts in self.convergence_cycles if ts.timestamp() > cutoff
+        ]
+        if (
+            len(self.convergence_cycles) > self.convergence_limit
+            and not self.convergence_paused
+        ):
             log_warning(
                 f"⚠️  Oscillation detected: {len(self.convergence_cycles)} cycles in {self.convergence_window}s",
-                code=SERVER_ERROR
+                code=SERVER_ERROR,
             )
-            log_warning("Pausing convergence - manual uploads only until resumed", code=SERVER_ERROR)
+            log_warning(
+                "Pausing convergence - manual uploads only until resumed",
+                code=SERVER_ERROR,
+            )
             self.convergence_paused = True
         if count_stats:
             self.upload_count += 1
@@ -378,9 +460,13 @@ class ServerClient:
         # Clear etag if not paused
         if not self.convergence_paused:
             self.last_etag = None
-            log_info(f"Updated state - ETag cleared (will re-download), rev: {deploy_rev}")
+            log_info(
+                f"Updated state - ETag cleared (will re-download), rev: {deploy_rev}"
+            )
         else:
-            log_info(f"Updated state - Convergence paused (ETag not cleared), rev: {deploy_rev}")
+            log_info(
+                f"Updated state - Convergence paused (ETag not cleared), rev: {deploy_rev}"
+            )
         return True
 
     # Convenience properties for external consumers (dashboard, etc.)
@@ -396,4 +482,3 @@ class ServerClient:
             "etag": self.last_etag,
             "convergence_paused": self.convergence_paused,
         }
-

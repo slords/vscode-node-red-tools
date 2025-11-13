@@ -28,18 +28,18 @@
 
 ### Key Improvements at a Glance
 
-| Aspect | Enhancement |
-|--------|-------------|
-| **Core Functionality** | ✅ All original features preserved + significantly expanded |
-| **Extensibility** | ✅ Full plugin architecture with 5 stages, 11 built-in plugins |
-| **Node Support** | ✅ 7+ node types vs. 2 in original (3.5x increase) |
-| **Testing** | ✅ Export default pattern with all 7 Node-RED parameters |
-| **Watch Mode** | ✅ Production-ready with optimistic locking, convergence, rate limiting |
-| **Data Integrity** | ✅ Round-trip verification, per-node checks, backup support |
-| **Documentation** | ✅ 11 comprehensive guides vs. single README (11x increase) |
-| **Reliability** | ✅ Exponential backoff, conflict detection, graceful failures |
-| **Developer Tools** | ✅ 12 commands vs. 3 in original (4x increase) |
-| **Scale** | ✅ 9,334 lines vs. ~500 lines (15x growth) |
+| Aspect                 | Enhancement                                                             |
+| ---------------------- | ----------------------------------------------------------------------- |
+| **Core Functionality** | ✅ All original features preserved + significantly expanded             |
+| **Extensibility**      | ✅ Full plugin architecture with 5 stages, 11 built-in plugins          |
+| **Node Support**       | ✅ 7+ node types vs. 2 in original (3.5x increase)                      |
+| **Testing**            | ✅ Export default pattern with all 7 Node-RED parameters                |
+| **Watch Mode**         | ✅ Production-ready with optimistic locking, convergence, rate limiting |
+| **Data Integrity**     | ✅ Round-trip verification, per-node checks, backup support             |
+| **Documentation**      | ✅ 11 comprehensive guides vs. single README (11x increase)             |
+| **Reliability**        | ✅ Exponential backoff, conflict detection, graceful failures           |
+| **Developer Tools**    | ✅ 12 commands vs. 3 in original (4x increase)                          |
+| **Scale**              | ✅ 9,334 lines vs. ~500 lines (15x growth)                              |
 
 ### What's Preserved
 
@@ -70,92 +70,94 @@
 
 ### Feature Comparison Matrix
 
-| Feature | functions-templates-manager | vscode-node-red-tools | Status |
-|---------|----------------------------|----------------------|---------|
-| **CORE EXTRACTION** | | | |
-| Extract function nodes | ✅ | ✅ | Enhanced |
-| Extract Vue templates | ✅ | ✅ | Enhanced |
-| Extract Dashboard 1 templates | ❌ | ✅ | **Added** |
-| Extract core templates | ❌ | ✅ 12+ formats | **Added** |
-| Extract documentation | ✅ (.info.md) | ✅ (.md) | Simplified |
-| Extract global functions | ❌ | ✅ | **Added** |
-| Extract action definitions | ❌ | ✅ | **Added** |
-| **FUNCTION HANDLING** | | | |
-| Basic function extraction | ✅ | ✅ | Same |
-| Testable function wrapping | ✅ (--wrap flag) | ✅ (default) | Enhanced |
-| Export pattern | named export | export default | ES6 standard |
-| Parameter signatures | ❌ | ✅ All 7 params | **Added** |
-| Initialize/Finalize code | ✅ | ✅ | Enhanced |
-| Multiple function types | ❌ | ✅ 4 types | **Added** |
-| **WATCH MODE** | | | |
-| File watching | ✅ chokidar | ✅ watchdog | Enhanced |
-| Server monitoring | ✅ file-based | ✅ HTTP polling | Enhanced |
-| Change detection | File modification | ETag + mod time | More efficient |
-| Conflict handling | Basic flags | Optimistic locking | Production-ready |
-| Stability checking | ❌ | ✅ Convergence | **Added** |
-| Interactive commands | ❌ | ✅ 7 commands | **Added** |
-| TUI dashboard | ❌ | ✅ Optional | **Added** |
-| Statistics tracking | ❌ | ✅ | **Added** |
-| Rate limiting | ❌ | ✅ 180/min | **Added** |
-| **DATA INTEGRITY** | | | |
-| Round-trip verification | ❌ | ✅ verify command | **Added** |
-| Per-node verification | ❌ | ✅ During explode | **Added** |
-| Backup support | ❌ | ✅ Timestamped | **Added** |
-| Orphan detection | ✅ | ✅ | Enhanced |
-| New file detection | ❌ | ✅ | **Added** |
-| **ID MANAGEMENT** | | | |
-| ID normalization | ❌ | ✅ Plugin | **Added** |
-| Reference updating | ❌ | ✅ Wires, links | **Added** |
-| Meaningful names | ❌ | ✅ | **Added** |
-| **ARCHITECTURE** | | | |
-| Plugin system | ❌ | ✅ 5 stages | **Added** |
-| Extensibility | ❌ | ✅ Full system | **Added** |
-| Hot plugin reload | ❌ | ✅ | **Added** |
-| Parallel processing | ❌ | ✅ Multi-thread | **Added** |
-| **DEVELOPER TOOLS** | | | |
-| List plugins | ❌ | ✅ | **Added** |
-| Diff directories | ❌ | ✅ CLI + GUI | **Added** |
-| Statistics | ❌ | ✅ | **Added** |
-| Benchmarking | ❌ | ✅ | **Added** |
-| Plugin scaffolding | ❌ | ✅ | **Added** |
-| Config validation | ❌ | ✅ | **Added** |
-| **CONFIGURATION** | | | |
-| Config file | ❌ | ✅ JSON | **Added** |
-| Plugin enable/disable | ❌ | ✅ | **Added** |
-| Plugin priorities | ❌ | ✅ | **Added** |
-| Authentication | ❌ | ✅ Multiple methods | **Added** |
-| SSL support | ❌ | ✅ | **Added** |
-| **ERROR HANDLING** | | | |
-| Retry logic | ❌ | ✅ Exponential | **Added** |
-| Graceful failures | ✅ | ✅ | Enhanced |
-| Exit codes | ✅ C01-C06 | ✅ Categorized | Enhanced |
-| Conflict detection | Basic | ✅ 409 + rev | Enhanced |
-| Logging levels | ❌ | ✅ 5 levels | **Added** |
-| **DOCUMENTATION** | | | |
-| README | ✅ | ✅ | Enhanced |
-| Installation guide | ❌ | ✅ | **Added** |
-| Usage guide | In README | ✅ Separate | **Added** |
-| Architecture docs | ❌ | ✅ | **Added** |
-| Plugin development | ❌ | ✅ | **Added** |
-| Configuration guide | ❌ | ✅ | **Added** |
-| Troubleshooting | ❌ | ✅ | **Added** |
-| Contributing guide | ❌ | ✅ | **Added** |
-| **TECHNOLOGY** | | | |
-| Primary language | Node.js | Python | Changed |
-| Dependencies | Node.js only | Python + Node.js | Expanded |
-| Package manager | npm | pip + npm | Hybrid |
-| **SCALE** | | | |
-| Lines of code | ~500 | 9,334 | 15x growth |
-| Files | 3 scripts | 31 modules | 10x growth |
-| Documentation lines | ~200 | 8,361 | 40x growth |
+| Feature                       | functions-templates-manager | vscode-node-red-tools | Status           |
+| ----------------------------- | --------------------------- | --------------------- | ---------------- |
+| **CORE EXTRACTION**           |                             |                       |                  |
+| Extract function nodes        | ✅                          | ✅                    | Enhanced         |
+| Extract Vue templates         | ✅                          | ✅                    | Enhanced         |
+| Extract Dashboard 1 templates | ❌                          | ✅                    | **Added**        |
+| Extract core templates        | ❌                          | ✅ 12+ formats        | **Added**        |
+| Extract documentation         | ✅ (.info.md)               | ✅ (.md)              | Simplified       |
+| Extract global functions      | ❌                          | ✅                    | **Added**        |
+| Extract action definitions    | ❌                          | ✅                    | **Added**        |
+| **FUNCTION HANDLING**         |                             |                       |                  |
+| Basic function extraction     | ✅                          | ✅                    | Same             |
+| Testable function wrapping    | ✅ (--wrap flag)            | ✅ (default)          | Enhanced         |
+| Export pattern                | named export                | export default        | ES6 standard     |
+| Parameter signatures          | ❌                          | ✅ All 7 params       | **Added**        |
+| Initialize/Finalize code      | ✅                          | ✅                    | Enhanced         |
+| Multiple function types       | ❌                          | ✅ 4 types            | **Added**        |
+| **WATCH MODE**                |                             |                       |                  |
+| File watching                 | ✅ chokidar                 | ✅ watchdog           | Enhanced         |
+| Server monitoring             | ✅ file-based               | ✅ HTTP polling       | Enhanced         |
+| Change detection              | File modification           | ETag + mod time       | More efficient   |
+| Conflict handling             | Basic flags                 | Optimistic locking    | Production-ready |
+| Stability checking            | ❌                          | ✅ Convergence        | **Added**        |
+| Interactive commands          | ❌                          | ✅ 7 commands         | **Added**        |
+| TUI dashboard                 | ❌                          | ✅ Optional           | **Added**        |
+| Statistics tracking           | ❌                          | ✅                    | **Added**        |
+| Rate limiting                 | ❌                          | ✅ 180/min            | **Added**        |
+| **DATA INTEGRITY**            |                             |                       |                  |
+| Round-trip verification       | ❌                          | ✅ verify command     | **Added**        |
+| Per-node verification         | ❌                          | ✅ During explode     | **Added**        |
+| Backup support                | ❌                          | ✅ Timestamped        | **Added**        |
+| Orphan detection              | ✅                          | ✅                    | Enhanced         |
+| New file detection            | ❌                          | ✅                    | **Added**        |
+| **ID MANAGEMENT**             |                             |                       |                  |
+| ID normalization              | ❌                          | ✅ Plugin             | **Added**        |
+| Reference updating            | ❌                          | ✅ Wires, links       | **Added**        |
+| Meaningful names              | ❌                          | ✅                    | **Added**        |
+| **ARCHITECTURE**              |                             |                       |                  |
+| Plugin system                 | ❌                          | ✅ 5 stages           | **Added**        |
+| Extensibility                 | ❌                          | ✅ Full system        | **Added**        |
+| Hot plugin reload             | ❌                          | ✅                    | **Added**        |
+| Parallel processing           | ❌                          | ✅ Multi-thread       | **Added**        |
+| **DEVELOPER TOOLS**           |                             |                       |                  |
+| List plugins                  | ❌                          | ✅                    | **Added**        |
+| Diff directories              | ❌                          | ✅ CLI + GUI          | **Added**        |
+| Statistics                    | ❌                          | ✅                    | **Added**        |
+| Benchmarking                  | ❌                          | ✅                    | **Added**        |
+| Plugin scaffolding            | ❌                          | ✅                    | **Added**        |
+| Config validation             | ❌                          | ✅                    | **Added**        |
+| **CONFIGURATION**             |                             |                       |                  |
+| Config file                   | ❌                          | ✅ JSON               | **Added**        |
+| Plugin enable/disable         | ❌                          | ✅                    | **Added**        |
+| Plugin priorities             | ❌                          | ✅                    | **Added**        |
+| Authentication                | ❌                          | ✅ Multiple methods   | **Added**        |
+| SSL support                   | ❌                          | ✅                    | **Added**        |
+| **ERROR HANDLING**            |                             |                       |                  |
+| Retry logic                   | ❌                          | ✅ Exponential        | **Added**        |
+| Graceful failures             | ✅                          | ✅                    | Enhanced         |
+| Exit codes                    | ✅ C01-C06                  | ✅ Categorized        | Enhanced         |
+| Conflict detection            | Basic                       | ✅ 409 + rev          | Enhanced         |
+| Logging levels                | ❌                          | ✅ 5 levels           | **Added**        |
+| **DOCUMENTATION**             |                             |                       |                  |
+| README                        | ✅                          | ✅                    | Enhanced         |
+| Installation guide            | ❌                          | ✅                    | **Added**        |
+| Usage guide                   | In README                   | ✅ Separate           | **Added**        |
+| Architecture docs             | ❌                          | ✅                    | **Added**        |
+| Plugin development            | ❌                          | ✅                    | **Added**        |
+| Configuration guide           | ❌                          | ✅                    | **Added**        |
+| Troubleshooting               | ❌                          | ✅                    | **Added**        |
+| Contributing guide            | ❌                          | ✅                    | **Added**        |
+| **TECHNOLOGY**                |                             |                       |                  |
+| Primary language              | Node.js                     | Python                | Changed          |
+| Dependencies                  | Node.js only                | Python + Node.js      | Expanded         |
+| Package manager               | npm                         | pip + npm             | Hybrid           |
+| **SCALE**                     |                             |                       |                  |
+| Lines of code                 | ~500                        | 9,334                 | 15x growth       |
+| Files                         | 3 scripts                   | 31 modules            | 10x growth       |
+| Documentation lines           | ~200                        | 8,361                 | 40x growth       |
 
 **Legend:**
+
 - ✅ Feature present
 - ❌ Feature not present
 - **Added** = New feature in vscode-node-red-tools
 - **Enhanced** = Improved version of original feature
 
 **Summary:**
+
 - **100% Core Functionality Preserved**
 - **40+ New Features Added**
 - **35+ Major Enhancements**
@@ -171,12 +173,14 @@
 **Key Innovation:** Solves the problem that "when building complex dashboards in node-red having the ability to edit in VS Code speeds up development."
 
 **Original Architecture:**
+
 - 3 JavaScript files (~500 lines total)
 - Simple, focused design
 - Basic extraction and synchronization
 - File-based monitoring
 
 **Supported Features:**
+
 - Function node extraction
 - Dashboard 2 Vue template extraction
 - Documentation (.info.md) extraction
@@ -188,6 +192,7 @@
 **Vision:** Transform the original concept into a comprehensive, production-ready development toolchain while preserving the core workflow and adding enterprise features.
 
 **Key Achievements:**
+
 - 15x codebase growth with maintained quality
 - Plugin-based architecture for extensibility
 - Comprehensive node type support
@@ -205,12 +210,14 @@
 #### functions-templates-manager
 
 **What it extracts:**
+
 - Function node code → `.js` files
 - Initialize/Finalize code → `.initialize.js`, `.finalize.js`
 - Vue templates (Dashboard 2) → `.vue` files
 - Node documentation → `.info.md` files
 
 **How it works:**
+
 - Scans flows.json for function and template nodes
 - Extracts code/templates to organized directories
 - Uses node labels for folder names
@@ -222,19 +229,24 @@
 **What it extracts (comprehensive):**
 
 1. **Function Nodes** → `.wrapped.js` files
+
    - Testable with `export default` pattern
    - All 7 Node-RED parameters explicit
 
 2. **Initialize/Finalize Code** → `.initialize.js`, `.finalize.js`
+
    - Separate files for setup/teardown code
 
 3. **Global Functions** → `.function.js` files
+
    - Globally accessible function definitions
 
 4. **Action Definitions** → `.def.js` + `.execute.js` files
+
    - Node-RED action definitions and implementations
 
 5. **Templates** - Multiple formats:
+
    - Vue (Dashboard 2) → `.vue` files
    - Angular (Dashboard 1) → `.ui-template.html` files
    - Core template node → `.template.{ext}` (12+ formats)
@@ -245,6 +257,7 @@
    - Node information and descriptions
 
 **How it works:**
+
 - **3-stage plugin architecture:**
   1. **Pre-explode:** Normalize IDs, modify flows
   2. **Explode:** Extract nodes via specialized plugins
@@ -254,6 +267,7 @@
 - Parallel processing for large flows (20+ nodes)
 
 **Key Improvements:**
+
 1. **7+ node/code types** vs. 2 in original
 2. **12+ template formats** vs. 1 in original
 3. **Testable exports** with all parameters
@@ -267,6 +281,7 @@
 #### functions-templates-manager
 
 **Default Extraction:**
+
 ```javascript
 // Without --wrap flag (default)
 msg.payload = msg.payload * 2;
@@ -274,6 +289,7 @@ return msg;
 ```
 
 **With --wrap flag:**
+
 ```javascript
 export function myFunction() {
   msg.payload = msg.payload * 2;
@@ -282,12 +298,14 @@ export function myFunction() {
 ```
 
 **Testing approach:**
+
 ```javascript
 import { myFunction } from "./src/tab_main/func_process.js";
 // But: no parameters, can't pass msg, node, context, etc.
 ```
 
 **Limitations:**
+
 - No explicit parameters
 - Cannot mock Node-RED objects
 - Named export (non-standard for default export)
@@ -295,6 +313,7 @@ import { myFunction } from "./src/tab_main/func_process.js";
 #### vscode-node-red-tools
 
 **Default Extraction (always wrapped):**
+
 ```javascript
 export default function func_process_data(
   msg,
@@ -311,33 +330,45 @@ export default function func_process_data(
 ```
 
 **Testing approach:**
+
 ```javascript
-import func_process_data from './src/tab_main_flow/func_process_data.wrapped.js';
+import func_process_data from "./src/tab_main_flow/func_process_data.wrapped.js";
 
 // Full control over all parameters
 const mockMsg = { payload: 5 };
-const mockNode = { id: 'test', name: 'Test Node' };
+const mockNode = { id: "test", name: "Test Node" };
 const mockContext = { get: jest.fn(), set: jest.fn() };
 const mockFlow = { get: jest.fn(), set: jest.fn() };
 const mockGlobal = { get: jest.fn(), set: jest.fn() };
 const mockEnv = { get: jest.fn() };
-const mockRED = { util: { /* ... */ } };
+const mockRED = {
+  util: {
+    /* ... */
+  },
+};
 
 const result = func_process_data(
-  mockMsg, mockNode, mockContext,
-  mockFlow, mockGlobal, mockEnv, mockRED
+  mockMsg,
+  mockNode,
+  mockContext,
+  mockFlow,
+  mockGlobal,
+  mockEnv,
+  mockRED
 );
 
 expect(result.payload).toBe(10);
 ```
 
 **Key Improvements:**
+
 1. **All 7 Node-RED parameters explicit** for complete mocking
 2. **Export default pattern** (ES6 standard)
 3. **Testable by default** (no flag needed)
 4. **Mock-friendly** for all dependencies
 
 **Multiple Function Types:**
+
 - Regular functions (`.wrapped.js`)
 - Global functions (`.function.js`)
 - Actions (`.def.js` + `.execute.js`)
@@ -350,11 +381,13 @@ expect(result.payload).toBe(10);
 #### functions-templates-manager
 
 **Supported:**
+
 - Dashboard 2 (Vue) templates only
 - Detects Vue by presence of `<template>` or `<script>` tags
 - Extracts to `.vue` files
 
 **Example:**
+
 ```vue
 <!-- Extracted to .vue file -->
 <template>
@@ -375,6 +408,7 @@ export default {
 **Comprehensive Support:**
 
 **1. Dashboard 2 (Vue)** → `.vue` files
+
 ```vue
 <template>
   <div>{{ msg.payload }}</div>
@@ -390,14 +424,14 @@ export default {
 ```
 
 **2. Dashboard 1 (Angular/HTML)** → `.ui-template.html` files
+
 ```html
 <div ng-bind-html="msg.payload"></div>
-<md-button ng-click="send({payload: 'test'})">
-  Click Me
-</md-button>
+<md-button ng-click="send({payload: 'test'})"> Click Me </md-button>
 ```
 
 **3. Core Template Node** → `.template.{ext}` files
+
 - **Mustache** (`.template.mustache`) - Templating engine
 - **HTML** (`.template.html`) - Web markup
 - **JSON** (`.template.json`) - Data interchange
@@ -412,11 +446,13 @@ export default {
 - **Plain Text** (`.template.txt`) - Generic text
 
 **Detection Method:**
+
 - Uses node type (`ui_template`, `template`, `ui_button`)
 - Reads `format` field from node configuration
 - Plugin-based extraction for each type
 
 **Key Improvements:**
+
 1. **3 dashboard versions** vs. 1 in original
 2. **12+ template formats** with proper file extensions
 3. **Format-aware** for correct syntax highlighting
@@ -429,6 +465,7 @@ export default {
 #### functions-templates-manager
 
 **Architecture:**
+
 ```
 ┌─────────────────────────────────────────┐
 │  functions-templates-watch.js           │
@@ -450,16 +487,19 @@ export default {
 ```
 
 **Mechanism:**
+
 - Watches files with chokidar (200ms stability threshold)
 - Queue system with flags (rerunExtract, rerunCollect)
 - Delays: 1000ms after extract, 250ms after collect
 - Direct file system watching for flows.json
 
 **Conflict Prevention:**
+
 - Boolean flags prevent simultaneous operations
 - Simple timing-based conflict detection
 
 **Limitations:**
+
 - No HTTP polling (file-based only)
 - No ETag support
 - Basic conflict detection
@@ -469,6 +509,7 @@ export default {
 #### vscode-node-red-tools
 
 **Architecture:**
+
 ```
 ┌────────────────────────────────────────────────────────┐
 │           Watch Mode Orchestrator                      │
@@ -498,6 +539,7 @@ export default {
 ```
 
 **Mechanism:**
+
 - **Server polling:** HTTP with ETag (304 Not Modified caching)
 - **File watching:** watchdog library with configurable debouncing
 - **Optimistic locking:** `rev` parameter for conflict detection (409 Conflict)
@@ -506,6 +548,7 @@ export default {
 - **Interactive commands:** Manual control (download, upload, check, status)
 
 **Conflict Prevention:**
+
 - HTTP 409 Conflict detection
 - `pause_watching` flag prevents race conditions
 - Optimistic locking with revision tracking
@@ -524,6 +567,7 @@ export default {
 | `quit` | Exit watch mode |
 
 **Key Improvements:**
+
 1. **Production-ready conflict detection** - HTTP 409 + rev parameter
 2. **Efficient caching** - ETag prevents unnecessary downloads
 3. **Stability checking** - Auto-converges after plugin changes
@@ -540,20 +584,24 @@ export default {
 #### functions-templates-manager
 
 **Approach:**
+
 - Preserves Node-RED's random IDs (e.g., `a1b2c3d4.e5f6g7`)
 - Folder names based on sanitized node labels
 - No ID modification in flows.json
 
 **Pros:**
+
 - ✅ Simple, no ID conflicts
 - ✅ Preserves Node-RED structure exactly
 
 **Cons:**
+
 - ❌ Random IDs in version control diffs
 - ❌ Hard to understand what changed
 - ❌ No semantic meaning
 
 **Example:**
+
 ```json
 {
   "id": "a1b2c3d4.e5f6g7",
@@ -563,6 +611,7 @@ export default {
 ```
 
 **File structure:**
+
 ```
 src/tab_main_flow/a1b2c3d4_e5f6g7.js
 ```
@@ -570,6 +619,7 @@ src/tab_main_flow/a1b2c3d4_e5f6g7.js
 #### vscode-node-red-tools
 
 **Approach:**
+
 - **Normalizes IDs to meaningful names** via plugin (optional)
 - Updates all references (wires, links, env scopes, subflow refs)
 - Collision detection with numeric suffixes
@@ -578,6 +628,7 @@ src/tab_main_flow/a1b2c3d4_e5f6g7.js
 **ID Normalization Examples:**
 
 **Before (random ID):**
+
 ```json
 {
   "id": "a1b2c3d4.e5f6g7",
@@ -587,6 +638,7 @@ src/tab_main_flow/a1b2c3d4_e5f6g7.js
 ```
 
 **After (normalized):**
+
 ```json
 {
   "id": "func_process_data",
@@ -596,20 +648,23 @@ src/tab_main_flow/a1b2c3d4_e5f6g7.js
 ```
 
 **Wires updated automatically:**
+
 ```json
 {
   "id": "inject_test",
-  "wires": [["func_process_data"]]  // Updated!
+  "wires": [["func_process_data"]] // Updated!
 }
 ```
 
 **File structure:**
+
 ```
 src/tab_main_flow/func_process_data.wrapped.js
 src/tab_main_flow/func_process_data.md
 ```
 
 **Pros:**
+
 - ✅ Meaningful IDs in version control
 - ✅ Readable diffs (`func_process_data` vs `a1b2c3d4`)
 - ✅ Self-documenting flows
@@ -617,9 +672,11 @@ src/tab_main_flow/func_process_data.md
 - ✅ All references updated automatically
 
 **Cons:**
+
 - ⚠️ Changes IDs (one-time migration)
 
 **Key Improvements:**
+
 1. **Semantic IDs** - Understand changes at a glance
 2. **Reference tracking** - All connections updated automatically
 3. **Collision handling** - Numeric suffixes for duplicates (e.g., `func_process_2`)
@@ -633,11 +690,13 @@ src/tab_main_flow/func_process_data.md
 #### functions-templates-manager
 
 **Integrity measures:**
+
 - Manifest file tracks extracted files
 - Detects orphaned files (in manifest but not in flows)
 - Whitespace comparison for change detection
 
 **Limitations:**
+
 - No round-trip verification
 - No validation that rebuild matches explode
 - No backup support
@@ -648,15 +707,18 @@ src/tab_main_flow/func_process_data.md
 **Comprehensive Integrity System:**
 
 **1. Round-Trip Verification (`verify` command):**
+
 ```bash
 python3 vscode-node-red-tools.py verify flows/flows.json
 ```
+
 - Explodes flows to temp directory
 - Rebuilds from temp directory
 - Compares original vs rebuilt (semantically)
 - Reports any differences
 
 **2. Per-Node Verification (during explode):**
+
 ```python
 # After extracting each node, rebuild it
 rebuilt_node = rebuild_node(node_dir, node_id)
@@ -665,24 +727,29 @@ if rebuilt_node != original_node:
 ```
 
 **3. Backup Support:**
+
 ```bash
 python3 vscode-node-red-tools.py explode --backup
 ```
+
 - Creates timestamped backup: `flows.json.backup.20251113_143022`
 - Preserves history
 - Easy rollback
 
 **4. Orphan Detection:**
+
 - Files in src/ not in skeleton → moved to `.orphaned/`
 - Files in skeleton not in src/ → reported
 - Full path preservation in orphan directory
 
 **5. New File Detection:**
+
 - Detects manually added node files
 - Auto-adds to flows during rebuild
 - No need to edit JSON manually
 
 **6. Sync Checking (`check` command):**
+
 ```bash
 # In watch mode
 > check
@@ -691,6 +758,7 @@ python3 vscode-node-red-tools.py explode --backup
 ```
 
 **Key Improvements:**
+
 1. **Multiple validation layers** - Round-trip, per-node, sync checking
 2. **Automatic verification** - Built into workflow
 3. **Safe operations** - Backup support prevents data loss
@@ -703,6 +771,7 @@ python3 vscode-node-red-tools.py explode --backup
 ### Original Architecture (functions-templates-manager)
 
 **Structure:**
+
 ```
 functions-templates-manager/
 ├── functions-templates-watch.js      (Main - ~150 lines)
@@ -713,18 +782,21 @@ functions-templates-manager/
 ```
 
 **Processing:**
+
 - Monolithic scripts with hardcoded logic
 - Sequential processing
 - No plugin system
 - Simple, focused design
 
 **Strengths:**
+
 - Easy to understand
 - Quick to set up
 - Works well for basic use cases
 - Minimal dependencies
 
 **Limitations:**
+
 - Not extensible (hardcoded logic)
 - Can't add custom node types without forking
 - No customization options
@@ -733,6 +805,7 @@ functions-templates-manager/
 ### New Architecture (vscode-node-red-tools)
 
 **Structure:**
+
 ```
 vscode-node-red-tools/
 ├── vscode-node-red-tools.py          # CLI entry (436 lines)
@@ -772,6 +845,7 @@ vscode-node-red-tools/
 ```
 
 **Processing Architecture:**
+
 ```
 ┌────────────────────────────────────────────────────────┐
 │                    EXPLODE STAGES                      │
@@ -807,22 +881,26 @@ vscode-node-red-tools/
 **Key Architecture Principles:**
 
 1. **Separation of Concerns**
+
    - Core tool: Pure orchestration
    - Plugins: All transformations
    - Clear boundaries between layers
 
 2. **Extensibility**
+
    - 5 plugin stages for flexibility
    - Easy to add new node types
    - No core modification needed
    - Plugin priority system (100-500)
 
 3. **Idempotency**
+
    - Exploding same flows → identical output
    - Rebuilding same src → identical flows
    - Predictable, repeatable operations
 
 4. **Performance**
+
    - Parallel processing (20+ nodes threshold)
    - Configurable worker count
    - ETag caching in watch mode
@@ -836,14 +914,14 @@ vscode-node-red-tools/
 
 **Benefits:**
 
-| Benefit | Description |
-|---------|-------------|
-| **Extensibility** | Add node types without modifying core |
-| **Maintainability** | Clear module boundaries, easy to debug |
-| **Testability** | Each module testable in isolation |
-| **Performance** | Parallel processing, caching, optimization |
-| **Reliability** | Separation prevents cascading failures |
-| **Customization** | Configure plugins without code changes |
+| Benefit             | Description                                |
+| ------------------- | ------------------------------------------ |
+| **Extensibility**   | Add node types without modifying core      |
+| **Maintainability** | Clear module boundaries, easy to debug     |
+| **Testability**     | Each module testable in isolation          |
+| **Performance**     | Parallel processing, caching, optimization |
+| **Reliability**     | Separation prevents cascading failures     |
+| **Customization**   | Configure plugins without code changes     |
 
 ---
 
@@ -852,6 +930,7 @@ vscode-node-red-tools/
 ### 1. Plugin System
 
 **What it enables:**
+
 - Custom node type support without forking
 - Custom processing pipelines
 - Format integration (prettier, eslint, etc.)
@@ -860,15 +939,16 @@ vscode-node-red-tools/
 
 **Plugin Types:**
 
-| Type | When Runs | Purpose | Example |
-|------|-----------|---------|---------|
-| `pre-explode` | Before exploding | Modify flows JSON | normalize-ids |
-| `explode` | During explode | Extract node data | action, func, template |
-| `post-explode` | After exploding | Format files | prettier-explode |
-| `pre-rebuild` | Before rebuilding | Process files | prettier-pre-rebuild |
-| `post-rebuild` | After rebuilding | Format JSON | prettier-post-rebuild |
+| Type           | When Runs         | Purpose           | Example                |
+| -------------- | ----------------- | ----------------- | ---------------------- |
+| `pre-explode`  | Before exploding  | Modify flows JSON | normalize-ids          |
+| `explode`      | During explode    | Extract node data | action, func, template |
+| `post-explode` | After exploding   | Format files      | prettier-explode       |
+| `pre-rebuild`  | Before rebuilding | Process files     | prettier-pre-rebuild   |
+| `post-rebuild` | After rebuilding  | Format JSON       | prettier-post-rebuild  |
 
 **Creating a Custom Plugin:**
+
 ```python
 # plugins/150_custom_node_plugin.py
 
@@ -910,6 +990,7 @@ class CustomNodePlugin:
 ```
 
 **Usage:**
+
 ```bash
 # List all plugins
 python3 vscode-node-red-tools.py list-plugins
@@ -922,6 +1003,7 @@ python3 vscode-node-red-tools.py --disable all --enable normalize-ids,func explo
 ```
 
 **Benefits:**
+
 - ✅ No core modification needed
 - ✅ Easy to share and reuse
 - ✅ Hot reload (no restart)
@@ -935,6 +1017,7 @@ python3 vscode-node-red-tools.py --disable all --enable normalize-ids,func explo
 **New Commands:**
 
 #### `verify` - Round-Trip Verification
+
 ```bash
 python3 vscode-node-red-tools.py verify flows/flows.json
 # Tests: flows.json → explode → rebuild → flows.json'
@@ -942,6 +1025,7 @@ python3 vscode-node-red-tools.py verify flows/flows.json
 ```
 
 #### `diff` - Directory Comparison
+
 ```bash
 # Console output
 python3 vscode-node-red-tools.py diff src_old/ src_new/
@@ -951,6 +1035,7 @@ python3 vscode-node-red-tools.py diff src_old/ src_new/ --gui
 ```
 
 #### `stats` - Flow Statistics
+
 ```bash
 python3 vscode-node-red-tools.py stats
 # Shows:
@@ -961,6 +1046,7 @@ python3 vscode-node-red-tools.py stats
 ```
 
 #### `benchmark` - Performance Testing
+
 ```bash
 python3 vscode-node-red-tools.py benchmark flows/flows.json
 # Measures:
@@ -971,6 +1057,7 @@ python3 vscode-node-red-tools.py benchmark flows/flows.json
 ```
 
 #### `list-plugins` - Plugin Information
+
 ```bash
 python3 vscode-node-red-tools.py list-plugins
 # Shows:
@@ -981,12 +1068,14 @@ python3 vscode-node-red-tools.py list-plugins
 ```
 
 #### `new-plugin` - Plugin Scaffolding
+
 ```bash
 python3 vscode-node-red-tools.py new-plugin my-plugin explode --priority 250
 # Creates: plugins/250_my_plugin.py with template
 ```
 
 #### `validate-config` - Configuration Validation
+
 ```bash
 python3 vscode-node-red-tools.py validate-config
 # Checks:
@@ -1013,6 +1102,7 @@ python3 vscode-node-red-tools.py validate-config
 | `quit` | Exit watch mode |
 
 **Optional TUI Dashboard:**
+
 ```
 ┌────────────────────────────────────────────────────────────┐
 │                    Watch Mode Dashboard                    │
@@ -1037,11 +1127,13 @@ python3 vscode-node-red-tools.py validate-config
 ```
 
 **Start dashboard:**
+
 ```bash
 python3 vscode-node-red-tools.py watch --dashboard
 ```
 
 **Statistics Tracking:**
+
 - Upload/download counts and timing
 - Conflict count
 - Error count and types
@@ -1056,11 +1148,13 @@ python3 vscode-node-red-tools.py watch --dashboard
 ### Original Documentation (functions-templates-manager)
 
 **Structure:**
+
 - Single comprehensive README.md
 - ~200 lines total
 - Embedded examples
 
 **Coverage:**
+
 - ✅ Basic installation
 - ✅ Command-line flags
 - ✅ Example workflow
@@ -1075,44 +1169,45 @@ python3 vscode-node-red-tools.py watch --dashboard
 
 **Structure (11 files, 8,361 lines):**
 
-| File | Lines | Content | Quality |
-|------|-------|---------|---------|
-| README.md | 240+ | Overview, quick start, features | ⭐⭐⭐⭐⭐ |
-| INSTALLATION.md | 200+ | Platform-specific setup | ⭐⭐⭐⭐⭐ |
-| USAGE.md | 400+ | All commands, examples | ⭐⭐⭐⭐⭐ |
-| ARCHITECTURE.md | 568 | Design, plugin system | ⭐⭐⭐⭐⭐ |
-| CONFIGURATION.md | 400+ | Config options, examples | ⭐⭐⭐⭐⭐ |
-| TROUBLESHOOTING.md | 400+ | Common issues, solutions | ⭐⭐⭐⭐⭐ |
-| PLUGIN_DEVELOPMENT.md | 400+ | Plugin creation guide | ⭐⭐⭐⭐⭐ |
-| CONTRIBUTING.md | 126 | Contribution guidelines | ⭐⭐⭐⭐ |
-| CHANGELOG.md | 300+ | Version history | ⭐⭐⭐⭐⭐ |
-| CODE_REVIEW_FINDINGS.md | 1,000+ | Production readiness | ⭐⭐⭐⭐⭐ |
-| COMPARISON.md | 2,000+ | vs. original project | ⭐⭐⭐⭐⭐ |
+| File                    | Lines  | Content                         | Quality    |
+| ----------------------- | ------ | ------------------------------- | ---------- |
+| README.md               | 240+   | Overview, quick start, features | ⭐⭐⭐⭐⭐ |
+| INSTALLATION.md         | 200+   | Platform-specific setup         | ⭐⭐⭐⭐⭐ |
+| USAGE.md                | 400+   | All commands, examples          | ⭐⭐⭐⭐⭐ |
+| ARCHITECTURE.md         | 568    | Design, plugin system           | ⭐⭐⭐⭐⭐ |
+| CONFIGURATION.md        | 400+   | Config options, examples        | ⭐⭐⭐⭐⭐ |
+| TROUBLESHOOTING.md      | 400+   | Common issues, solutions        | ⭐⭐⭐⭐⭐ |
+| PLUGIN_DEVELOPMENT.md   | 400+   | Plugin creation guide           | ⭐⭐⭐⭐⭐ |
+| CONTRIBUTING.md         | 126    | Contribution guidelines         | ⭐⭐⭐⭐   |
+| CHANGELOG.md            | 300+   | Version history                 | ⭐⭐⭐⭐⭐ |
+| CODE_REVIEW_FINDINGS.md | 1,000+ | Production readiness            | ⭐⭐⭐⭐⭐ |
+| COMPARISON.md           | 2,000+ | vs. original project            | ⭐⭐⭐⭐⭐ |
 
 **Coverage Comparison:**
 
-| Topic | Original | New | Enhancement |
-|-------|----------|-----|-------------|
-| Installation | Basic | Comprehensive | Platform-specific, troubleshooting |
-| Usage | README only | Separate guide | All 12 commands with examples |
-| Architecture | ❌ None | ✅ Full doc | Plugins, stages, data flow |
-| Configuration | ❌ None | ✅ Full doc | All options, validation |
-| Plugin Dev | ❌ None | ✅ Full guide | Interface, examples, best practices |
-| Troubleshooting | ❌ None | ✅ Full guide | Common issues, solutions |
-| Contributing | ❌ None | ✅ Full guide | Code style, testing, PR process |
-| Security | ❌ None | ✅ Full section | Credentials, SSL, validation |
+| Topic           | Original    | New             | Enhancement                         |
+| --------------- | ----------- | --------------- | ----------------------------------- |
+| Installation    | Basic       | Comprehensive   | Platform-specific, troubleshooting  |
+| Usage           | README only | Separate guide  | All 12 commands with examples       |
+| Architecture    | ❌ None     | ✅ Full doc     | Plugins, stages, data flow          |
+| Configuration   | ❌ None     | ✅ Full doc     | All options, validation             |
+| Plugin Dev      | ❌ None     | ✅ Full guide   | Interface, examples, best practices |
+| Troubleshooting | ❌ None     | ✅ Full guide   | Common issues, solutions            |
+| Contributing    | ❌ None     | ✅ Full guide   | Code style, testing, PR process     |
+| Security        | ❌ None     | ✅ Full section | Credentials, SSL, validation        |
 
 **Documentation Metrics:**
 
-| Metric | Original | New | Growth |
-|--------|----------|-----|--------|
-| Total pages | 1 | 11 | **11x** |
-| Word count | ~1,000 | ~15,000 | **15x** |
-| Code examples | ~5 | 100+ | **20x** |
-| Diagrams | 0 | 10+ | **New** |
+| Metric            | Original  | New                      | Growth       |
+| ----------------- | --------- | ------------------------ | ------------ |
+| Total pages       | 1         | 11                       | **11x**      |
+| Word count        | ~1,000    | ~15,000                  | **15x**      |
+| Code examples     | ~5        | 100+                     | **20x**      |
+| Diagrams          | 0         | 10+                      | **New**      |
 | Platform coverage | Linux/Mac | Linux/Mac/Windows/Docker | **Expanded** |
 
 **Key Improvements:**
+
 1. **Comprehensive coverage** - All features documented
 2. **Developer-focused** - Plugin guide, API docs, examples
 3. **Visual aids** - Architecture diagrams, flowcharts
@@ -1126,6 +1221,7 @@ python3 vscode-node-red-tools.py watch --dashboard
 ### Original Security (functions-templates-manager)
 
 **Security posture:**
+
 - No authentication to Node-RED
 - Local file operations only
 - No SSL/TLS support
@@ -1135,6 +1231,7 @@ python3 vscode-node-red-tools.py watch --dashboard
 ### New Security (vscode-node-red-tools)
 
 **1. Authentication Support:**
+
 ```bash
 # Multiple methods
 python3 vscode-node-red-tools.py watch \
@@ -1149,6 +1246,7 @@ python3 vscode-node-red-tools.py watch \
 ```
 
 **Credential Sources (in priority order):**
+
 1. Token file: `~/.nodered-token` (recommended)
 2. Environment variables: `NODERED_TOKEN`, `NODERED_PASSWORD`
 3. Config file (if .gitignored)
@@ -1156,6 +1254,7 @@ python3 vscode-node-red-tools.py watch \
 5. CLI arguments (with security warning)
 
 **2. SSL/TLS Support:**
+
 ```bash
 # Default: verify SSL certificates
 python3 vscode-node-red-tools.py watch --server https://...
@@ -1165,6 +1264,7 @@ python3 vscode-node-red-tools.py watch --server https://... --no-verify-ssl
 ```
 
 **3. Path Validation:**
+
 ```python
 # utils.py - validate_path_for_subprocess()
 - Prevents path traversal attacks
@@ -1175,6 +1275,7 @@ python3 vscode-node-red-tools.py watch --server https://... --no-verify-ssl
 ```
 
 **4. Network Security:**
+
 - HTTPS by default
 - Certificate verification
 - Timeout protection (30s)
@@ -1183,18 +1284,21 @@ python3 vscode-node-red-tools.py watch --server https://... --no-verify-ssl
 - Optimistic locking
 
 **5. Error Handling:**
+
 - Graceful failures
 - No sensitive data in error messages
 - Secure logging (no passwords logged)
 - Sanitized output
 
 **6. Subprocess Security:**
+
 - No `shell=True` usage
 - Validated paths only
 - Timeout protection
 - Capture output securely
 
 **Security Recommendations:**
+
 1. Use `~/.nodered-token` for credentials
 2. Restrict file permissions: `chmod 600 ~/.nodered-token`
 3. Keep `verifySSL: true` in production
@@ -1211,6 +1315,7 @@ python3 vscode-node-red-tools.py watch --server https://... --no-verify-ssl
 **Maturity:** Development/Personal Use
 
 **Features:**
+
 - ✅ Basic error handling
 - ✅ Works reliably for simple flows
 - ❌ No formal testing
@@ -1218,6 +1323,7 @@ python3 vscode-node-red-tools.py watch --server https://... --no-verify-ssl
 - ❌ Limited documentation
 
 **Suitable for:**
+
 - Personal projects
 - Small teams
 - Development environments
@@ -1230,6 +1336,7 @@ python3 vscode-node-red-tools.py watch --server https://... --no-verify-ssl
 **Production Features:**
 
 **1. Reliability:**
+
 - ✅ Round-trip verification
 - ✅ Per-node validation
 - ✅ Optimistic locking (409 conflict detection)
@@ -1238,6 +1345,7 @@ python3 vscode-node-red-tools.py watch --server https://... --no-verify-ssl
 - ✅ Backup support
 
 **2. Error Handling:**
+
 - ✅ Comprehensive try-catch blocks
 - ✅ Categorized exit codes
 - ✅ Clear error messages
@@ -1246,6 +1354,7 @@ python3 vscode-node-red-tools.py watch --server https://... --no-verify-ssl
 - ✅ Safe defaults
 
 **3. Performance:**
+
 - ✅ Parallel processing (20+ nodes threshold)
 - ✅ ETag caching (304 responses)
 - ✅ Debouncing (reduces operations)
@@ -1253,6 +1362,7 @@ python3 vscode-node-red-tools.py watch --server https://... --no-verify-ssl
 - ✅ Configurable thresholds
 
 **4. Monitoring:**
+
 - ✅ Statistics tracking
 - ✅ Optional TUI dashboard
 - ✅ Progress reporting
@@ -1260,6 +1370,7 @@ python3 vscode-node-red-tools.py watch --server https://... --no-verify-ssl
 - ✅ Operation metrics
 
 **5. Operations:**
+
 - ✅ Configuration management
 - ✅ Environment-based config
 - ✅ Graceful shutdown
@@ -1267,12 +1378,14 @@ python3 vscode-node-red-tools.py watch --server https://... --no-verify-ssl
 - ✅ Complete documentation
 
 **6. Testing:**
+
 - ✅ Round-trip verification command
 - ✅ Per-node verification
 - ✅ Check command (sync status)
 - ✅ Benchmark suite
 
 **Deployment:**
+
 - ✅ Multiple deployment methods (Python, Docker, venv)
 - ✅ Platform support (Linux, macOS, Windows, Docker)
 - ✅ Version management (Semantic Versioning)
@@ -1289,11 +1402,13 @@ python3 vscode-node-red-tools.py watch --server https://... --no-verify-ssl
 #### Installation
 
 **Old:**
+
 ```bash
 npm install
 ```
 
 **New:**
+
 ```bash
 # Install Python dependencies
 pip install -r requirements.txt
@@ -1305,16 +1420,19 @@ npm install -g prettier
 #### Initial Extraction
 
 **Old:**
+
 ```bash
 functions-templates-extract --flowsFile ~/.node-red/flows.json
 ```
 
 **New:**
+
 ```bash
 python3 vscode-node-red-tools.py explode ~/.node-red/flows.json
 ```
 
 **Changes:**
+
 - File naming: `.info.md` → `.md`
 - Directory structure: ID-based by default
 - IDs: Optional normalization to meaningful names
@@ -1322,6 +1440,7 @@ python3 vscode-node-red-tools.py explode ~/.node-red/flows.json
 #### Watch Mode
 
 **Old:**
+
 ```bash
 functions-templates-watch \
   --flowsFile ~/.node-red/flows.json \
@@ -1329,6 +1448,7 @@ functions-templates-watch \
 ```
 
 **New:**
+
 ```bash
 python3 vscode-node-red-tools.py watch \
   --server http://localhost:1880 \
@@ -1337,6 +1457,7 @@ python3 vscode-node-red-tools.py watch \
 ```
 
 **Changes:**
+
 - Authentication now required
 - More options available
 - Interactive commands during watch
@@ -1344,11 +1465,13 @@ python3 vscode-node-red-tools.py watch \
 #### Manual Rebuild
 
 **Old:**
+
 ```bash
 functions-templates-collect
 ```
 
 **New:**
+
 ```bash
 python3 vscode-node-red-tools.py rebuild ~/.node-red/flows.json
 ```
@@ -1389,6 +1512,7 @@ python3 vscode-node-red-tools.py watch \
 ### File Structure Differences
 
 **Old Structure:**
+
 ```
 src/
 ├── _manifest.json
@@ -1404,6 +1528,7 @@ src/
 ```
 
 **New Structure:**
+
 ```
 src/
 ├── .flow-skeleton.json
@@ -1422,19 +1547,20 @@ src/
 
 **Key Differences:**
 
-| Aspect | Old | New |
-|--------|-----|-----|
-| Manifest | `_manifest.json` | `.flow-skeleton.json` |
-| Orphans | `default/` folder | `.orphaned/` folder |
-| Naming | Label-based | ID-based (or normalized) |
-| Info files | `.info.md` | `.md` |
-| Functions | `.js` | `.wrapped.js` |
-| Global funcs | `.js` | `.function.js` |
-| Actions | Not supported | `.def.js` + `.execute.js` |
+| Aspect       | Old               | New                       |
+| ------------ | ----------------- | ------------------------- |
+| Manifest     | `_manifest.json`  | `.flow-skeleton.json`     |
+| Orphans      | `default/` folder | `.orphaned/` folder       |
+| Naming       | Label-based       | ID-based (or normalized)  |
+| Info files   | `.info.md`        | `.md`                     |
+| Functions    | `.js`             | `.wrapped.js`             |
+| Global funcs | `.js`             | `.function.js`            |
+| Actions      | Not supported     | `.def.js` + `.execute.js` |
 
 ### Configuration Migration
 
 **Old (command-line flags):**
+
 ```bash
 functions-templates-watch \
   --flowsFile ~/.node-red/flows.json \
@@ -1443,6 +1569,7 @@ functions-templates-watch \
 ```
 
 **New (configuration file):**
+
 ```json
 {
   "flows_file": "~/.node-red/flows.json",
@@ -1480,6 +1607,7 @@ functions-templates-watch \
 **vscode-node-red-tools successfully builds upon functions-templates-manager** while adding significant enterprise-grade capabilities:
 
 **✅ All Core Functionality Preserved:**
+
 - Function extraction and wrapping
 - Template extraction (Vue, HTML, etc.)
 - Documentation extraction
@@ -1487,6 +1615,7 @@ functions-templates-watch \
 - VS Code editing with IDE support
 
 **✅ Major Enhancements Added:**
+
 - Plugin architecture (11 plugins, 5 stages)
 - ID normalization (readable diffs)
 - Comprehensive node support (7+ types)
@@ -1498,19 +1627,20 @@ functions-templates-watch \
 
 **Scale Comparison:**
 
-| Metric | Original | New | Growth |
-|--------|----------|-----|--------|
-| Lines of code | ~500 | 9,334 | **15x** |
-| Files | 3 | 31 | **10x** |
-| Documentation | ~200 lines | 8,361 lines | **40x** |
-| Node types | 2 | 7+ | **3.5x** |
-| Commands | 3 | 12 | **4x** |
-| Features | 7 | 50+ | **7x** |
+| Metric        | Original   | New         | Growth   |
+| ------------- | ---------- | ----------- | -------- |
+| Lines of code | ~500       | 9,334       | **15x**  |
+| Files         | 3          | 31          | **10x**  |
+| Documentation | ~200 lines | 8,361 lines | **40x**  |
+| Node types    | 2          | 7+          | **3.5x** |
+| Commands      | 3          | 12          | **4x**   |
+| Features      | 7          | 50+         | **7x**   |
 
 ### Recommendation
 
 **For New Projects:**
 ✅ **Use vscode-node-red-tools**
+
 - More features and capabilities
 - Better documentation
 - Production-ready
@@ -1519,12 +1649,14 @@ functions-templates-watch \
 
 **For Existing Projects:**
 ✅ **Consider migrating to vscode-node-red-tools**
+
 - Straightforward migration process
 - Better long-term support
 - More capabilities
 - Similar core workflow
 
 **If You Need:**
+
 - Simple, minimal tool → functions-templates-manager still works
 - Production deployment → vscode-node-red-tools
 - Plugin extensibility → vscode-node-red-tools

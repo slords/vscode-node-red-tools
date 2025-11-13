@@ -8,6 +8,7 @@ from pathlib import Path
 import json
 from .logging import log_error, log_info, log_warning
 from .exit_codes import SERVER_CONNECTION_ERROR, CONFIG_ERROR
+
 # Legacy credential resolution removed; ServerClient now handles all auth/path logic
 from .plugin_loader import load_plugins
 from .server_client import ServerClient
@@ -46,7 +47,9 @@ def initialize_system(args):
                 log_info(f"Using config from: {config_file}")
                 config["_config_path"] = str(config_file.resolve())
             except Exception as e:
-                log_warning(f"Failed to load config from {config_file}: {e}", code=CONFIG_ERROR)
+                log_warning(
+                    f"Failed to load config from {config_file}: {e}", code=CONFIG_ERROR
+                )
         else:
             log_warning(f"Config file not found: {config_file}", code=CONFIG_ERROR)
 
@@ -66,7 +69,10 @@ def initialize_system(args):
                     config["_config_path"] = str(config_file.resolve())
                     break
                 except Exception as e:
-                    log_warning(f"Failed to load config from {config_file}: {e}", code=CONFIG_ERROR)
+                    log_warning(
+                        f"Failed to load config from {config_file}: {e}",
+                        code=CONFIG_ERROR,
+                    )
 
         if config is None:
             log_info("No config file found, using defaults")
@@ -105,7 +111,9 @@ def initialize_system(args):
     # Authenticate if needed
     if needs_server:
         if not server_client.connect():
-            log_error("Failed to connect to Node-RED server", code=SERVER_CONNECTION_ERROR)
+            log_error(
+                "Failed to connect to Node-RED server", code=SERVER_CONNECTION_ERROR
+            )
             log_error(f"Server URL: {server_client.url}")
             log_error(f"Auth type: {server_client.auth_type}")
             return None, None, None

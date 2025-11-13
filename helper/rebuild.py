@@ -84,7 +84,6 @@ def rebuild_single_node(
                 # Log error but don't fail - node will use skeleton data
                 log_error(f"Cannot load node file {node_id}: {e}", code=FILE_INVALID)
 
-
     # Track claimed fields
     claimed_fields = set()
 

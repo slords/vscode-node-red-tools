@@ -9,6 +9,7 @@ Provides:
 try:  # Optional deps for watch mode
     import requests  # noqa: F401
     from watchdog.observers import Observer  # noqa: F401
+
     WATCH_AVAILABLE = True
 except ImportError:  # pragma: no cover
     WATCH_AVAILABLE = False

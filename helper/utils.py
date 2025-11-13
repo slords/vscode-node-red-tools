@@ -152,13 +152,13 @@ def sanitize_filename(name: str, max_length: int = 200) -> str:
     # Invalid on Windows: < > : " / \\ | ? *
     # Invalid on Unix: / (and null byte)
     # We use a more conservative set for cross-platform safety
-    sanitized = re.sub(r'[<>:"/\\|?*\x00-\x1f]', '_', name)
+    sanitized = re.sub(r'[<>:"/\\|?*\x00-\x1f]', "_", name)
 
     # Remove leading/trailing spaces and dots (problematic on Windows)
-    sanitized = sanitized.strip(' .')
+    sanitized = sanitized.strip(" .")
 
     # Handle Windows reserved names (case-insensitive check)
-    base_name = sanitized.split('.')[0]  # Get name without extension
+    base_name = sanitized.split(".")[0]  # Get name without extension
     if base_name.upper() in WINDOWS_RESERVED_NAMES:
         sanitized = f"_{sanitized}"
 
@@ -167,7 +167,7 @@ def sanitize_filename(name: str, max_length: int = 200) -> str:
         sanitized = sanitized[:max_length]
 
     # If after sanitization we have an empty string, use default
-    if not sanitized or sanitized == '_':
+    if not sanitized or sanitized == "_":
         return "unnamed"
 
     return sanitized
@@ -315,9 +315,7 @@ def validate_server_url(url: str) -> str:
         invalid_chars = [" ", "<", ">", '"', "{", "}", "|", "\\", "^", "`"]
         for char in invalid_chars:
             if char in hostname:
-                raise ValueError(
-                    f"Hostname contains invalid character: '{char}'"
-                )
+                raise ValueError(f"Hostname contains invalid character: '{char}'")
 
         # Validate port if present
         if parsed.port is not None:
@@ -369,9 +367,7 @@ def read_json(path: Path) -> Any:
         return json.load(f)
 
 
-def read_json_with_size_limit(
-    path: Path, max_size: int = MAX_FLOWS_FILE_SIZE
-) -> Any:
+def read_json_with_size_limit(path: Path, max_size: int = MAX_FLOWS_FILE_SIZE) -> Any:
     """Read and parse JSON file with size validation
 
     Args:
@@ -472,9 +468,7 @@ def compute_dir_hash(
     return hasher.hexdigest()[:HASH_DIGEST_LENGTH]
 
 
-def create_backup(
-    file_path: Path, backup_dir: Path = None
-) -> Optional[Path]:
+def create_backup(file_path: Path, backup_dir: Path = None) -> Optional[Path]:
     """Create timestamped backup of a file.
 
     Args:

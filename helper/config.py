@@ -8,7 +8,14 @@ import json
 import os
 from pathlib import Path
 
-from .logging import log_info, log_success, log_warning, log_error, get_log_level, LogLevel
+from .logging import (
+    log_info,
+    log_success,
+    log_warning,
+    log_error,
+    get_log_level,
+    LogLevel,
+)
 from .exit_codes import SUCCESS, CONFIG_ERROR, CONFIG_INVALID
 
 
@@ -88,7 +95,12 @@ def _print_logging_section(args):
     log_info("-" * 70)
 
     current_level = get_log_level()
-    level_names = {LogLevel.DEBUG: "DEBUG", LogLevel.INFO: "INFO", LogLevel.WARNING: "WARNING", LogLevel.ERROR: "ERROR"}
+    level_names = {
+        LogLevel.DEBUG: "DEBUG",
+        LogLevel.INFO: "INFO",
+        LogLevel.WARNING: "WARNING",
+        LogLevel.ERROR: "ERROR",
+    }
 
     # Determine logging source
     log_level_cli = getattr(args, "log_level", None) if args else None
@@ -174,7 +186,9 @@ def _print_server_section(config: dict, args, server_client):
         log_info(f"verifySSL: False (source: config file)")
         log_warning(f"  WARNING: SSL verification disabled!", code=CONFIG_INVALID)
     else:
-        log_info(f"verifySSL: True (source: {'config file' if 'verifySSL' in server_config else 'default'})")
+        log_info(
+            f"verifySSL: True (source: {'config file' if 'verifySSL' in server_config else 'default'})"
+        )
 
     # Authentication Summary (showing resolved auth from ServerClient if available)
     if server_client:
@@ -189,13 +203,18 @@ def _print_server_section(config: dict, args, server_client):
 
             if token_cli:
                 log_info(f"  token: [REDACTED] (source: CLI arg)")
-                log_warning(f"  WARNING: Token via CLI is visible in shell history!", code=CONFIG_INVALID)
+                log_warning(
+                    f"  WARNING: Token via CLI is visible in shell history!",
+                    code=CONFIG_INVALID,
+                )
             elif token_env:
                 log_info(f"  token: [REDACTED] (source: env var NODERED_TOKEN)")
             elif token_file_config:
                 token_file_path = Path(token_file_config).expanduser()
                 log_info(f"  tokenFile: {token_file_config} (source: config file)")
-                log_info(f"    Resolved: {token_file_path}, Exists: {'Yes' if token_file_path.exists() else 'No'}")
+                log_info(
+                    f"    Resolved: {token_file_path}, Exists: {'Yes' if token_file_path.exists() else 'No'}"
+                )
             elif token_config:
                 log_info(f"  token: [REDACTED] (source: config file)")
             else:
@@ -210,7 +229,9 @@ def _print_server_section(config: dict, args, server_client):
             if username_cli:
                 log_info(f"  username: {username_cli} (source: CLI arg)")
             elif username_env:
-                log_info(f"  username: {username_env} (source: env var NODERED_USERNAME)")
+                log_info(
+                    f"  username: {username_env} (source: env var NODERED_USERNAME)"
+                )
             elif username_config:
                 log_info(f"  username: {username_config} (source: config file)")
 
@@ -221,7 +242,10 @@ def _print_server_section(config: dict, args, server_client):
 
             if password_cli:
                 log_info(f"  password: [REDACTED] (source: CLI arg)")
-                log_warning(f"  WARNING: Password via CLI is visible in shell history!", code=CONFIG_INVALID)
+                log_warning(
+                    f"  WARNING: Password via CLI is visible in shell history!",
+                    code=CONFIG_INVALID,
+                )
             elif password_env:
                 log_info(f"  password: [REDACTED] (source: env var NODERED_PASSWORD)")
             elif password_config:
@@ -239,7 +263,12 @@ def _print_server_section(config: dict, args, server_client):
 
         if token_config or token_file_config or os.environ.get("NODERED_TOKEN"):
             log_info(f"authType: bearer (configured)")
-        elif username_config or password_config or os.environ.get("NODERED_USERNAME") or os.environ.get("NODERED_PASSWORD"):
+        elif (
+            username_config
+            or password_config
+            or os.environ.get("NODERED_USERNAME")
+            or os.environ.get("NODERED_PASSWORD")
+        ):
             log_info(f"authType: basic (configured)")
         else:
             log_info(f"authType: none")
@@ -282,7 +311,10 @@ def _validate_config_structure(config: dict) -> tuple[list, list]:
                 log_info(f"✓ Flows path exists: {config['flows']}")
             else:
                 warnings.append(f"Flows path does not exist: {config['flows']}")
-                log_warning(f"⚠ Flows path does not exist: {config['flows']}", code=CONFIG_INVALID)
+                log_warning(
+                    f"⚠ Flows path does not exist: {config['flows']}",
+                    code=CONFIG_INVALID,
+                )
 
     # Validate src path
     if "src" in config:
@@ -294,7 +326,10 @@ def _validate_config_structure(config: dict) -> tuple[list, list]:
                 log_info(f"✓ Source path exists: {config['src']}")
             else:
                 warnings.append(f"Source path does not exist: {config['src']}")
-                log_warning(f"⚠ Source path does not exist: {config['src']}", code=CONFIG_INVALID)
+                log_warning(
+                    f"⚠ Source path does not exist: {config['src']}",
+                    code=CONFIG_INVALID,
+                )
 
     # Validate plugins section
     if "plugins" in config:
@@ -308,7 +343,9 @@ def _validate_config_structure(config: dict) -> tuple[list, list]:
                 if not isinstance(plugins["enabled"], list):
                     errors.append("'plugins.enabled' must be an array")
                 elif all(isinstance(p, str) for p in plugins["enabled"]):
-                    log_info(f"✓ plugins.enabled is valid ({len(plugins['enabled'])} plugins)")
+                    log_info(
+                        f"✓ plugins.enabled is valid ({len(plugins['enabled'])} plugins)"
+                    )
                 else:
                     errors.append("'plugins.enabled' must contain only strings")
 
@@ -317,7 +354,9 @@ def _validate_config_structure(config: dict) -> tuple[list, list]:
                 if not isinstance(plugins["disabled"], list):
                     errors.append("'plugins.disabled' must be an array")
                 elif all(isinstance(p, str) for p in plugins["disabled"]):
-                    log_info(f"✓ plugins.disabled is valid ({len(plugins['disabled'])} plugins)")
+                    log_info(
+                        f"✓ plugins.disabled is valid ({len(plugins['disabled'])} plugins)"
+                    )
                 else:
                     errors.append("'plugins.disabled' must contain only strings")
 
@@ -326,7 +365,9 @@ def _validate_config_structure(config: dict) -> tuple[list, list]:
                 if not isinstance(plugins["order"], list):
                     errors.append("'plugins.order' must be an array")
                 elif all(isinstance(p, str) for p in plugins["order"]):
-                    log_info(f"✓ plugins.order is valid ({len(plugins['order'])} plugins)")
+                    log_info(
+                        f"✓ plugins.order is valid ({len(plugins['order'])} plugins)"
+                    )
                 else:
                     errors.append("'plugins.order' must contain only strings")
 
@@ -338,8 +379,15 @@ def _validate_config_structure(config: dict) -> tuple[list, list]:
             watch = config["watch"]
 
             # Warn about deprecated settings
-            deprecated_watch_settings = ["pollInterval", "debounce", "convergenceLimit", "convergenceWindow"]
-            found_deprecated = [key for key in deprecated_watch_settings if key in watch]
+            deprecated_watch_settings = [
+                "pollInterval",
+                "debounce",
+                "convergenceLimit",
+                "convergenceWindow",
+            ]
+            found_deprecated = [
+                key for key in deprecated_watch_settings if key in watch
+            ]
 
             if found_deprecated:
                 warnings.append(
@@ -349,7 +397,7 @@ def _validate_config_structure(config: dict) -> tuple[list, list]:
                 log_warning(
                     f"⚠ watch.{', watch.'.join(found_deprecated)} settings ignored "
                     "(now constants - see helper/constants.py)",
-                    code=CONFIG_INVALID
+                    code=CONFIG_INVALID,
                 )
 
     # Validate server section
@@ -368,14 +416,18 @@ def _validate_config_structure(config: dict) -> tuple[list, list]:
 
             # Check username
             if "username" in server:
-                if server["username"] is not None and not isinstance(server["username"], str):
+                if server["username"] is not None and not isinstance(
+                    server["username"], str
+                ):
                     errors.append("'server.username' must be a string or null")
                 elif server["username"]:
                     log_info(f"✓ server.username is set")
 
             # Check password
             if "password" in server:
-                if server["password"] is not None and not isinstance(server["password"], str):
+                if server["password"] is not None and not isinstance(
+                    server["password"], str
+                ):
                     errors.append("'server.password' must be a string or null")
                 elif server["password"]:
                     log_info("✓ server.password is set")
@@ -395,10 +447,17 @@ def _validate_config_structure(config: dict) -> tuple[list, list]:
                     else:
                         token_file_path = Path(server["tokenFile"]).expanduser()
                         if token_file_path.exists():
-                            log_info(f"✓ server.tokenFile exists: {server['tokenFile']}")
+                            log_info(
+                                f"✓ server.tokenFile exists: {server['tokenFile']}"
+                            )
                         else:
-                            warnings.append(f"Token file does not exist: {server['tokenFile']}")
-                            log_warning(f"⚠ Token file does not exist: {server['tokenFile']}", code=CONFIG_INVALID)
+                            warnings.append(
+                                f"Token file does not exist: {server['tokenFile']}"
+                            )
+                            log_warning(
+                                f"⚠ Token file does not exist: {server['tokenFile']}",
+                                code=CONFIG_INVALID,
+                            )
 
             # Check verifySSL
             if "verifySSL" in server:
@@ -408,11 +467,23 @@ def _validate_config_structure(config: dict) -> tuple[list, list]:
                     log_info(f"✓ server.verifySSL is valid ({server['verifySSL']})")
 
     # Check for unknown top-level keys
-    known_keys = {"flows", "src", "plugins", "watch", "backup", "server", "_config_path"}
+    known_keys = {
+        "flows",
+        "src",
+        "plugins",
+        "watch",
+        "backup",
+        "server",
+        "_config_path",
+    }
     unknown_keys = set(config.keys()) - known_keys
     if unknown_keys:
-        warnings.append(f"Unknown config keys (will be ignored): {', '.join(unknown_keys)}")
-        log_warning(f"⚠ Unknown config keys: {', '.join(unknown_keys)}", code=CONFIG_INVALID)
+        warnings.append(
+            f"Unknown config keys (will be ignored): {', '.join(unknown_keys)}"
+        )
+        log_warning(
+            f"⚠ Unknown config keys: {', '.join(unknown_keys)}", code=CONFIG_INVALID
+        )
 
     return errors, warnings
 
@@ -441,7 +512,9 @@ def validate_config(config: dict, server_client=None, args=None) -> int:
     # Print summary
     log_info("\n" + "=" * 70)
     if errors:
-        log_error(f"✗ Configuration is invalid ({len(errors)} error(s))", code=CONFIG_INVALID)
+        log_error(
+            f"✗ Configuration is invalid ({len(errors)} error(s))", code=CONFIG_INVALID
+        )
         for error in errors:
             log_error(f"  - {error}", code=CONFIG_INVALID)
         log_info("=" * 70)

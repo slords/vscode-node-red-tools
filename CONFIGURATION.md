@@ -225,6 +225,7 @@ The tool supports multiple authentication methods with automatic credential reso
 Credentials are resolved from multiple sources in priority order:
 
 **For Token Authentication:**
+
 1. `--token-file` CLI parameter
 2. `--token` CLI parameter (with security warning)
 3. `config.server.tokenFile`
@@ -233,6 +234,7 @@ Credentials are resolved from multiple sources in priority order:
 6. `NODERED_TOKEN` environment variable
 
 **For Basic Authentication:**
+
 1. `--username` and `--password` CLI parameters
 2. `config.server.username` and `config.server.password`
 3. `NODERED_PASSWORD` environment variable (if username configured)
@@ -266,6 +268,7 @@ python3 vscode-node-red-tools.py watch
 ```
 
 The tool searches for `.nodered-token` in:
+
 1. Current directory (`./.nodered-token`)
 2. Home directory (`~/.nodered-token`)
 
@@ -683,6 +686,7 @@ export NODERED_TOOLS_LOG_LEVEL=WARNING
 ```
 
 **Valid Values:**
+
 - `DEBUG` - Show all messages including debug info
 - `INFO` - Normal operation (default)
 - `WARNING` - Only warnings and errors
@@ -715,18 +719,21 @@ CLI flags take precedence over environment variable:
 ### Use Cases
 
 **Development:**
+
 ```bash
 # See everything that's happening
 python3 vscode-node-red-tools.py --verbose watch
 ```
 
 **Production/CI:**
+
 ```bash
 # Only show important issues
 python3 vscode-node-red-tools.py --quiet explode flows/flows.json
 ```
 
 **Debugging:**
+
 ```bash
 # Maximum detail
 export NODERED_TOOLS_LOG_LEVEL=DEBUG
@@ -738,10 +745,12 @@ python3 vscode-node-red-tools.py explode flows/flows.json
 All errors and warnings include error codes for easier troubleshooting:
 
 **Format:**
+
 - Errors: `[E##]`
 - Warnings: `[W##]`
 
 **Code Ranges:**
+
 - 0: Success
 - 1-9: General errors
 - 10-19: Configuration errors
@@ -752,6 +761,7 @@ All errors and warnings include error codes for easier troubleshooting:
 - 60-69: Operation errors
 
 **Example Output:**
+
 ```
 ✗ [E20] File not found: flows/flows.json
 ⚠ [W10] Config file not found, using defaults
