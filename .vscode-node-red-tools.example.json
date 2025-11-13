@@ -4,7 +4,7 @@
   "_comment3": "Remove all _comment fields from your actual config",
 
   "flows": "flows/flows.json",
-  "_flows_help": "Path to flows file (relative to repo root)",
+  "_flows_help": "Path to flows file (relative to repo root or absolute)",
 
   "src": "src",
   "_src_help": "Directory for exploded source files",
@@ -14,23 +14,29 @@
     "_enabled_help": "List of plugin names to enable (empty = all enabled)",
 
     "disabled": [],
-    "_disabled_help": "Example: ['wrap_func', 'prettier_explode'] to disable function wrapping",
+    "_disabled_help": "Example: ['prettier-explode', 'prettier-post-rebuild'] to disable formatting",
 
     "order": [],
     "_order_help": "Custom plugin execution order (empty = use priority/filename)"
   },
 
-  "watch": {
-    "pollInterval": 1,
-    "_pollInterval_help": "How often to check server for changes (seconds)",
+  "server": {
+    "url": "http://127.0.0.1:1880",
+    "_url_help": "Node-RED server URL (http:// or https://)",
 
-    "debounce": 2.0,
-    "_debounce_help": "Wait time after file change before uploading (seconds)",
+    "username": null,
+    "_username_help": "Username for basic auth (optional - can use environment variable NODERED_USERNAME)",
 
-    "convergenceLimit": 5,
-    "_convergenceLimit_help": "Max upload/download cycles before oscillation warning",
+    "password": null,
+    "_password_help": "⚠️  NOT RECOMMENDED - use NODERED_PASSWORD env var instead for security",
 
-    "convergenceWindow": 60,
-    "_convergenceWindow_help": "Time window in seconds for counting convergence cycles"
+    "token": null,
+    "_token_help": "⚠️  NOT RECOMMENDED - use tokenFile or NODERED_TOKEN env var instead",
+
+    "tokenFile": null,
+    "_tokenFile_help": "Path to file containing bearer token (recommended: ~/.nodered-token)",
+
+    "verifySSL": true,
+    "_verifySSL_help": "Verify SSL certificates (set to false for self-signed certs in dev)"
   }
 }
