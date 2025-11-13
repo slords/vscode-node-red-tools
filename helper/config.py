@@ -6,58 +6,43 @@ Handles loading and validating the .vscode-node-red-tools.json configuration fil
 
 import json
 import os
-import traceback
 from pathlib import Path
 
 from .logging import log_info, log_success, log_warning, log_error, get_log_level, LogLevel
 from .exit_codes import SUCCESS, CONFIG_ERROR, CONFIG_INVALID
 
 
+def _get_value_source(cli_value, env_var_name, config_value, default_value):
+    """Determine the source and effective value for a configuration item"""
+    if cli_value is not None:
+        return cli_value, "CLI arg"
+    if env_var_name and os.environ.get(env_var_name):
+        return os.environ.get(env_var_name), f"env var ({env_var_name})"
+    if config_value is not None:
+        return config_value, "config file"
+    return default_value, "default"
 
 
-def validate_config(config: dict, server_client=None, args=None) -> int:
-    """Validate configuration structure and values with comprehensive reporting
-
-    Args:
-        config: Configuration dictionary to validate
-        server_client: Optional ServerClient instance (for testing auth resolution)
-        args: Optional CLI args to check for overrides
-
-    Returns:
-        Exit code (SUCCESS = valid, CONFIG_ERROR = invalid)
-    """
-    # Determine paths
-    repo_root = Path.cwd()
-
-    # Helper function to get value source
-    def get_value_source(cli_value, env_var_name, config_value, default_value):
-        """Determine the source and effective value for a configuration item"""
-        if cli_value is not None:
-            return cli_value, "CLI arg"
-        if env_var_name and os.environ.get(env_var_name):
-            return os.environ.get(env_var_name), f"env var ({env_var_name})"
-        if config_value is not None:
-            return config_value, "config file"
-        return default_value, "default"
-
-    # ========================================================================
-    # SECTION 1: CONFIGURATION REPORT
-    # ========================================================================
+def _print_config_header(config: dict):
+    """Print configuration report header"""
     log_info("=" * 70)
     log_info("CONFIGURATION REPORT")
     log_info("=" * 70)
 
-    # Configuration file location
     config_path = config.get("_config_path")
     if config_path:
         log_info(f"\nConfiguration file: {config_path}")
     else:
         log_info("\nConfiguration file: None (using defaults)")
 
-    # --- Core Paths Section ---
+
+def _print_paths_section(config: dict, args):
+    """Print core paths section of configuration report"""
     log_info("\n" + "-" * 70)
     log_info("CORE PATHS")
     log_info("-" * 70)
+
+    repo_root = Path.cwd()
 
     # Flows path
     flows_cli = getattr(args, "flows", None) if args else None
@@ -95,7 +80,9 @@ def validate_config(config: dict, server_client=None, args=None) -> int:
     log_info(f"  Resolved: {src_path}")
     log_info(f"  Exists: {'Yes' if src_path.exists() else 'No'}")
 
-    # --- Logging Section ---
+
+def _print_logging_section(args):
+    """Print logging section of configuration report"""
     log_info("\n" + "-" * 70)
     log_info("LOGGING")
     log_info("-" * 70)
@@ -122,7 +109,9 @@ def validate_config(config: dict, server_client=None, args=None) -> int:
 
     log_info(f"level: {level_names.get(current_level, 'UNKNOWN')} (source: {source})")
 
-    # --- Plugins Section ---
+
+def _print_plugins_section(config: dict, args):
+    """Print plugins section of configuration report"""
     log_info("\n" + "-" * 70)
     log_info("PLUGINS")
     log_info("-" * 70)
@@ -158,7 +147,9 @@ def validate_config(config: dict, server_client=None, args=None) -> int:
     else:
         log_info("order: [] (source: default)")
 
-    # --- Server Configuration Section ---
+
+def _print_server_section(config: dict, args, server_client):
+    """Print server configuration section of configuration report"""
     log_info("\n" + "-" * 70)
     log_info("SERVER")
     log_info("-" * 70)
@@ -169,7 +160,7 @@ def validate_config(config: dict, server_client=None, args=None) -> int:
     url_cli = getattr(args, "server", None) if args else None
     url_config = server_config.get("url")
     url_default = "http://127.0.0.1:1880"
-    url_value, url_source = get_value_source(url_cli, None, url_config, url_default)
+    url_value, url_source = _get_value_source(url_cli, None, url_config, url_default)
     log_info(f"url: {url_value} (source: {url_source})")
 
     # Verify SSL
@@ -254,13 +245,22 @@ def validate_config(config: dict, server_client=None, args=None) -> int:
             log_info(f"authType: none")
 
 
-    # ========================================================================
-    # SECTION 2: VALIDATION (Existing Logic)
-    # ========================================================================
-    log_info("\n" + "=" * 70)
-    log_info("VALIDATION RESULTS")
-    log_info("=" * 70)
+def _print_config_report(config: dict, server_client, args):
+    """Print comprehensive configuration report showing all values and sources"""
+    _print_config_header(config)
+    _print_paths_section(config, args)
+    _print_logging_section(args)
+    _print_plugins_section(config, args)
+    _print_server_section(config, args, server_client)
 
+
+def _validate_config_structure(config: dict) -> tuple[list, list]:
+    """Validate configuration structure and values
+
+    Returns:
+        Tuple of (errors, warnings) lists
+    """
+    repo_root = Path.cwd()
     errors = []
     warnings = []
 
@@ -268,186 +268,189 @@ def validate_config(config: dict, server_client=None, args=None) -> int:
     if not isinstance(config, dict):
         errors.append("Config must be a JSON object")
         log_error("✗ Config must be a JSON object", code=CONFIG_INVALID)
-    else:
-        log_info("\n✓ Valid config structure")
+        return errors, warnings
 
-        # Validate flows path
-        if "flows" in config:
-            if not isinstance(config["flows"], str):
-                errors.append("'flows' must be a string path")
-            else:
-                flows_path = repo_root / config["flows"]
-                if flows_path.exists():
-                    log_info(f"✓ Flows path exists: {config['flows']}")
-                else:
-                    warnings.append(f"Flows path does not exist: {config['flows']}")
-                    log_warning(f"⚠ Flows path does not exist: {config['flows']}", code=CONFIG_INVALID)
+    log_info("\n✓ Valid config structure")
 
-        # Validate src path
-        if "src" in config:
-            if not isinstance(config["src"], str):
-                errors.append("'src' must be a string path")
-            else:
-                src_path = repo_root / config["src"]
-                if src_path.exists():
-                    log_info(f"✓ Source path exists: {config['src']}")
-                else:
-                    warnings.append(f"Source path does not exist: {config['src']}")
-                    log_warning(f"⚠ Source path does not exist: {config['src']}", code=CONFIG_INVALID)
-
-        # Validate plugins section
-        if "plugins" in config:
-            if not isinstance(config["plugins"], dict):
-                errors.append("'plugins' must be an object")
-            else:
-                plugins = config["plugins"]
-
-                # Check enabled
-                if "enabled" in plugins:
-                    if not isinstance(plugins["enabled"], list):
-                        errors.append("'plugins.enabled' must be an array")
-                    elif all(isinstance(p, str) for p in plugins["enabled"]):
-                        log_info(
-                            f"✓ plugins.enabled is valid ({len(plugins['enabled'])} plugins)"
-                        )
-                    else:
-                        errors.append("'plugins.enabled' must contain only strings")
-
-                # Check disabled
-                if "disabled" in plugins:
-                    if not isinstance(plugins["disabled"], list):
-                        errors.append("'plugins.disabled' must be an array")
-                    elif all(isinstance(p, str) for p in plugins["disabled"]):
-                        log_info(
-                            f"✓ plugins.disabled is valid ({len(plugins['disabled'])} plugins)"
-                        )
-                    else:
-                        errors.append("'plugins.disabled' must contain only strings")
-
-                # Check order
-                if "order" in plugins:
-                    if not isinstance(plugins["order"], list):
-                        errors.append("'plugins.order' must be an array")
-                    elif all(isinstance(p, str) for p in plugins["order"]):
-                        log_info(
-                            f"✓ plugins.order is valid ({len(plugins['order'])} plugins)"
-                        )
-                    else:
-                        errors.append("'plugins.order' must contain only strings")
-
-        # Validate watch section (if present, warn user these are no longer used)
-        if "watch" in config:
-            if not isinstance(config["watch"], dict):
-                errors.append("'watch' must be an object")
-            else:
-                watch = config["watch"]
-
-                # Warn about deprecated settings
-                deprecated_watch_settings = ["pollInterval", "debounce", "convergenceLimit", "convergenceWindow"]
-                found_deprecated = [key for key in deprecated_watch_settings if key in watch]
-
-                if found_deprecated:
-                    warnings.append(
-                        f"watch.{', watch.'.join(found_deprecated)} are no longer configurable - "
-                        "these are runtime constants. Modify helper/constants.py to change these values."
-                    )
-                    log_warning(
-                        f"⚠ watch.{', watch.'.join(found_deprecated)} settings ignored "
-                        "(now constants - see helper/constants.py)",
-                        code=CONFIG_INVALID
-                    )
-
-        # Validate server section
-        if "server" in config:
-            if not isinstance(config["server"], dict):
-                errors.append("'server' must be an object")
-            else:
-                server = config["server"]
-
-                # Check url
-                if "url" in server:
-                    if not isinstance(server["url"], str):
-                        errors.append("'server.url' must be a string")
-                    else:
-                        log_info(f"✓ server.url is valid: {server['url']}")
-
-                # Check username
-                if "username" in server:
-                    if server["username"] is not None and not isinstance(
-                        server["username"], str
-                    ):
-                        errors.append("'server.username' must be a string or null")
-                    elif server["username"]:
-                        log_info(f"✓ server.username is set")
-
-                # Check password
-                if "password" in server:
-                    if server["password"] is not None and not isinstance(
-                        server["password"], str
-                    ):
-                        errors.append("'server.password' must be a string or null")
-                    elif server["password"]:
-                        log_info("✓ server.password is set")
-
-                # Check token
-                if "token" in server:
-                    if server["token"] is not None and not isinstance(
-                        server["token"], str
-                    ):
-                        errors.append("'server.token' must be a string or null")
-                    elif server["token"]:
-                        log_info("✓ server.token is set")
-
-                # Check tokenFile
-                if "tokenFile" in server:
-                    if server["tokenFile"] is not None:
-                        if not isinstance(server["tokenFile"], str):
-                            errors.append("'server.tokenFile' must be a string or null")
-                        else:
-                            token_file_path = Path(server["tokenFile"]).expanduser()
-                            if token_file_path.exists():
-                                log_info(f"✓ server.tokenFile exists: {server['tokenFile']}")
-                            else:
-                                warnings.append(
-                                    f"Token file does not exist: {server['tokenFile']}"
-                                )
-                                log_warning(
-                                    f"⚠ Token file does not exist: {server['tokenFile']}",
-                                    code=CONFIG_INVALID
-                                )
-
-                # Check verifySSL
-                if "verifySSL" in server:
-                    if not isinstance(server["verifySSL"], bool):
-                        errors.append("'server.verifySSL' must be a boolean")
-                    else:
-                        log_info(
-                            f"✓ server.verifySSL is valid ({server['verifySSL']})"
-                        )
-
-        # Check for unknown top-level keys
-        known_keys = {"flows", "src", "plugins", "watch", "backup", "server", "_config_path"}
-        unknown_keys = set(config.keys()) - known_keys
-        if unknown_keys:
-            warnings.append(
-                f"Unknown config keys (will be ignored): {', '.join(unknown_keys)}"
-            )
-            log_warning(f"⚠ Unknown config keys: {', '.join(unknown_keys)}", code=CONFIG_INVALID)
-
-        # Summary
-        log_info("\n" + "=" * 70)
-        if errors:
-            log_error(f"✗ Configuration is invalid ({len(errors)} error(s))", code=CONFIG_INVALID)
-            for error in errors:
-                log_error(f"  - {error}", code=CONFIG_INVALID)
-            log_info("=" * 70)
-            return CONFIG_ERROR
-
-        if warnings:
-            log_success(f"✓ Configuration is valid (with {len(warnings)} warning(s))")
+    # Validate flows path
+    if "flows" in config:
+        if not isinstance(config["flows"], str):
+            errors.append("'flows' must be a string path")
         else:
-            log_success("✓ Configuration is valid")
+            flows_path = repo_root / config["flows"]
+            if flows_path.exists():
+                log_info(f"✓ Flows path exists: {config['flows']}")
+            else:
+                warnings.append(f"Flows path does not exist: {config['flows']}")
+                log_warning(f"⚠ Flows path does not exist: {config['flows']}", code=CONFIG_INVALID)
+
+    # Validate src path
+    if "src" in config:
+        if not isinstance(config["src"], str):
+            errors.append("'src' must be a string path")
+        else:
+            src_path = repo_root / config["src"]
+            if src_path.exists():
+                log_info(f"✓ Source path exists: {config['src']}")
+            else:
+                warnings.append(f"Source path does not exist: {config['src']}")
+                log_warning(f"⚠ Source path does not exist: {config['src']}", code=CONFIG_INVALID)
+
+    # Validate plugins section
+    if "plugins" in config:
+        if not isinstance(config["plugins"], dict):
+            errors.append("'plugins' must be an object")
+        else:
+            plugins = config["plugins"]
+
+            # Check enabled
+            if "enabled" in plugins:
+                if not isinstance(plugins["enabled"], list):
+                    errors.append("'plugins.enabled' must be an array")
+                elif all(isinstance(p, str) for p in plugins["enabled"]):
+                    log_info(f"✓ plugins.enabled is valid ({len(plugins['enabled'])} plugins)")
+                else:
+                    errors.append("'plugins.enabled' must contain only strings")
+
+            # Check disabled
+            if "disabled" in plugins:
+                if not isinstance(plugins["disabled"], list):
+                    errors.append("'plugins.disabled' must be an array")
+                elif all(isinstance(p, str) for p in plugins["disabled"]):
+                    log_info(f"✓ plugins.disabled is valid ({len(plugins['disabled'])} plugins)")
+                else:
+                    errors.append("'plugins.disabled' must contain only strings")
+
+            # Check order
+            if "order" in plugins:
+                if not isinstance(plugins["order"], list):
+                    errors.append("'plugins.order' must be an array")
+                elif all(isinstance(p, str) for p in plugins["order"]):
+                    log_info(f"✓ plugins.order is valid ({len(plugins['order'])} plugins)")
+                else:
+                    errors.append("'plugins.order' must contain only strings")
+
+    # Validate watch section (if present, warn user these are no longer used)
+    if "watch" in config:
+        if not isinstance(config["watch"], dict):
+            errors.append("'watch' must be an object")
+        else:
+            watch = config["watch"]
+
+            # Warn about deprecated settings
+            deprecated_watch_settings = ["pollInterval", "debounce", "convergenceLimit", "convergenceWindow"]
+            found_deprecated = [key for key in deprecated_watch_settings if key in watch]
+
+            if found_deprecated:
+                warnings.append(
+                    f"watch.{', watch.'.join(found_deprecated)} are no longer configurable - "
+                    "these are runtime constants. Modify helper/constants.py to change these values."
+                )
+                log_warning(
+                    f"⚠ watch.{', watch.'.join(found_deprecated)} settings ignored "
+                    "(now constants - see helper/constants.py)",
+                    code=CONFIG_INVALID
+                )
+
+    # Validate server section
+    if "server" in config:
+        if not isinstance(config["server"], dict):
+            errors.append("'server' must be an object")
+        else:
+            server = config["server"]
+
+            # Check url
+            if "url" in server:
+                if not isinstance(server["url"], str):
+                    errors.append("'server.url' must be a string")
+                else:
+                    log_info(f"✓ server.url is valid: {server['url']}")
+
+            # Check username
+            if "username" in server:
+                if server["username"] is not None and not isinstance(server["username"], str):
+                    errors.append("'server.username' must be a string or null")
+                elif server["username"]:
+                    log_info(f"✓ server.username is set")
+
+            # Check password
+            if "password" in server:
+                if server["password"] is not None and not isinstance(server["password"], str):
+                    errors.append("'server.password' must be a string or null")
+                elif server["password"]:
+                    log_info("✓ server.password is set")
+
+            # Check token
+            if "token" in server:
+                if server["token"] is not None and not isinstance(server["token"], str):
+                    errors.append("'server.token' must be a string or null")
+                elif server["token"]:
+                    log_info("✓ server.token is set")
+
+            # Check tokenFile
+            if "tokenFile" in server:
+                if server["tokenFile"] is not None:
+                    if not isinstance(server["tokenFile"], str):
+                        errors.append("'server.tokenFile' must be a string or null")
+                    else:
+                        token_file_path = Path(server["tokenFile"]).expanduser()
+                        if token_file_path.exists():
+                            log_info(f"✓ server.tokenFile exists: {server['tokenFile']}")
+                        else:
+                            warnings.append(f"Token file does not exist: {server['tokenFile']}")
+                            log_warning(f"⚠ Token file does not exist: {server['tokenFile']}", code=CONFIG_INVALID)
+
+            # Check verifySSL
+            if "verifySSL" in server:
+                if not isinstance(server["verifySSL"], bool):
+                    errors.append("'server.verifySSL' must be a boolean")
+                else:
+                    log_info(f"✓ server.verifySSL is valid ({server['verifySSL']})")
+
+    # Check for unknown top-level keys
+    known_keys = {"flows", "src", "plugins", "watch", "backup", "server", "_config_path"}
+    unknown_keys = set(config.keys()) - known_keys
+    if unknown_keys:
+        warnings.append(f"Unknown config keys (will be ignored): {', '.join(unknown_keys)}")
+        log_warning(f"⚠ Unknown config keys: {', '.join(unknown_keys)}", code=CONFIG_INVALID)
+
+    return errors, warnings
+
+
+def validate_config(config: dict, server_client=None, args=None) -> int:
+    """Validate configuration structure and values with comprehensive reporting
+
+    Args:
+        config: Configuration dictionary to validate
+        server_client: Optional ServerClient instance (for testing auth resolution)
+        args: Optional CLI args to check for overrides
+
+    Returns:
+        Exit code (SUCCESS = valid, CONFIG_ERROR = invalid)
+    """
+    # Print comprehensive configuration report
+    _print_config_report(config, server_client, args)
+
+    # Validate configuration structure
+    log_info("\n" + "=" * 70)
+    log_info("VALIDATION RESULTS")
+    log_info("=" * 70)
+
+    errors, warnings = _validate_config_structure(config)
+
+    # Print summary
+    log_info("\n" + "=" * 70)
+    if errors:
+        log_error(f"✗ Configuration is invalid ({len(errors)} error(s))", code=CONFIG_INVALID)
+        for error in errors:
+            log_error(f"  - {error}", code=CONFIG_INVALID)
         log_info("=" * 70)
+        return CONFIG_ERROR
 
-        return SUCCESS
+    if warnings:
+        log_success(f"✓ Configuration is valid (with {len(warnings)} warning(s))")
+    else:
+        log_success("✓ Configuration is valid")
+    log_info("=" * 70)
 
+    return SUCCESS
