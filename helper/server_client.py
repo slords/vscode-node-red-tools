@@ -44,7 +44,15 @@ if TYPE_CHECKING:
 from .logging import log_info, log_success, log_warning, log_error
 from .exit_codes import SERVER_CONNECTION_ERROR, SERVER_AUTH_ERROR, SERVER_CONFLICT, SERVER_ERROR, FILE_NOT_FOUND, GENERAL_ERROR
 from .auth import resolve_auth_config, AuthConfig
-from .constants import HTTP_TIMEOUT, DEFAULT_CONVERGENCE_LIMIT, DEFAULT_CONVERGENCE_WINDOW
+from .constants import (
+    HTTP_TIMEOUT,
+    HTTP_NOT_MODIFIED,
+    HTTP_UNAUTHORIZED,
+    HTTP_FORBIDDEN,
+    HTTP_CONFLICT,
+    DEFAULT_CONVERGENCE_LIMIT,
+    DEFAULT_CONVERGENCE_WINDOW,
+)
 from .utils import RateLimiter
 
 @dataclass(init=False)
@@ -225,7 +233,7 @@ class ServerClient:
         if not force and self.last_etag:
             headers["If-None-Match"] = self.last_etag
         resp = self.session.get(f"{self.url}/flows", headers=headers, timeout=HTTP_TIMEOUT)
-        if resp.status_code == 304:
+        if resp.status_code == HTTP_NOT_MODIFIED:
             return False, None
         resp.raise_for_status()
         new_etag = resp.headers.get("ETag")
@@ -279,7 +287,7 @@ class ServerClient:
                 f"{self.url}/flows", data=formatted_body, headers=headers, params=params, timeout=HTTP_TIMEOUT
             )
             # Re-auth flow
-            if resp.status_code in (401, 403):
+            if resp.status_code in (HTTP_UNAUTHORIZED, HTTP_FORBIDDEN):
                 log_warning("Authentication expired, re-authenticating...", code=SERVER_AUTH_ERROR)
                 self._authenticated = False
                 if not self._ensure_auth():
@@ -290,8 +298,8 @@ class ServerClient:
                 resp = self.session.post(
                     f"{self.url}/flows", data=formatted_body, headers=headers, params=params, timeout=HTTP_TIMEOUT
                 )
-            if resp.status_code == 409:
-                log_error("Conflict detected (409) - server flows changed while you were editing", code=SERVER_CONFLICT)
+            if resp.status_code == HTTP_CONFLICT:
+                log_error(f"Conflict detected ({HTTP_CONFLICT}) - server flows changed while you were editing", code=SERVER_CONFLICT)
                 # Fetch latest to update rev/etag
                 try:
                     if not self._check_rate():

@@ -6,7 +6,6 @@ This is a fallback plugin that runs after action and global-function plugins.
 """
 
 from pathlib import Path
-from typing import Dict, Any
 
 
 class FuncPlugin:

@@ -22,7 +22,7 @@ from .logging import (
     log_success,
     show_progress_bar,
 )
-from .exit_codes import SUCCESS, GENERAL_ERROR, FILE_NOT_FOUND, REBUILD_ERROR, FILE_INVALID
+from .exit_codes import SUCCESS, FILE_NOT_FOUND, REBUILD_ERROR, FILE_INVALID
 from .skeleton import get_node_directory, load_skeleton
 from .utils import (
     create_backup,

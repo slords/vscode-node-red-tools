@@ -19,14 +19,9 @@ Usage:
 __version__ = "3.0.0"
 
 import argparse
-import difflib
 import json
 import sys
-import tempfile
-import time
-import importlib.util
 from pathlib import Path
-from typing import List
 
 # Import from helper modules
 from helper import (

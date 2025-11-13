@@ -10,6 +10,12 @@ All configurable constants and limits in one place for easy maintenance.
 
 HTTP_TIMEOUT = 30  # Timeout for HTTP requests to Node-RED (seconds)
 
+# HTTP Status Codes (for clarity and maintainability)
+HTTP_NOT_MODIFIED = 304  # ETag matches, no new content
+HTTP_UNAUTHORIZED = 401  # Authentication required
+HTTP_FORBIDDEN = 403  # Authentication failed
+HTTP_CONFLICT = 409  # Revision conflict on deploy
+
 # Rate limiting for API calls (prevents runaway loops)
 # Raised per user request to accommodate higher interactive usage without premature throttling.
 # 180/min (~3/sec sustained) and 1200/10min balance responsiveness vs. protection.
