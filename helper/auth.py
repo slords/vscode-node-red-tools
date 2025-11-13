@@ -36,11 +36,6 @@ class AuthConfig:
     username: Optional[str] = None
     password: Optional[str] = None
     token: Optional[str] = None
-    sources: dict | None = None  # provenance for debugging
-
-    def __post_init__(self):  # pragma: no cover - trivial
-        if self.sources is None:
-            self.sources = {}
 
 
 def _read_token_file(path: Path) -> Optional[str]:
@@ -169,12 +164,6 @@ def resolve_auth_config(args: Any, config: dict) -> AuthConfig:
             auth_type="bearer",
             verify_ssl=verify_ssl,
             token=token,
-            sources={
-                "url": url_src,
-                "auth_type": "bearer",
-                "token": token_src,
-                "verify_ssl": verify_src,
-            },
         )
 
     # Username/password chain
@@ -210,13 +199,6 @@ def resolve_auth_config(args: Any, config: dict) -> AuthConfig:
             verify_ssl=verify_ssl,
             username=username,
             password=password,
-            sources={
-                "url": url_src,
-                "auth_type": "basic",
-                "username": username_src,
-                "password": password_src,
-                "verify_ssl": verify_src,
-            },
         )
 
     log_info("Using anonymous access (no authentication)")
@@ -224,9 +206,4 @@ def resolve_auth_config(args: Any, config: dict) -> AuthConfig:
         url=url,
         auth_type="none",
         verify_ssl=verify_ssl,
-        sources={
-            "url": url_src,
-            "auth_type": "none",
-            "verify_ssl": verify_src,
-        },
     )

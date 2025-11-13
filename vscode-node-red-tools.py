@@ -356,7 +356,7 @@ def main():
 
         # Commands that don't need plugins
         if args.command == "validate-config":
-            return validate_config(config, server_client)
+            return validate_config(config, server_client, args)
         elif args.command == "new-plugin":
             priority = args.priority if hasattr(args, "priority") else None
             return new_plugin_command(args.name, args.type, priority)
