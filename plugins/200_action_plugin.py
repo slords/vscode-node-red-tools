@@ -6,10 +6,12 @@ Explodes to .def.js and .execute.js (optional).
 Rebuilds with initialize/func/finalize templates.
 """
 
+from __future__ import annotations
+
 import re
 import importlib.util
 from pathlib import Path
-from typing import Optional
+from typing import List, Dict, Any, Optional, Tuple
 
 # Load plugin helpers module
 _helpers_path = Path(__file__).parent / "plugin_helpers.py"
@@ -21,7 +23,7 @@ to_snake_case = _helpers.to_snake_case
 extract_function_body = _helpers.extract_function_body
 
 
-def parse_action_definition(code: str) -> Optional[dict]:
+def parse_action_definition(code: str) -> Optional[Dict[str, Any]]:
     """Parse action definition from function code.
 
     Returns: dict with 'def_code' and 'execute' (if exists)
@@ -39,14 +41,14 @@ def parse_action_definition(code: str) -> Optional[dict]:
         return None
 
     # Extract the action definition object
-    obj_start = re.search(r"const\s+actionDef\s*=\s*\{", code)
+    obj_start: Optional[re.Match] = re.search(r"const\s+actionDef\s*=\s*\{", code)
     if not obj_start:
         return None
 
     # Balance braces to find the matching closing brace
-    start_pos = obj_start.end() - 1  # Position of opening {
-    brace_count = 0
-    pos = start_pos
+    start_pos: int = obj_start.end() - 1  # Position of opening {
+    brace_count: int = 0
+    pos: int = start_pos
 
     while pos < len(code):
         if code[pos] == "{":
@@ -61,29 +63,29 @@ def parse_action_definition(code: str) -> Optional[dict]:
         return None
 
     # Extract the object code including braces
-    obj_code = code[start_pos : pos + 1]
+    obj_code: str = code[start_pos : pos + 1]
 
     # Check if execute function exists
-    execute_match = re.search(r"execute:\s*\(", obj_code)
+    execute_match: Optional[re.Match] = re.search(r"execute:\s*\(", obj_code)
     if not execute_match:
         # No execute function - just return the definition
         return {"def_code": f"const actionDef = {obj_code};", "execute": None}
 
     # Extract execute function
-    execute_start = execute_match.start()
+    execute_start: int = execute_match.start()
 
     # Find where execute function starts: execute: (params) => {
-    arrow_match = re.search(
+    arrow_match: Optional[re.Match] = re.search(
         r"execute:\s*(\(.*?\)\s*=>\s*\{)", obj_code[execute_start:], re.DOTALL
     )
     if not arrow_match:
         return None
 
-    func_body_start = execute_start + arrow_match.end() - 1  # Position of opening {
+    func_body_start: int = execute_start + arrow_match.end() - 1  # Position of opening {
 
     # Balance braces to find execute function body
-    brace_count = 1
-    pos = func_body_start + 1
+    brace_count: int = 1
+    pos: int = func_body_start + 1
 
     while pos < len(obj_code) and brace_count > 0:
         if obj_code[pos] == "{":
@@ -96,12 +98,12 @@ def parse_action_definition(code: str) -> Optional[dict]:
         return None
 
     # Extract execute arrow function (params) => { body }
-    execute_code = obj_code[execute_start + len("execute:") : pos]
+    execute_code: str = obj_code[execute_start + len("execute:") : pos]
 
     # Remove execute from def_code
     # Find if there's a comma before or after execute
-    before = obj_code[:execute_start]
-    after = obj_code[pos:]
+    before: str = obj_code[:execute_start]
+    after: str = obj_code[pos:]
 
     # Clean up comma handling to avoid double commas
     # But preserve trailing commas (prettier wants them)
@@ -112,7 +114,7 @@ def parse_action_definition(code: str) -> Optional[dict]:
     # Strip whitespace from join point to avoid extra blank lines
     before = before.rstrip()
     after = after.lstrip()
-    def_code = before + "\n" + after
+    def_code: str = before + "\n" + after
 
     # Build complete def_code statement
     return {
@@ -127,23 +129,23 @@ class ActionPlugin:
     def get_name(self) -> str:
         return "action"
 
-    def get_priority(self):
+    def get_priority(self) -> Optional[int]:
         return None  # Use filename prefix (20)
 
     def get_plugin_type(self) -> str:
         return "explode"
 
-    def can_handle_node(self, node: dict) -> bool:
+    def can_handle_node(self, node: Dict[str, Any]) -> bool:
         """Check if this node is an action"""
         if node.get("type") != "function":
             return False
 
-        func_code = node.get("func", "")
+        func_code: str = node.get("func", "")
         # During explode: check if func matches pattern
         # During rebuild: empty func means check files in rebuild_node()
         return parse_action_definition(func_code) is not None or func_code == ""
 
-    def get_claimed_fields(self, node: dict):
+    def get_claimed_fields(self, node: Dict[str, Any]) -> List[str]:
         """Claim all fields this plugin generates during rebuild"""
         return ["func", "initialize", "finalize"]
 
@@ -163,43 +165,45 @@ class ActionPlugin:
             return "function"
         return None
 
-    def explode_node(self, node: dict, node_dir: Path) -> list:
+    def explode_node(self, node: Dict[str, Any], node_dir: Path) -> List[str]:
         """Explode action to .def.js and .execute.js files
 
         Returns:
             List of created filenames
         """
         try:
-            node_id = node.get("id")
-            node_name = node.get("name", "Unnamed")
-            func_code = node.get("func", "")
-            created_files = []
+            node_id: str = node.get("id")
+            node_name: str = node.get("name", "Unnamed")
+            func_code: str = node.get("func", "")
+            created_files: List[str] = []
 
-            action_data = parse_action_definition(func_code)
+            action_data: Optional[Dict[str, Any]] = parse_action_definition(func_code)
             if not action_data:
                 return []
 
-            action_name = to_snake_case(node_name)  # Actions use snake_case everywhere
+            action_name: str = to_snake_case(node_name)  # Actions use snake_case everywhere
 
             # Write definition file with export default
-            def_code = action_data["def_code"]
-            def_file = node_dir / f"{node_id}.def.js"
+            def_code: str = action_data["def_code"]
+            def_file: Path = node_dir / f"{node_id}.def.js"
             # Add export default on separate line (can't export default const in one line)
             def_file.write_text(f"{def_code}\nexport default actionDef;\n")
             created_files.append(f"{node_id}.def.js")
 
             # Write execute file if it exists
-            execute_code = action_data["execute"]
+            execute_code: Optional[str] = action_data["execute"]
             if execute_code:
                 # Convert arrow function to function declaration
-                result = extract_function_body(execute_code, r"\((.*?)\)\s*=>\s*{")
+                result: Optional[Tuple[str, str]] = extract_function_body(execute_code, r"\((.*?)\)\s*=>\s*{")
                 if result:
+                    params: str
+                    body: str
                     params, body = result
-                    execute_func = (
+                    execute_func: str = (
                         f"export default function {action_name}({params}) {{{body}}}"
                     )
 
-                    execute_file = node_dir / f"{node_id}.execute.js"
+                    execute_file: Path = node_dir / f"{node_id}.execute.js"
                     execute_file.write_text(execute_func + "\n")
                     created_files.append(f"{node_id}.execute.js")
 
@@ -212,61 +216,63 @@ class ActionPlugin:
             return []
 
     def rebuild_node(
-        self, node_id: str, node_dir: Path, skeleton: dict
-    ) -> dict:
+        self, node_id: str, node_dir: Path, skeleton: Dict[str, Any]
+    ) -> Dict[str, str]:
         """Rebuild action from .def.js and .execute.js files"""
-        def_file = node_dir / f"{node_id}.def.js"
-        execute_file = node_dir / f"{node_id}.execute.js"
+        def_file: Path = node_dir / f"{node_id}.def.js"
+        execute_file: Path = node_dir / f"{node_id}.execute.js"
 
         if not def_file.exists():
             return {}
 
-        def_code = def_file.read_text()
+        def_code: str = def_file.read_text()
         # Strip export default line if present
         def_code = re.sub(
             r"^\s*export\s+default\s+actionDef;\s*$", "", def_code, flags=re.MULTILINE
         )
 
-        node_name = skeleton.get("name", "Unnamed")
-        action_name = to_snake_case(node_name)  # Actions use snake_case everywhere
+        node_name: str = skeleton.get("name", "Unnamed")
+        action_name: str = to_snake_case(node_name)  # Actions use snake_case everywhere
 
         # Extract definition object (between { and })
-        def_match = re.search(r"const\s+actionDef\s*=\s*(\{.*\});", def_code, re.DOTALL)
+        def_match: Optional[re.Match] = re.search(r"const\s+actionDef\s*=\s*(\{.*\});", def_code, re.DOTALL)
         if not def_match:
             return {}
 
-        def_obj = def_match.group(1)
+        def_obj: str = def_match.group(1)
 
         # If execute file exists, insert it into definition
         if execute_file.exists():
-            execute_code = execute_file.read_text()
+            execute_code: str = execute_file.read_text()
             # Strip export default if present
             execute_code = re.sub(
                 r"^export\s+default\s+", "", execute_code, flags=re.MULTILINE
             )
 
             # Convert function declaration back to arrow function
-            result = extract_function_body(
+            result: Optional[Tuple[str, str]] = extract_function_body(
                 execute_code, r"function\s+\w+\s*\((.*?)\)\s*{"
             )
             if result:
+                params: str
+                body: str
                 params, body = result
-                execute_arrow = f"({params}) => {{{body}}}"
+                execute_arrow: str = f"({params}) => {{{body}}}"
 
                 # Insert execute into definition object
                 # Find the closing brace and insert before it
-                close_brace = def_obj.rfind("}")
+                close_brace: int = def_obj.rfind("}")
                 if close_brace != -1:
-                    before = def_obj[:close_brace]
+                    before: str = def_obj[:close_brace]
                     # Add comma if needed
                     if not before.rstrip().endswith(","):
                         before += ","
                     def_obj = f"{before}\n  execute: {execute_arrow}\n}}"
 
         # Build templates (empty initialize - all work happens in func)
-        init_template = ""
+        init_template: str = ""
 
-        func_template = f"""// Define action
+        func_template: str = f"""// Define action
 const actionDef = {def_obj};
 
 // Store in global context
@@ -277,7 +283,7 @@ global.set("qcmd", qcmd);
 node.status({{ fill: "blue", shape: "dot", text: "{action_name} loaded" }});
 return msg;"""
 
-        finalize_template = f"""// Cleanup: Remove action from global context
+        finalize_template: str = f"""// Cleanup: Remove action from global context
 const qcmd = global.get("qcmd") || {{}};
 delete qcmd.{action_name};
 global.set("qcmd", qcmd);"""

@@ -5,8 +5,11 @@ Post-explode plugin that formats all source files after explode.
 Only signals "change" if non-.json files were modified.
 """
 
+from __future__ import annotations
+
 import importlib.util
 from pathlib import Path
+from typing import List, Dict, Any, Optional
 
 # Load plugin helpers module
 _helpers_path = Path(__file__).parent / "plugin_helpers.py"
@@ -23,7 +26,7 @@ class PrettierExplodePlugin:
     def get_name(self) -> str:
         return "prettier-explode"
 
-    def get_priority(self):
+    def get_priority(self) -> Optional[int]:
         return None  # Use filename prefix (60)
 
     def get_plugin_type(self) -> str:
@@ -39,7 +42,7 @@ class PrettierExplodePlugin:
         """
         # Format src directory + flows.json in parallel
         # Root files + flows.json in one thread, each subdirectory in its own thread
-        result = run_prettier_parallel(
+        result: bool = run_prettier_parallel(
             src_dir, additional_files=[flows_path]
         )
 

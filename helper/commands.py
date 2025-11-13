@@ -4,12 +4,14 @@ General command implementations for vscode-node-red-tools
 Contains commands for statistics, benchmarking, and verification.
 """
 
+from __future__ import annotations
+
 import difflib
 import json
 import tempfile
 import time
 from pathlib import Path
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, Tuple
 
 from .logging import log_info, log_success, log_warning, log_error
 from .exit_codes import (
@@ -45,19 +47,19 @@ def stats_command(
     try:
         log_info("=== Flow Statistics ===")
 
-        stats = {}
+        stats: Dict[str, Any] = {}
 
         # Flow statistics
         if flows_path.exists():
             log_info(f"\nFlows file: {flows_path}")
             with open(flows_path, "r") as f:
-                flow_data = json.load(f)
+                flow_data: List[Dict[str, Any]] = json.load(f)
 
             # Count node types
-            node_types = {}
-            tabs = []
-            subflows = []
-            config_nodes = []
+            node_types: Dict[str, int] = {}
+            tabs: List[Dict[str, Any]] = []
+            subflows: List[Dict[str, Any]] = []
+            config_nodes: List[Dict[str, Any]] = []
 
             for node in flow_data:
                 node_type = node.get("type", "unknown")
@@ -86,7 +88,7 @@ def stats_command(
 
             # Most common node types
             log_info("\n  Most common node types:")
-            sorted_types = sorted(node_types.items(), key=lambda x: x[1], reverse=True)
+            sorted_types: List[Tuple[str, int]] = sorted(node_types.items(), key=lambda x: x[1], reverse=True)
             for node_type, count in sorted_types[:10]:
                 log_info(f"    {node_type}: {count}")
 
@@ -193,8 +195,8 @@ def benchmark_command(
 
         log_info(f"Flow size: {len(original_flows)} nodes")
 
-        explode_times = []
-        rebuild_times = []
+        explode_times: List[float] = []
+        rebuild_times: List[float] = []
 
         for i in range(iterations):
             log_info(f"\nIteration {i + 1}/{iterations}")
@@ -251,17 +253,17 @@ def benchmark_command(
         # Calculate statistics
         log_info("\n=== Benchmark Results ===")
 
-        explode_avg = sum(explode_times) / len(explode_times)
-        explode_min = min(explode_times)
-        explode_max = max(explode_times)
+        explode_avg: float = sum(explode_times) / len(explode_times)
+        explode_min: float = min(explode_times)
+        explode_max: float = max(explode_times)
 
-        rebuild_avg = sum(rebuild_times) / len(rebuild_times)
-        rebuild_min = min(rebuild_times)
-        rebuild_max = max(rebuild_times)
+        rebuild_avg: float = sum(rebuild_times) / len(rebuild_times)
+        rebuild_min: float = min(rebuild_times)
+        rebuild_max: float = max(rebuild_times)
 
-        total_avg = explode_avg + rebuild_avg
-        total_min = explode_min + rebuild_min
-        total_max = explode_max + rebuild_max
+        total_avg: float = explode_avg + rebuild_avg
+        total_min: float = explode_min + rebuild_min
+        total_max: float = explode_max + rebuild_max
 
         log_info(
             f"Explode:  avg={explode_avg:.3f}s  min={explode_min:.3f}s  max={explode_max:.3f}s"
@@ -356,7 +358,7 @@ def verify_flows(
             # Step 3: Compare
             log_info("Step 3: Comparing original vs rebuilt...")
             with open(temp_flows, "r") as f:
-                rebuilt_flows = json.load(f)
+                rebuilt_flows: List[Dict[str, Any]] = json.load(f)
 
             # Serialize both with same settings to check field order AND content
             # Using compact format (no sort_keys to preserve order)
