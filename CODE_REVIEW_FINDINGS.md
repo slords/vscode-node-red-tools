@@ -194,8 +194,8 @@ flows.json → explode → src/ → rebuild → flows.json'
 **Sophisticated Production Design:**
 
 ```
-┌────────────────────────────────────────────────────────────┐
-│              Watch Mode Orchestrator                       │
+┌───────────────────────────────────────────────────────────┐
+│              Watch Mode Orchestrator                      │
 │   ┌────────────────────┐      ┌──────────────────────┐    │
 │   │  Server Polling    │      │  File Watcher        │    │
 │   │  (HTTP + ETag)     │      │  (watchdog)          │    │
@@ -210,7 +210,7 @@ flows.json → explode → src/ → rebuild → flows.json'
 │   │  • Oscillation detection (5 cycles/60s)          │    │
 │   │  • Rate limiting (180 req/min, 1200 req/10min)   │    │
 │   └──────────────────────────────────────────────────┘    │
-└────────────────────────────────────────────────────────────┘
+└───────────────────────────────────────────────────────────┘
          │                            │
          ▼                            ▼
 ┌─────────────────┐          ┌─────────────────┐
