@@ -145,22 +145,20 @@ class ServerClient:
         return cls(args, config)
 
     def _build_session(self) -> None:
+        """Build requests session with authentication (logging already done by resolve_auth_config)"""
         if requests is None:
             raise RuntimeError("'requests' library not available. Install it to use ServerClient.")
         self._session = requests.Session()
         self._session.verify = self.verify_ssl
         if self.auth_type == "bearer" and self.token:
             self._session.headers.update({"Authorization": f"Bearer {self.token}"})
-            log_info("Using bearer token authentication")
         elif self.auth_type == "basic" and self.username and self.password:
             self._session.auth = HTTPBasicAuth(self.username, self.password)
-            log_info(f"Using basic authentication for user: {self.username}")
         elif self.auth_type == "none":
-            log_info("Using anonymous access (no authentication)")
+            pass  # Anonymous access
         else:
-            if self.auth_type not in ["bearer", "basic", "none"]:
-                log_error(f"Unknown authentication type: {self.auth_type}", code=SERVER_AUTH_ERROR)
-                raise ValueError(f"Unknown authentication type: {self.auth_type}")
+            log_error(f"Unknown authentication type: {self.auth_type}", code=SERVER_AUTH_ERROR)
+            raise ValueError(f"Unknown authentication type: {self.auth_type}")
 
         if not self.verify_ssl:
             try:

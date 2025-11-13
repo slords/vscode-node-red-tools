@@ -131,7 +131,7 @@ def find_orphaned_files(
     return orphaned
 
 
-def handle_orphaned_files(orphaned: List[Path], src_dir: Path, delete: bool = False):
+def handle_orphaned_files(orphaned: List[Path], src_dir: Path, delete: bool = False) -> None:
     """Handle orphaned files - move to .orphaned/ or delete
 
     Args:
