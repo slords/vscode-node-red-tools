@@ -13,6 +13,7 @@ import os
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
+from typing import List, Optional, Tuple, Dict, Any
 
 from .file_ops import find_new_files, handle_new_files
 from .logging import (
@@ -41,8 +42,8 @@ def rebuild_single_node(
     node_dir: Path,
     skeleton: dict,
     base_json_exists: bool,
-    explode_plugins: list,
-    src_dir: Path = None,
+    explode_plugins: List[Any],
+    src_dir: Optional[Path] = None,
 ) -> dict:
     """Rebuild a single node from its files (used by explode for verification)
 
@@ -108,11 +109,11 @@ def rebuild_single_node(
 
 
 def _run_pre_rebuild_stage(
-    pre_rebuild_plugins: list,
+    pre_rebuild_plugins: List[Any],
     src_dir: Path,
     quiet_plugins: bool,
     continued_from_explode: bool = False,
-    progress_task: tuple = None,
+    progress_task: Optional[Tuple] = None,
 ) -> None:
     """Run pre-rebuild plugins to modify source files
 
@@ -150,10 +151,10 @@ def _run_pre_rebuild_stage(
 def _rebuild_single_node(
     idx: int,
     skeleton_node: dict,
-    explode_plugins: list,
+    explode_plugins: List[Any],
     src_dir: Path,
     tab_ids: set,
-) -> tuple[int, dict]:
+) -> Tuple[int, dict]:
     """Rebuild a single node from skeleton and source files (thread-safe worker function)
 
     Args:
@@ -219,13 +220,13 @@ def _rebuild_single_node(
 
 
 def _rebuild_nodes_stage(
-    skeleton_data: list,
-    explode_plugins: list,
+    skeleton_data: List[dict],
+    explode_plugins: List[Any],
     src_dir: Path,
     quiet_plugins: bool,
-    max_workers: int = DEFAULT_MAX_WORKERS,
-    progress_task: tuple = None,
-) -> list:
+    max_workers: Optional[int] = DEFAULT_MAX_WORKERS,
+    progress_task: Optional[Tuple] = None,
+) -> List[dict]:
     """Rebuild nodes from skeleton and source files (with optional parallel processing)
 
     Args:
@@ -314,10 +315,10 @@ def _rebuild_nodes_stage(
 
 
 def _run_post_rebuild_stage(
-    post_rebuild_plugins: list,
+    post_rebuild_plugins: List[Any],
     flows_path: Path,
     quiet_plugins: bool,
-    progress_task: tuple = None,
+    progress_task: Optional[Tuple] = None,
 ) -> None:
     """Run post-rebuild plugins to format flows file
 
@@ -351,7 +352,7 @@ def rebuild_flows(
     quiet_plugins: bool = False,
     continued_from_explode: bool = False,
     dry_run: bool = False,
-    plugins_dict: dict = None,
+    plugins_dict: Optional[Dict[str, List[Any]]] = None,
 ) -> int:
     """Rebuild flows.json from source files
 

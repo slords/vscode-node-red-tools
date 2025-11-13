@@ -7,7 +7,7 @@ contain the structural metadata for Node-RED flows.
 
 import json
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Tuple, Dict, List
 
 from .logging import log_info, log_warning
 from .utils import validate_safe_path, sanitize_filename
@@ -95,7 +95,7 @@ def create_skeleton(node: dict) -> dict:
 
 def load_skeleton(
     src_dir: Path, flows_path: Optional[Path] = None
-) -> tuple[list, dict]:
+) -> Tuple[List[dict], Dict[str, dict]]:
     """Load skeleton file for rebuilding
 
     Args:
@@ -136,7 +136,7 @@ def load_skeleton(
     return skeleton_data, skeleton_map
 
 
-def save_skeleton(src_dir: Path, skeleton_data: list) -> None:
+def save_skeleton(src_dir: Path, skeleton_data: List[dict]) -> None:
     """Save skeleton data to .flow-skeleton.json
 
     Args:

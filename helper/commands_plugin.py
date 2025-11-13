@@ -6,13 +6,14 @@ Contains commands for plugin management: creating new plugins and listing plugin
 
 import importlib.util
 from pathlib import Path
+from typing import Optional, Dict, Any, List
 
 from .logging import log_info, log_success, log_warning, log_error
 from .exit_codes import SUCCESS, GENERAL_ERROR, PLUGIN_ERROR, CONFIG_ERROR, PLUGIN_LOAD_ERROR
 from .plugin_loader import extract_numeric_prefix, DEFAULT_PLUGIN_PRIORITY
 
 
-def new_plugin_command(name: str, plugin_type: str, priority: int = None) -> int:
+def new_plugin_command(name: str, plugin_type: str, priority: Optional[int] = None) -> int:
     """Generate a new plugin scaffold"""
     try:
         # Determine priority if not specified
@@ -275,8 +276,8 @@ class {class_name}(Plugin):
 
 
 def list_plugins_command(
-    plugins_dict: dict = None,
-    config: dict = None,
+    plugins_dict: Optional[Dict[str, List[Any]]] = None,
+    config: Optional[Dict[str, Any]] = None,
 ) -> int:
     """List all available plugins with their status and priority
 
