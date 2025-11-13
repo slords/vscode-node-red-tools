@@ -10,11 +10,13 @@ This makes functions testable outside Node-RED by wrapping them with:
   }
 """
 
+from __future__ import annotations
+
 import importlib.util
 import re
 import textwrap
 from pathlib import Path
-from typing import Optional
+from typing import List, Dict, Any, Optional
 
 # Load plugin helpers module
 _helpers_path = Path(__file__).parent / "plugin_helpers.py"
@@ -30,75 +32,75 @@ class WrapFuncPlugin:
     def get_name(self) -> str:
         return "wrap_func"
 
-    def get_priority(self):
+    def get_priority(self) -> Optional[int]:
         return None  # Use filename prefix (220)
 
     def get_plugin_type(self) -> str:
         return "explode"
 
-    def can_handle_node(self, node: dict) -> bool:
+    def can_handle_node(self, node: Dict[str, Any]) -> bool:
         """Check if this node is a function node (not action/global function)"""
         return node.get("type") == "function" and "func" in node and node["func"]
 
-    def get_claimed_fields(self, node: dict):
+    def get_claimed_fields(self, node: Dict[str, Any]) -> List[str]:
         """Claim the func, initialize, and finalize fields"""
         return ["func", "initialize", "finalize"]
 
-    def can_infer_node_type(self, node_dir: Path, node_id: str):
+    def can_infer_node_type(self, node_dir: Path, node_id: str) -> Optional[str]:
         """Infer node type from files, returns None if can't infer"""
         # If there's a .wrapped.js file, it's a function node
         if (node_dir / f"{node_id}.wrapped.js").exists():
             return "function"
         return None
 
-    def explode_node(self, node: dict, node_dir: Path) -> list:
+    def explode_node(self, node: Dict[str, Any], node_dir: Path) -> List[str]:
         """Wrap func, initialize, and finalize in testable function declarations
 
         Returns:
             List of created filenames
         """
         try:
-            node_id = node.get("id")
-            node_name = node.get("name", "Unnamed")
-            func_name = to_camel_case(node_name)
-            created_files = []
+            node_id: str = node.get("id")
+            node_name: str = node.get("name", "Unnamed")
+            func_name: str = to_camel_case(node_name)
+            created_files: List[str] = []
 
             # Wrap main func code
-            func_code = node.get("func", "")
+            func_code: str = node.get("func", "")
             if func_code:
                 # Node-RED function parameters: msg, node, context, flow, global, env, RED
-                wrapped_func = (
+                wrapped_func: str = (
                     f"export default function {func_name}(msg, node, context, flow, global, env, RED) {{\n"
                     f"{func_code}\n"
                     f"}}\n"
                 )
-                wrapped_file = node_dir / f"{node_id}.wrapped.js"
+                wrapped_file: Path = node_dir / f"{node_id}.wrapped.js"
                 wrapped_file.write_text(wrapped_func)
                 created_files.append(f"{node_id}.wrapped.js")
 
             # Wrap initialize code if present
-            initialize_code = node.get("initialize", "")
+            initialize_code: str = node.get("initialize", "")
             if initialize_code:
                 # Initialize doesn't get msg parameter
-                wrapped_init = (
+                wrapped_init: str = (
                     f"export default function {func_name}_initialize(node, context, flow, global, env, RED) {{\n"
                     f"{initialize_code}\n"
                     f"}}\n"
                 )
-                init_file = node_dir / f"{node_id}.initialize.js"
+                init_file: Path = node_dir / f"{node_id}.initialize.js"
                 init_file.write_text(wrapped_init)
                 created_files.append(f"{node_id}.initialize.js")
 
             # Wrap finalize code if present
-            finalize_code = node.get("finalize", "")
+            finalize_code: str = node.get("finalize", "")
             if finalize_code:
                 # Finalize doesn't get msg parameter
-                wrapped_final = (
+                wrapped_final: str = (
                     f"export default function {func_name}_finalize(node, context, flow, global, env, RED) {{\n"
                     f"{finalize_code}\n"
                     f"}}\n"
                 )
-                final_file = node_dir / f"{node_id}.finalize.js"
+                final_file: Path = node_dir / f"{node_id}.finalize.js"
                 final_file.write_text(wrapped_final)
                 created_files.append(f"{node_id}.finalize.js")
 
@@ -111,24 +113,24 @@ class WrapFuncPlugin:
             return []
 
     def rebuild_node(
-        self, node_id: str, node_dir: Path, skeleton: dict
-    ) -> dict:
+        self, node_id: str, node_dir: Path, skeleton: Dict[str, Any]
+    ) -> Dict[str, str]:
         """Rebuild func, initialize, and finalize from wrapped files"""
-        data = {}
+        data: Dict[str, str] = {}
 
         # Rebuild main func code
-        wrapped_file = node_dir / f"{node_id}.wrapped.js"
+        wrapped_file: Path = node_dir / f"{node_id}.wrapped.js"
         if wrapped_file.exists():
-            wrapped_code = wrapped_file.read_text()
+            wrapped_code: str = wrapped_file.read_text()
             # Extract function body (everything between first { and last })
             # Pattern: export default function name(params) { BODY }
-            match = re.search(
+            match: Optional[re.Match] = re.search(
                 r"export\s+default\s+function\s+\w+\s*\([^)]*\)\s*\{(.*)\}",
                 wrapped_code,
                 re.DOTALL,
             )
             if match:
-                body = match.group(1)
+                body: str = match.group(1)
                 # Remove exactly one leading and one trailing newline if present
                 if body.startswith("\n"):
                     body = body[1:]
@@ -139,16 +141,16 @@ class WrapFuncPlugin:
                 data["func"] = body
 
         # Rebuild initialize code
-        init_file = node_dir / f"{node_id}.initialize.js"
+        init_file: Path = node_dir / f"{node_id}.initialize.js"
         if init_file.exists():
-            init_code = init_file.read_text()
-            match = re.search(
+            init_code: str = init_file.read_text()
+            match: Optional[re.Match] = re.search(
                 r"export\s+default\s+function\s+\w+\s*\([^)]*\)\s*\{(.*)\}",
                 init_code,
                 re.DOTALL,
             )
             if match:
-                body = match.group(1)
+                body: str = match.group(1)
                 if body.startswith("\n"):
                     body = body[1:]
                 if body.endswith("\n"):
@@ -161,16 +163,16 @@ class WrapFuncPlugin:
             data["initialize"] = ""
 
         # Rebuild finalize code
-        final_file = node_dir / f"{node_id}.finalize.js"
+        final_file: Path = node_dir / f"{node_id}.finalize.js"
         if final_file.exists():
-            final_code = final_file.read_text()
-            match = re.search(
+            final_code: str = final_file.read_text()
+            match: Optional[re.Match] = re.search(
                 r"export\s+default\s+function\s+\w+\s*\([^)]*\)\s*\{(.*)\}",
                 final_code,
                 re.DOTALL,
             )
             if match:
-                body = match.group(1)
+                body: str = match.group(1)
                 if body.startswith("\n"):
                     body = body[1:]
                 if body.endswith("\n"):

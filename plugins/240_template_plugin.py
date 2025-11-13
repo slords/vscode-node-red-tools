@@ -9,12 +9,14 @@ Handles template extraction from various Node-RED template nodes:
 Extracts template content to appropriately named files for IDE support.
 """
 
+from __future__ import annotations
+
 from pathlib import Path
-from typing import Optional
+from typing import List, Dict, Any, Optional
 
 
 # Format to extension mapping for core template node
-FORMAT_EXTENSIONS = {
+FORMAT_EXTENSIONS: Dict[str, str] = {
     "handlebars": ".mustache",
     "html": ".html",
     "json": ".json",
@@ -36,22 +38,22 @@ class TemplatePlugin:
     def get_name(self) -> str:
         return "template"
 
-    def get_priority(self):
+    def get_priority(self) -> Optional[int]:
         return None  # Use filename prefix (240)
 
     def get_plugin_type(self) -> str:
         return "explode"
 
-    def can_handle_node(self, node: dict) -> bool:
+    def can_handle_node(self, node: Dict[str, Any]) -> bool:
         """Check if this node has a template field"""
-        node_type = node.get("type", "")
+        node_type: str = node.get("type", "")
         # Handle ui_template, ui-template, or template nodes with template field
         return (
             node_type in ["ui_template", "ui-template", "template"]
             and "template" in node
         )
 
-    def get_claimed_fields(self, node: dict):
+    def get_claimed_fields(self, node: Dict[str, Any]) -> List[str]:
         """Claim the template field"""
         return ["template"]
 
@@ -80,9 +82,9 @@ class TemplatePlugin:
 
         return None
 
-    def _get_template_extension(self, node: dict) -> str:
+    def _get_template_extension(self, node: Dict[str, Any]) -> str:
         """Determine appropriate file extension based on node type and format"""
-        node_type = node.get("type", "")
+        node_type: str = node.get("type", "")
 
         if node_type == "ui_template":
             # Dashboard 2 - Vue components
@@ -92,27 +94,27 @@ class TemplatePlugin:
             return ".ui-template.html"
         elif node_type == "template":
             # Core template node - use format field
-            format_type = node.get("format", "handlebars")
-            ext = FORMAT_EXTENSIONS.get(format_type, ".txt")
+            format_type: str = node.get("format", "handlebars")
+            ext: str = FORMAT_EXTENSIONS.get(format_type, ".txt")
             return f".template{ext}"
         else:
             # Unknown template type - use generic
             return ".template.txt"
 
-    def explode_node(self, node: dict, node_dir: Path) -> list:
+    def explode_node(self, node: Dict[str, Any], node_dir: Path) -> List[str]:
         """Extract template field to appropriate file
 
         Returns:
             List of created filenames
         """
         try:
-            node_id = node.get("id")
-            template_content = node.get("template", "")
-            created_files = []
+            node_id: str = node.get("id")
+            template_content: str = node.get("template", "")
+            created_files: List[str] = []
 
             if template_content:
-                extension = self._get_template_extension(node)
-                template_file = node_dir / f"{node_id}{extension}"
+                extension: str = self._get_template_extension(node)
+                template_file: Path = node_dir / f"{node_id}{extension}"
                 template_file.write_text(template_content)
                 created_files.append(f"{node_id}{extension}")
 
@@ -125,28 +127,28 @@ class TemplatePlugin:
             return []
 
     def rebuild_node(
-        self, node_id: str, node_dir: Path, skeleton: dict
-    ) -> dict:
+        self, node_id: str, node_dir: Path, skeleton: Dict[str, Any]
+    ) -> Dict[str, str]:
         """Rebuild template from file"""
-        data = {}
+        data: Dict[str, str] = {}
 
         # Try to find template file by checking known patterns
-        template_file = None
+        template_file: Optional[Path] = None
 
         # Check for Dashboard 2 (Vue)
-        vue_file = node_dir / f"{node_id}.vue"
+        vue_file: Path = node_dir / f"{node_id}.vue"
         if vue_file.exists():
             template_file = vue_file
 
         # Check for Dashboard 1 (Angular)
         if not template_file:
-            ui_template_file = node_dir / f"{node_id}.ui-template.html"
+            ui_template_file: Path = node_dir / f"{node_id}.ui-template.html"
             if ui_template_file.exists():
                 template_file = ui_template_file
 
         # Check for core template node (any .template.* file)
         if not template_file:
-            template_files = list(node_dir.glob(f"{node_id}.template.*"))
+            template_files: List[Path] = list(node_dir.glob(f"{node_id}.template.*"))
             if template_files:
                 template_file = template_files[0]
 

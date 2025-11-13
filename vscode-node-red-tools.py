@@ -16,12 +16,15 @@ Usage:
     python vscode-node-red-tools.py watch --server https://server:1880 --username admin --password pass
 """
 
+from __future__ import annotations
+
 __version__ = "3.0.0"
 
 import argparse
 import json
 import sys
 from pathlib import Path
+from typing import Optional, Dict, Any, Tuple, List
 
 # Import from helper modules
 from helper import (
@@ -67,8 +70,9 @@ from helper.initialize import initialize_system
 # ============================================================================
 
 
-def main():
-    parser = argparse.ArgumentParser(
+def main() -> int:
+    """Main CLI entry point."""
+    parser: argparse.ArgumentParser = argparse.ArgumentParser(
         description="Unified Node-RED development tool",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
@@ -319,12 +323,12 @@ def main():
     except ImportError:
         pass  # Shell completion is optional
 
-    args = parser.parse_args()
+    args: argparse.Namespace = parser.parse_args()
 
     # Set logging level from CLI args (before any logging occurs)
     from helper import LogLevel, set_log_level
     if hasattr(args, "log_level") and args.log_level:
-        level_map = {
+        level_map: Dict[str, Any] = {
             "DEBUG": LogLevel.DEBUG,
             "INFO": LogLevel.INFO,
             "WARNING": LogLevel.WARNING,
@@ -340,12 +344,15 @@ def main():
     try:
         # --- Main command dispatch ---
         # Setup (config, server_client, plugins)
-        init = initialize_system(args)
+        init: Optional[Tuple[Dict[str, Any], Dict[str, List[Any]], Any]] = initialize_system(args)
         if init is None:
             return GENERAL_ERROR
+        config: Dict[str, Any]
+        plugins_dict: Dict[str, List[Any]]
+        server_client: Any
         config, plugins_dict, server_client = init
-        flows_path = Path(args.flows).resolve()
-        src_path = Path(args.src).resolve()
+        flows_path: Path = Path(args.flows).resolve()
+        src_path: Path = Path(args.src).resolve()
 
         # Command dispatch
 
@@ -353,7 +360,7 @@ def main():
         if args.command == "validate-config":
             return validate_config(config, server_client, args)
         elif args.command == "new-plugin":
-            priority = args.priority if hasattr(args, "priority") else None
+            priority: Optional[int] = args.priority if hasattr(args, "priority") else None
             return new_plugin_command(args.name, args.type, priority)
         elif args.command == "list-plugins":
             return list_plugins_command(plugins_dict, config)

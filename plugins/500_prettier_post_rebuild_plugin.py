@@ -4,8 +4,11 @@ Prettier Post-Rebuild Plugin
 Post-rebuild plugin that formats flows.json after rebuild.
 """
 
+from __future__ import annotations
+
 import importlib.util
 from pathlib import Path
+from typing import List, Dict, Any, Optional
 
 # Load plugin helpers module
 _helpers_path = Path(__file__).parent / "plugin_helpers.py"
@@ -21,7 +24,7 @@ class PrettierPostRebuildPlugin:
     def get_name(self) -> str:
         return "prettier-post-rebuild"
 
-    def get_priority(self):
+    def get_priority(self) -> Optional[int]:
         return None  # Use filename prefix (500)
 
     def get_plugin_type(self) -> str:
@@ -30,7 +33,7 @@ class PrettierPostRebuildPlugin:
     def process_flows_post_rebuild(self, flows_path: Path) -> bool:
         """Format flows.json after rebuild"""
         # Format flows.json
-        result = run_prettier(flows_path)
+        result: bool = run_prettier(flows_path)
 
         if result:
             print(f"   Formatted {flows_path.name}")

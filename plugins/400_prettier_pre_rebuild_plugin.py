@@ -5,8 +5,11 @@ Pre-rebuild plugin that formats all source files before rebuild.
 Ensures that local changes are properly formatted before being rebuilt and uploaded.
 """
 
+from __future__ import annotations
+
 import importlib.util
 from pathlib import Path
+from typing import List, Dict, Any, Optional
 
 # Load plugin helpers module
 _helpers_path = Path(__file__).parent / "plugin_helpers.py"
@@ -22,7 +25,7 @@ class PrettierPreRebuildPlugin:
     def get_name(self) -> str:
         return "prettier-pre-rebuild"
 
-    def get_priority(self):
+    def get_priority(self) -> Optional[int]:
         return None  # Use filename prefix (400)
 
     def get_plugin_type(self) -> str:

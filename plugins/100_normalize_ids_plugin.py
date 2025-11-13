@@ -4,8 +4,11 @@ Normalize IDs Plugin
 Pre-explode plugin that normalizes random Node-RED IDs to functional names.
 """
 
+from __future__ import annotations
+
 import re
 from pathlib import Path
+from typing import List, Dict, Any, Optional, Tuple, Set
 
 
 def slugify(text: str) -> str:
@@ -17,7 +20,7 @@ def slugify(text: str) -> str:
 
 def abbreviate_type(node_type: str) -> str:
     """Abbreviate common node types"""
-    abbreviations = {
+    abbreviations: Dict[str, str] = {
         "function": "func",
         "inject": "inject",
         "debug": "debug",
@@ -61,41 +64,41 @@ def derive_name_from_function(func_code: str) -> str:
         return "unnamed"
 
     # Check if this is an action definition
-    action_match = re.search(
+    action_match: Optional[re.Match] = re.search(
         r'const\s+(actionDef|cmdDef)\s*=\s*\{[\s\S]*?name:\s*["\']([^"\']+)["\']',
         func_code,
     )
     if action_match:
         return action_match.group(2)
 
-    lines = func_code.strip().split("\n")
-    code_lines = [
+    lines: List[str] = func_code.strip().split("\n")
+    code_lines: List[str] = [
         l.strip() for l in lines if l.strip() and not l.strip().startswith("//")
     ]
 
     if not code_lines:
         return "unnamed"
 
-    first_line = code_lines[0]
+    first_line: str = code_lines[0]
 
-    var_match = re.search(r"(?:var|let|const)\s+(\w+)", first_line)
+    var_match: Optional[re.Match] = re.search(r"(?:var|let|const)\s+(\w+)", first_line)
     if var_match:
         return var_match.group(1)
 
-    func_match = re.search(r"(\w+)\s*\(", first_line)
+    func_match: Optional[re.Match] = re.search(r"(\w+)\s*\(", first_line)
     if func_match:
-        func_name = func_match.group(1)
+        func_name: str = func_match.group(1)
         if func_name not in ["if", "for", "while", "switch", "return"]:
             return func_name
 
-    msg_match = re.search(r"msg\.(\w+)\s*=", first_line)
+    msg_match: Optional[re.Match] = re.search(r"msg\.(\w+)\s*=", first_line)
     if msg_match:
         return f"set_{msg_match.group(1)}"
 
     return "unnamed"
 
 
-def derive_node_name(node: dict) -> str:
+def derive_node_name(node: Dict[str, Any]) -> str:
     """Derive a meaningful name for a node"""
     if "name" in node and node["name"]:
         return slugify(node["name"])
@@ -118,36 +121,36 @@ def derive_node_name(node: dict) -> str:
         return f"check_{slugify(prop)}"
 
     if node.get("type") == "change" and "rules" in node and node["rules"]:
-        rule = node["rules"][0]
+        rule: Dict[str, Any] = node["rules"][0]
         if "to" in rule:
             return f"set_{slugify(str(rule['to']))[:20]}"
 
     return "unnamed"
 
 
-def generate_new_id(node: dict, used_ids: set) -> str:
+def generate_new_id(node: Dict[str, Any], used_ids: Set[str]) -> str:
     """Generate a new functional ID for a node"""
-    node_type = node.get("type", "unknown")
+    node_type: str = node.get("type", "unknown")
 
     if node_type == "tab":
-        base_name = slugify(node.get("label", "flow"))
-        prefix = "tab"
+        base_name: str = slugify(node.get("label", "flow"))
+        prefix: str = "tab"
     elif node_type.startswith("subflow"):
-        base_name = slugify(node.get("name", node.get("label", "subflow")))
-        prefix = "subflow"
+        base_name: str = slugify(node.get("name", node.get("label", "subflow")))
+        prefix: str = "subflow"
     else:
-        type_abbr = abbreviate_type(node_type)
-        name = derive_node_name(node)
-        base_name = name
-        prefix = type_abbr
+        type_abbr: str = abbreviate_type(node_type)
+        name: str = derive_node_name(node)
+        base_name: str = name
+        prefix: str = type_abbr
 
     if base_name and base_name != "unnamed":
-        new_id = f"{prefix}_{base_name}"
+        new_id: str = f"{prefix}_{base_name}"
     else:
-        new_id = prefix
+        new_id: str = prefix
 
     if new_id in used_ids:
-        counter = 2
+        counter: int = 2
         while f"{new_id}_{counter}" in used_ids:
             counter += 1
         new_id = f"{new_id}_{counter}"
@@ -156,7 +159,7 @@ def generate_new_id(node: dict, used_ids: set) -> str:
     return new_id
 
 
-def update_wires(nodes: list, id_map: dict):
+def update_wires(nodes: List[Dict[str, Any]], id_map: Dict[str, str]) -> None:
     """Update all wire references with new IDs"""
     for node in nodes:
         if "wires" in node:
@@ -200,15 +203,15 @@ def update_wires(nodes: list, id_map: dict):
                             env_var["value"] = id_map[env_var["value"]]
 
 
-def normalize_flow_ids(flow_data: list) -> tuple[list, dict]:
+def normalize_flow_ids(flow_data: List[Dict[str, Any]]) -> Tuple[List[Dict[str, Any]], Dict[str, str]]:
     """Normalize all node IDs in the flow. Returns (flow_data, id_map)"""
-    id_map = {}
-    used_ids = set()
+    id_map: Dict[str, str] = {}
+    used_ids: Set[str] = set()
 
     for node in flow_data:
-        old_id = node.get("id")
+        old_id: Optional[str] = node.get("id")
         if old_id:
-            new_id = generate_new_id(node, used_ids)
+            new_id: str = generate_new_id(node, used_ids)
             id_map[old_id] = new_id
             node["id"] = new_id
 
@@ -223,15 +226,17 @@ class NormalizeIdsPlugin:
     def get_name(self) -> str:
         return "normalize-ids"
 
-    def get_priority(self):
+    def get_priority(self) -> Optional[int]:
         return None  # Use filename prefix (10)
 
     def get_plugin_type(self) -> str:
         return "pre-explode"
 
-    def process_flows_pre_explode(self, flow_data: list) -> list:
+    def process_flows_pre_explode(self, flow_data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """Normalize all node IDs in the flow"""
         # Run normalize
+        normalized_flow: List[Dict[str, Any]]
+        id_map: Dict[str, str]
         normalized_flow, id_map = normalize_flow_ids(flow_data)
 
         if id_map:

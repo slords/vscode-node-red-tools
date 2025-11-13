@@ -8,12 +8,14 @@ Handles decomposition of flows.json into individual source files with:
 - Pre/post-explode plugin stages
 """
 
+from __future__ import annotations
+
 import json
 import os
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from typing import List, Optional, Tuple, Dict, Any
+from typing import List, Optional, Tuple, Dict, Any, Set
 
 from .file_ops import find_orphaned_files, handle_orphaned_files
 from .logging import (
@@ -144,13 +146,13 @@ def _explode_single_node(
     node_dir.mkdir(parents=True, exist_ok=True)
 
     # Create skeleton entry
-    skeleton = create_skeleton(node)
+    skeleton: Dict[str, Any] = create_skeleton(node)
 
     # Track claimed fields to prevent conflicts
-    claimed_fields = set()
+    claimed_fields: Set[str] = set()
 
     # Track metadata for this node: {plugin_name: [files]}
-    plugin_files_map = {}
+    plugin_files_map: Dict[str, List[str]] = {}
 
     # Let plugins handle node-specific files
     for plugin in explode_plugins:
@@ -170,11 +172,11 @@ def _explode_single_node(
                 plugin_files_map[plugin.get_name()] = sorted(plugin_files)
 
     # Write base .json file (exclude structural fields and claimed fields)
-    structural_fields = {"id", "type", "z", "x", "y", "wires"}
-    excluded_fields = structural_fields | claimed_fields
+    structural_fields: Set[str] = {"id", "type", "z", "x", "y", "wires"}
+    excluded_fields: Set[str] = structural_fields | claimed_fields
 
-    json_file = node_dir / f"{node_id}.json"
-    node_json = {k: v for k, v in node.items() if k not in excluded_fields}
+    json_file: Path = node_dir / f"{node_id}.json"
+    node_json: Dict[str, Any] = {k: v for k, v in node.items() if k not in excluded_fields}
 
     # Only write .json file if there are functional fields to save
     if node_json:
@@ -280,11 +282,11 @@ def _explode_nodes_stage(
         max_workers = os.cpu_count() or 4
 
     # Shared state for thread-safe operations
-    progress_lock = threading.Lock()
-    progress_counter = [0]
-    show_progress = total_nodes > 50
+    progress_lock: threading.Lock = threading.Lock()
+    progress_counter: List[int] = [0]
+    show_progress: bool = total_nodes > 50
 
-    def update_progress():
+    def update_progress() -> None:
         """Thread-safe progress update"""
         with progress_lock:
             progress_counter[0] += 1
@@ -299,7 +301,7 @@ def _explode_nodes_stage(
     # Process nodes
     if use_parallel:
         # Parallel processing with ThreadPoolExecutor
-        skeleton_data = [None] * total_nodes  # Pre-allocate to maintain order
+        skeleton_data: List[Optional[Dict[str, Any]]] = [None] * total_nodes  # Pre-allocate to maintain order
 
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             # Submit all tasks
@@ -331,7 +333,7 @@ def _explode_nodes_stage(
 
     else:
         # Sequential processing
-        skeleton_data = []
+        skeleton_data: List[Dict[str, Any]] = []
 
         for idx, node in enumerate(flow_data):
             idx_result, skeleton, is_unstable = _explode_single_node(
