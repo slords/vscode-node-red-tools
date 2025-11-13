@@ -781,16 +781,18 @@ pip install -r requirements.txt
 
 ### License: ⭐⭐⭐⭐⭐ EXCELLENT
 
-**License:** Historical license reference removed; see current LICENSE (BSL-1.1 → AGPL-3.0) (permissive open-source)
+**License:** Business Source License 1.1 (BSL-1.1)
 
 **Compliance:**
 - ✅ LICENSE file present and complete
-- ✅ Permits commercial use
-- ✅ Permits modifications
-- ✅ Clear copyright notice
-- ✅ No liability
-- ✅ CONTRIBUTING.md references license
-- ✅ No GPL or restrictive dependencies
+- ✅ Use Limitations documented (no embedding/bundling; production restricted above revenue threshold without commercial license)
+- ✅ Modifications allowed under BSL terms
+- ✅ Clear attribution maintained
+- ✅ Liability disclaimer present
+- ✅ CONTRIBUTING.md references BSL and conversion timeline
+- ✅ SPDX identifiers documented (current `BSL-1.1`, future converted versions `AGPL-3.0-only`)
+
+**Conversion:** Each released version converts to AGPL-3.0 five years from the date that version is published.
 
 ### Publishing Readiness
 

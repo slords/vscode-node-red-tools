@@ -1276,7 +1276,7 @@ python3 vscode-node-red-tools.py watch --server https://... --no-verify-ssl
 - ✅ Multiple deployment methods (Python, Docker, venv)
 - ✅ Platform support (Linux, macOS, Windows, Docker)
 - ✅ Version management (Semantic Versioning)
-- ✅ License (historical snapshot; see current LICENSE: BSL-1.1 → AGPL-3.0)
+- ✅ License (BSL-1.1; converts to AGPL-3.0 after five years)
 
 ---
 

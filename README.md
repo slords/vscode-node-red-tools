@@ -196,7 +196,57 @@ This project was inspired by [functions-templates-manager](https://github.com/da
 
 ## License
 
-Historical license reference removed; see current LICENSE (BSL-1.1 → AGPL-3.0) - see [LICENSE](LICENSE) for details.
+This project is licensed under the Business Source License 1.1 (BSL-1.1) — see [LICENSE](LICENSE) for details.
+
+**Use Limitations:**
+- You may not embed, bundle, or distribute the Software as part of a product, service, or platform offered to third parties, except for non-production evaluation.
+- Production use is not permitted by entities (including affiliates) with annual revenue over $1,000,000 unless a commercial license is obtained.
+
+**License Conversion:**
+- Each released version of the Licensed Work converts to the GNU Affero General Public License v3.0 (AGPL-3.0) five years from the date that version is published.
+
+**SPDX:** Current `BSL-1.1`; future converted versions `AGPL-3.0-only`.
+
+## Licensing FAQ
+
+**Q: What does “non-production” mean?**  
+"Production" refers to any environment (internal or external) where the Software (or a derivative) directly supports real users, customers, revenue-generating processes, SLA‑bound services, or operational workloads whose failure would impact business outcomes. Development, staging, QA, local experimentation, evaluation, prototyping, and internal feature design phases are considered non-production.
+
+**Q: What counts as "embed, bundle, or include"?**  
+Embedding, bundling, or including means distributing the Software (original or modified) inside another product, SaaS offering, platform, managed service, toolkit, or artifact delivered to third parties (paid or unpaid), OR shipping it as a dependency whose presence is part of a commercial deliverable. Internal use (e.g. as a developer tool) that is not redistributed to third parties is permitted under the License.
+
+**Q: Can I modify the source for internal tooling?**  
+Yes. You may copy, fork, patch, and create derivative works for non-production/internal use so long as you respect the Use Limitations (no production deployment above the revenue threshold and no embedding in a commercial product).
+
+**Q: How is the $1,000,000 annual revenue threshold calculated?**  
+Aggregate gross annual revenue (not profit) of the legal entity and all its controlled affiliates for the most recently completed fiscal year. If consolidated financials are produced for regulatory or reporting purposes, use that figure. If you are below the threshold when adoption begins and later exceed it, you must either (a) cease production use and embedding, or (b) seek a separate commercial license.
+
+**Q: What is an affiliate?**  
+Any entity that directly or indirectly controls, is controlled by, or is under common control with the licensee ("control" typically meaning ownership of >50% voting interests or equivalent influence over governance).
+
+**Q: Does the Business Source License make this Open Source?**  
+Not immediately. BSL is source-available with delayed conversion. Upon the Change Date, the code for that version becomes licensed under AGPL-3.0, which is an OSI-approved copyleft license with a network/service provision.
+
+**Q: What happens at the Change Date?**  
+Each specific released version covered by BSL converts to the AGPL-3.0 license exactly five years after its publication date. Newer versions may have a later Change Date. After conversion, AGPL terms apply to that version permanently.
+
+**Q: Can I deploy to production if I’m under $1,000,000 in revenue?**  
+Yes, provided you also respect the non-embedding clause. If you exceed the threshold later, production deployment becomes disallowed unless you obtain a commercial license.
+
+**Q: May I publish forks?**  
+Public forks for evaluation, experimentation, or collaboration are allowed so long as the fork clearly retains the BSL notice, Use Limitations, and does not violate embedding/production restrictions.
+
+**Q: Why AGPL-3.0 as the Change License?**  
+AGPL-3.0 ensures that improvements deployed as network services must be made available under the same terms, aligning long-term openness with user freedom.
+
+**Q: How do I request a commercial license?**  
+Open an issue or contact the maintainer with a short description of intended production or embedded use and scale.
+
+**Q: Do I need to track the Change Date per version?**  
+Yes. Each released version has its own five-year clock. Tooling that records release timestamps (e.g., tags) can help you manage conversion timelines.
+
+**Q: Is telemetry or usage reporting affected?**  
+If added, it must comply with the License terms; internal evaluation telemetry is fine. Providing external hosted dashboards as part of a product with the Software embedded would require a commercial license.
 
 ## Contributing
 

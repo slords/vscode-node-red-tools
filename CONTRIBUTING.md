@@ -122,4 +122,4 @@ When requesting features:
 
 ## License
 
-By contributing, you agree that your contributions will be licensed under the Historical license reference removed; see current LICENSE (BSL-1.1 → AGPL-3.0).
+By contributing, you agree that your contributions will be licensed under the Business Source License 1.1 (BSL-1.1). Each released version of the Licensed Work will convert to the GNU Affero General Public License v3.0 (AGPL-3.0) five years from the date that version is published.
