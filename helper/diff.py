@@ -14,7 +14,7 @@ import subprocess
 import tempfile
 import traceback
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 
 try:
     import requests
@@ -30,7 +30,7 @@ from .utils import validate_path_for_subprocess
 from .constants import HTTP_TIMEOUT, SUBPROCESS_TIMEOUT
 
 
-def download_server_flows(server) -> dict:
+def download_server_flows(server: Any) -> List[dict]:
     """Download flows from Node-RED server using a ServerClient (AuthConfig inside).
 
     Args:
@@ -93,9 +93,9 @@ def prepare_source_for_diff(
     source_type: str,
     flows_path: Path,
     src_path: Path,
-    server_client=None,
-    temp_dir: Path = None,
-    plugins_dict: dict = None,
+    server_client: Optional[Any] = None,
+    temp_dir: Optional[Path] = None,
+    plugins_dict: Optional[Dict[str, List[Any]]] = None,
 ) -> Path:
     """Prepare a source for comparison by creating an exploded directory
 
@@ -374,9 +374,9 @@ def diff_flows(
     target: str,
     flows_path: Path,
     src_path: Path,
-    server_client=None,
+    server_client: Optional[Any] = None,
     use_bcompare: bool = False,
-    plugins_dict: dict = None,
+    plugins_dict: Optional[Dict[str, List[Any]]] = None,
     context: int = 3,
 ) -> int:
     """Compare two sources (src, flow, or server)

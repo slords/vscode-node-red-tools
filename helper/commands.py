@@ -9,6 +9,7 @@ import json
 import tempfile
 import time
 from pathlib import Path
+from typing import Dict, Any, Optional, List
 
 from .logging import log_info, log_success, log_warning, log_error
 from .exit_codes import (
@@ -27,8 +28,8 @@ from .rebuild import rebuild_flows
 def stats_command(
     flows_path: Path,
     src_path: Path,
-    plugins_dict: dict,
-    config: dict,
+    plugins_dict: Optional[Dict[str, List[Any]]],
+    config: Optional[Dict[str, Any]],
 ) -> int:
     """Display comprehensive flow and source statistics
 
@@ -170,8 +171,8 @@ def stats_command(
 def benchmark_command(
     flows_path: Path,
     src_path: Path,
-    plugins_dict: dict = None,
-    config: dict = None,
+    plugins_dict: Optional[Dict[str, List[Any]]] = None,
+    config: Optional[Dict[str, Any]] = None,
     iterations: int = 3,
 ) -> int:
     """Benchmark explode and rebuild performance
@@ -292,8 +293,8 @@ def benchmark_command(
 
 def verify_flows(
     flows_path: Path,
-    plugins_dict: dict,
-    config: dict,
+    plugins_dict: Optional[Dict[str, List[Any]]],
+    config: Optional[Dict[str, Any]],
 ) -> int:
     """Verify round-trip stability: explode → rebuild → compare
 

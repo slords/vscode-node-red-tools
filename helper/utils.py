@@ -10,7 +10,7 @@ import re
 import shutil
 from datetime import datetime
 from pathlib import Path
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Dict
 import urllib.parse
 
 from .logging import log_info, log_warning
@@ -101,7 +101,7 @@ class RateLimiter:
             self.request_times.append(now)
             return True
 
-    def get_stats(self) -> dict:
+    def get_stats(self) -> Dict[str, int]:
         """Get current rate limiter statistics
 
         Returns:
@@ -339,7 +339,7 @@ def validate_server_url(url: str) -> str:
         raise ValueError(f"Invalid server URL '{url}': {e}")
 
 
-def write_compact_json(path: Path, data: Any):
+def write_compact_json(path: Path, data: Any) -> None:
     """Write JSON in compact format with trailing newline
 
     Args:
@@ -506,8 +506,8 @@ def create_backup(
 
 def cleanup_old_backups(
     backup_dir: Path,
-    max_backups: int = None,
-    max_age_days: int = None,
+    max_backups: Optional[int] = None,
+    max_age_days: Optional[int] = None,
     file_pattern: str = "*.json",
 ) -> int:
     """Clean up old backup files based on retention policy.

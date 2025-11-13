@@ -13,6 +13,7 @@ import os
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
+from typing import List, Optional, Tuple, Dict, Any
 
 from .file_ops import find_orphaned_files, handle_orphaned_files
 from .logging import (
@@ -39,7 +40,7 @@ from .constants import (
 )
 
 
-def _load_flows_for_explode(flows_path: Path, backup: bool) -> list:
+def _load_flows_for_explode(flows_path: Path, backup: bool) -> List[dict]:
     """Load and validate flows file for exploding
 
     Args:
@@ -83,11 +84,11 @@ def _load_flows_for_explode(flows_path: Path, backup: bool) -> list:
 
 
 def _run_pre_explode_stage(
-    flow_data: list,
-    pre_explode_plugins: list,
+    flow_data: List[dict],
+    pre_explode_plugins: List[Any],
     quiet_plugins: bool,
-    progress_task: tuple = None,
-) -> list:
+    progress_task: Optional[Tuple] = None,
+) -> List[dict]:
     """Run pre-explode plugins to modify flow JSON
 
     Args:
@@ -117,11 +118,11 @@ def _run_pre_explode_stage(
 def _explode_single_node(
     idx: int,
     node: dict,
-    explode_plugins: list,
+    explode_plugins: List[Any],
     src_dir: Path,
     tab_ids: set,
     quiet_plugins: bool,
-) -> tuple[int, dict, bool]:
+) -> Tuple[int, Optional[dict], bool]:
     """Process a single node for exploding (thread-safe worker function)
 
     Args:
@@ -246,14 +247,14 @@ def _explode_single_node(
 
 
 def _explode_nodes_stage(
-    flow_data: list,
-    explode_plugins: list,
+    flow_data: List[dict],
+    explode_plugins: List[Any],
     src_dir: Path,
     tab_ids: set,
     quiet_plugins: bool,
-    max_workers: int = DEFAULT_MAX_WORKERS,
-    progress_task: tuple = None,
-) -> tuple[list, bool]:
+    max_workers: Optional[int] = DEFAULT_MAX_WORKERS,
+    progress_task: Optional[Tuple] = None,
+) -> Tuple[List[dict], bool]:
     """Process each node and build skeleton (with optional parallel processing)
 
     Args:
@@ -357,11 +358,11 @@ def _explode_nodes_stage(
 
 
 def _run_post_explode_stage(
-    post_explode_plugins: list,
+    post_explode_plugins: List[Any],
     src_dir: Path,
     flows_path: Path,
     quiet_plugins: bool,
-    progress_task: tuple = None,
+    progress_task: Optional[Tuple] = None,
 ) -> bool:
     """Run post-explode plugins to format files
 
@@ -405,8 +406,8 @@ def explode_flows(
     return_info: bool = False,
     quiet_plugins: bool = False,
     dry_run: bool = False,
-    plugins_dict: dict = None,
-):
+    plugins_dict: Optional[Dict[str, List[Any]]] = None,
+) -> Any:
     """Explode flows.json into individual source files
 
     Args:
