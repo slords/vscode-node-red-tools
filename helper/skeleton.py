@@ -5,7 +5,7 @@ Handles creation, loading, and saving of .flow-skeleton.json files which
 contain the structural metadata for Node-RED flows.
 """
 
-import json
+import json5 as json
 from pathlib import Path
 from typing import Optional, Tuple, Dict, List
 
@@ -149,5 +149,7 @@ def save_skeleton(src_dir: Path, skeleton_data: List[dict]) -> None:
         - File: src_dir/.flow-skeleton.json
     """
     skeleton_file = src_dir / ".flow-skeleton.json"
-    skeleton_json = json.dumps(skeleton_data, separators=(",", ":"), ensure_ascii=False)
+    skeleton_json = json.dumps(
+        skeleton_data, separators=(",", ":"), ensure_ascii=False, quote_keys=True
+    )
     skeleton_file.write_text(skeleton_json + "\n")

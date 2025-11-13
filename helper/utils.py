@@ -5,7 +5,7 @@ Provides JSON handling, hashing, backup management, and other utilities.
 """
 
 import hashlib
-import json
+import json5 as json
 import re
 import shutil
 from datetime import datetime
@@ -347,7 +347,9 @@ def write_compact_json(path: Path, data: Any) -> None:
     Example:
         write_compact_json(Path("flows.json"), flow_data)
     """
-    json_str = json.dumps(data, separators=(",", ":"), ensure_ascii=False)
+    json_str = json.dumps(
+        data, separators=(",", ":"), ensure_ascii=False, quote_keys=True
+    )
     path.write_text(json_str + "\n")
 
 
@@ -421,7 +423,7 @@ def format_compact_json(data: Any) -> str:
     Example:
         json_str = format_compact_json({"key": "value"})
     """
-    return json.dumps(data, separators=(",", ":"), ensure_ascii=False)
+    return json.dumps(data, separators=(",", ":"), ensure_ascii=False, quote_keys=True)
 
 
 def compute_file_hash(filepath: Path, buffer_size: int = FILE_BUFFER_SIZE) -> str:

@@ -182,7 +182,7 @@ Description of what this plugin does.
 
 from pathlib import Path
 from typing import Dict, Any
-import json
+import json5 as json
 
 # Import helper utilities if needed
 from .plugin_helpers import read_node_file, write_node_file

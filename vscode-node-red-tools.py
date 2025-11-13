@@ -21,7 +21,7 @@ from __future__ import annotations
 __version__ = "3.0.0"
 
 import argparse
-import json
+import json5 as json
 import sys
 from pathlib import Path
 from typing import Optional, Dict, Any, Tuple, List

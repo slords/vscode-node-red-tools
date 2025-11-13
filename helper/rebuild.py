@@ -8,7 +8,7 @@ Handles reconstruction of flows.json from exploded source files with:
 """
 
 import inspect
-import json
+import json5 as json
 import os
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -472,7 +472,7 @@ def rebuild_flows(
         # Write flows file - compact format
         flows_path.parent.mkdir(parents=True, exist_ok=True)
         flows_json = json.dumps(
-            rebuilt_nodes, separators=(",", ":"), ensure_ascii=False
+            rebuilt_nodes, separators=(",", ":"), ensure_ascii=False, quote_keys=True
         )
         flows_path.write_text(flows_json + "\n")
 

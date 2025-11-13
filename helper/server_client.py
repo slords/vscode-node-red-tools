@@ -281,10 +281,13 @@ class ServerClient:
             return False, None
         try:
             self.flows_file.parent.mkdir(parents=True, exist_ok=True)
-            import json as _json
+            import json5 as _json
 
             self.flows_file.write_text(
-                _json.dumps(flows, separators=(",", ":"), ensure_ascii=False) + "\n"
+                _json.dumps(
+                    flows, separators=(",", ":"), ensure_ascii=False, quote_keys=True
+                )
+                + "\n"
             )
         except Exception as e:
             self.error_count += 1
@@ -306,10 +309,10 @@ class ServerClient:
                 "Node-RED-API-Version": "v2",
             }
             body = {"flows": flows_array}
-            import json as _json
+            import json5 as _json
 
             formatted_body = _json.dumps(
-                body, separators=(",", ":"), ensure_ascii=False
+                body, separators=(",", ":"), ensure_ascii=False, quote_keys=True
             )
             params = {}
             if self.last_rev:

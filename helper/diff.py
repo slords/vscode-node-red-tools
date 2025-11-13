@@ -8,7 +8,7 @@ Provides functions for comparing Node-RED flows in different locations:
 """
 
 import difflib
-import json
+import json5 as json
 import shutil
 import subprocess
 import tempfile
@@ -174,7 +174,10 @@ def prepare_source_for_diff(
         # Write to temp flows file - compact format
         temp_flows = temp_dir / "server_flows.json"
         temp_flows.write_text(
-            json.dumps(flow_data, separators=(",", ":"), ensure_ascii=False) + "\n"
+            json.dumps(
+                flow_data, separators=(",", ":"), ensure_ascii=False, quote_keys=True
+            )
+            + "\n"
         )
 
         # Explode to temp directory
@@ -349,8 +352,12 @@ def _print_flows_diff(original_path: Path, rebuilt_path: Path) -> None:
             rebuilt = json.load(f)
 
         # Format both as pretty JSON for readable diff
-        original_json = json.dumps(original, indent=2, ensure_ascii=False)
-        rebuilt_json = json.dumps(rebuilt, indent=2, ensure_ascii=False)
+        original_json = json.dumps(
+            original, indent=2, ensure_ascii=False, quote_keys=True
+        )
+        rebuilt_json = json.dumps(
+            rebuilt, indent=2, ensure_ascii=False, quote_keys=True
+        )
 
         # Generate unified diff
         diff = list(

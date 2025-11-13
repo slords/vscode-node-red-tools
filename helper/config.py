@@ -4,7 +4,7 @@ Configuration management for vscode-node-red-tools
 Handles loading and validating the .vscode-node-red-tools.json configuration file.
 """
 
-import json
+import json5 as json
 import os
 from pathlib import Path
 

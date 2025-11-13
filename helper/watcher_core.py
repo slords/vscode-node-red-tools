@@ -9,7 +9,7 @@ Core orchestration for watch mode:
 
 from __future__ import annotations
 
-import json
+import json5 as json
 import threading
 import time
 from pathlib import Path

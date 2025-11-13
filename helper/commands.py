@@ -7,7 +7,7 @@ Contains commands for statistics, benchmarking, and verification.
 from __future__ import annotations
 
 import difflib
-import json
+import json5 as json
 import tempfile
 import time
 from pathlib import Path
@@ -215,7 +215,10 @@ def benchmark_command(
                 # Write flows to temp
                 temp_flows.write_text(
                     json.dumps(
-                        original_flows, separators=(",", ":"), ensure_ascii=False
+                        original_flows,
+                        separators=(",", ":"),
+                        ensure_ascii=False,
+                        quote_keys=True,
                     )
                     + "\n"
                 )
@@ -338,7 +341,12 @@ def verify_flows(
 
             # Copy original flows to temp
             temp_flows.write_text(
-                json.dumps(original_flows, separators=(",", ":"), ensure_ascii=False)
+                json.dumps(
+                    original_flows,
+                    separators=(",", ":"),
+                    ensure_ascii=False,
+                    quote_keys=True,
+                )
                 + "\n"
             )
 
@@ -373,10 +381,16 @@ def verify_flows(
             # Serialize both with same settings to check field order AND content
             # Using compact format (no sort_keys to preserve order)
             original_json = json.dumps(
-                original_flows, separators=(",", ":"), ensure_ascii=False
+                original_flows,
+                separators=(",", ":"),
+                ensure_ascii=False,
+                quote_keys=True,
             )
             rebuilt_json = json.dumps(
-                rebuilt_flows, separators=(",", ":"), ensure_ascii=False
+                rebuilt_flows,
+                separators=(",", ":"),
+                ensure_ascii=False,
+                quote_keys=True,
             )
 
             # Compare serialized JSON (catches order differences)
@@ -405,9 +419,11 @@ def verify_flows(
 
                 # Show differences (use indented format for readability, but no sort_keys)
                 original_pretty = json.dumps(
-                    original_flows, indent=2, ensure_ascii=False
+                    original_flows, indent=2, ensure_ascii=False, quote_keys=True
                 )
-                rebuilt_pretty = json.dumps(rebuilt_flows, indent=2, ensure_ascii=False)
+                rebuilt_pretty = json.dumps(
+                    rebuilt_flows, indent=2, ensure_ascii=False, quote_keys=True
+                )
 
                 diff = list(
                     difflib.unified_diff(

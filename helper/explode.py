@@ -10,7 +10,7 @@ Handles decomposition of flows.json into individual source files with:
 
 from __future__ import annotations
 
-import json
+import json5 as json
 import os
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -191,7 +191,10 @@ def _explode_single_node(
         # Validate path before writing (security check)
         safe_json_file = validate_safe_path(src_dir, json_file)
         safe_json_file.write_text(
-            json.dumps(node_json, separators=(",", ":"), ensure_ascii=False) + "\n"
+            json.dumps(
+                node_json, separators=(",", ":"), ensure_ascii=False, quote_keys=True
+            )
+            + "\n"
         )
         # Base .json is created internally, not by a plugin
         plugin_files_map["internal"] = [f"{node_id}.json"]
@@ -232,10 +235,10 @@ def _explode_single_node(
 
         # Serialize to JSON for accurate comparison
         original_json = json.dumps(
-            original_compare, separators=(",", ":"), ensure_ascii=False
+            original_compare, separators=(",", ":"), ensure_ascii=False, quote_keys=True
         )
         rebuilt_json = json.dumps(
-            rebuilt_compare, separators=(",", ":"), ensure_ascii=False
+            rebuilt_compare, separators=(",", ":"), ensure_ascii=False, quote_keys=True
         )
 
         if original_json == rebuilt_json:

@@ -10,7 +10,7 @@ Handles high-level download/explode orchestration:
 - Rebuild and deploy
 """
 
-import json
+import json5 as json
 from datetime import datetime
 from pathlib import Path
 
@@ -66,7 +66,9 @@ def _run_pre_explode_download_stage(
             flow_data = json.load(f)
 
         # Save original for comparison
-        original_flow = json.dumps(flow_data, separators=(",", ":"), ensure_ascii=False)
+        original_flow = json.dumps(
+            flow_data, separators=(",", ":"), ensure_ascii=False, quote_keys=True
+        )
 
         # Run pre-explode plugins using the shared function (handles logging and progress)
         flow_data = _run_pre_explode_stage(
@@ -77,7 +79,9 @@ def _run_pre_explode_download_stage(
         )
 
         # Check if anything changed
-        modified_flow = json.dumps(flow_data, separators=(",", ":"), ensure_ascii=False)
+        modified_flow = json.dumps(
+            flow_data, separators=(",", ":"), ensure_ascii=False, quote_keys=True
+        )
         flows_modified = original_flow != modified_flow
 
         # Write modified flows

@@ -7,7 +7,7 @@ Handles discovery, classification, and management of node files including:
 - Node type inference from file patterns
 """
 
-import json
+import json5 as json
 from datetime import datetime
 from pathlib import Path
 from typing import List, Tuple

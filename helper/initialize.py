@@ -5,7 +5,7 @@ Handles config loading, credential resolution, authentication, and plugin loadin
 """
 
 from pathlib import Path
-import json
+import json5 as json
 from .logging import log_error, log_info, log_warning
 from .exit_codes import SERVER_CONNECTION_ERROR, CONFIG_ERROR
 
